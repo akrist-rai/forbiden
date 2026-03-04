@@ -1,0 +1,769 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SYSTEM // BOOT</title>
+    
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.css" />
+    <script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.js"></script>
+    
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700;800&display=swap");
+      
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { margin: 0; padding: 0; overflow: hidden; background: #000; font-family: "JetBrains Mono", monospace; }
+      
+      ::-webkit-scrollbar { width: 4px; height: 4px; }
+      ::-webkit-scrollbar-track { background: transparent; }
+      ::-webkit-scrollbar-thumb { background: var(--border); }
+      
+      /* THEME: SYNQ MINIMAL */
+      .theme-synq {
+        --bg: #030305; --panel: #0a0a0c; --border: #1f1f2e; 
+        --accent: #10b981; --accent-dim: rgba(16, 185, 129, 0.2);
+        --text-muted: #52525b; --text-main: #a1a1aa; --text-bright: #f4f4f5;
+        background-color: var(--bg); color: var(--text-main); font-size: 13px;
+      }
+      .theme-synq .tab.active { color: var(--accent); border-bottom: 1px solid var(--accent); background: var(--bg); }
+      
+      /* THEME: FORBIDDEN AEROSPACE */
+      .theme-forbidden {
+        --bg: #06080a; --panel: #0a0d12; --accent: #e5ff00; 
+        --text-pale: #b0c4cf; --text-bright: #ffffff; --border: #1e2832; 
+        --border-bright: #b0c4cf;
+        background-color: #030405; 
+        background-image: radial-gradient(circle at 50% 50%, rgba(176, 196, 207, 0.15) 1px, transparent 1px);
+        background-size: 24px 24px; color: var(--text-pale); font-size: 11px; text-transform: uppercase;
+      }
+      .theme-forbidden .tab.active { background: var(--accent); color: var(--bg); font-weight: bold; border-color: var(--accent); }
+      
+      /* MARATHON REMOTE CURSOR HIGHLIGHT */
+      .marathon-bar-forbidden { background-color: rgba(229, 255, 0, 0.15) !important; border-left: 4px solid #e5ff00 !important; }
+      .marathon-bar-synq { background-color: rgba(16, 185, 129, 0.15) !important; border-left: 4px solid #10b981 !important; }
+
+      .boot-menu { width: 100vw; height: 100vh; background: #000; color: #10b981; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 14px; }
+      .boot-input { background: #000; border: 1px solid #10b981; color: #10b981; padding: 8px 16px; font-family: inherit; margin-bottom: 16px; width: 400px; outline: none; }
+      .boot-btn { background: transparent; border: 1px solid #10b981; color: #10b981; padding: 16px 32px; font-family: inherit; font-size: 14px; cursor: pointer; transition: all 0.2s; text-align: left; width: 400px; margin-bottom: 16px; display: flex; justify-content: space-between; }
+      .boot-btn:hover { background: #10b981; color: #000; }
+      .boot-btn.forbidden-btn { border-color: #e5ff00; color: #e5ff00; }
+      .boot-btn.forbidden-btn:hover { background: #e5ff00; color: #000; }
+      
+      .btn-run { background: var(--accent); color: var(--bg); border: none; padding: 4px 16px; font-weight: bold; cursor: pointer; font-family: inherit; }
+      .btn-run:hover { opacity: 0.8; }
+      .btn-ghost { background: transparent; color: var(--text-main); border: 1px solid var(--border); padding: 4px 10px; cursor: pointer; font-family: inherit; font-size: 11px; }
+      .btn-ghost:hover { color: var(--text-bright); border-color: var(--accent); }
+      .status-bar { height: 28px; border-top: 1px solid var(--border); background: var(--panel); display: flex; align-items: center; justify-content: space-between; padding: 0 10px; font-size: 10px; color: var(--text-main); }
+      .status-pill { padding: 2px 8px; border: 1px solid var(--border); }
+      .status-pill.ok { border-color: var(--accent); color: var(--accent); }
+      .command-palette-backdrop { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.45); display: flex; align-items: flex-start; justify-content: center; padding-top: 80px; z-index: 30; }
+      .command-palette { width: min(640px, 90vw); background: var(--panel); border: 1px solid var(--border); box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5); }
+      .command-input { width: 100%; background: transparent; border: none; border-bottom: 1px solid var(--border); color: var(--text-bright); padding: 12px; outline: none; font-family: inherit; font-size: 12px; }
+      .command-item { padding: 10px 12px; border-top: 1px solid var(--border); cursor: pointer; display: flex; justify-content: space-between; font-size: 11px; }
+      .command-item:hover { background: var(--accent-dim); color: var(--text-bright); }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs/loader.min.js"></script>
+
+    <script type="text/babel">
+      const { useState, useEffect, useRef, useMemo } = React;
+
+      function normalizeServerBase(input) {
+        const raw = (input || "").trim();
+        if (!raw) return "";
+        const withProtocol = /^https?:\/\//i.test(raw) ? raw : `http://${raw}`;
+        return withProtocol.replace(/\/+$/, "");
+      }
+
+      function detectDefaultServer() {
+        const isHttp = window.location.protocol === "http:" || window.location.protocol === "https:";
+        if (isHttp && window.location.host) return window.location.host;
+        return "localhost:3000";
+      }
+
+      function setCookie(name, value, days = 30) {
+        const expires = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toUTCString();
+        document.cookie = `${name}=${encodeURIComponent(value)}; expires=${expires}; path=/; SameSite=Lax`;
+      }
+
+      function getCookie(name) {
+        const key = `${name}=`;
+        const parts = document.cookie.split(";").map((part) => part.trim());
+        for (const part of parts) {
+          if (part.startsWith(key)) return decodeURIComponent(part.slice(key.length));
+        }
+        return "";
+      }
+
+      const WORKSPACE_KEY = "forbiden_workspace_v1";
+
+      // Personalized default workspace
+      const DEFAULT_FILES = {
+        "main.cpp": `#include <iostream>\n#include <vector>\n\nusing namespace std;\n\nint main() {\n    cout << "Initializing ST-Mamba Data Pipeline..." << endl;\n    // Load traffic node data here\n    return 0;\n}`,
+        "commute_st.py": `import torch\nimport torch.nn as nn\n\nclass SpatioTemporalMamba(nn.Module):\n    def __init__(self):\n        super().__init__()\n        self.gat = nn.Linear(64, 128) # Placeholder for GAT\n        print("Commute traffic predictor initialized.")\n\n    def forward(self, x):\n        return self.gat(x)`,
+      };
+
+      function loadWorkspaceFiles() {
+        try {
+          const raw = localStorage.getItem(WORKSPACE_KEY);
+          if (!raw) return DEFAULT_FILES;
+          const parsed = JSON.parse(raw);
+          if (!parsed || typeof parsed !== "object") return DEFAULT_FILES;
+          const keys = Object.keys(parsed);
+          if (!keys.length) return DEFAULT_FILES;
+          return parsed;
+        } catch (_) {
+          return DEFAULT_FILES;
+        }
+      }
+
+      function inferLanguage(fileName) {
+        if (fileName.endsWith(".py")) return "python";
+        if (fileName.endsWith(".js")) return "javascript";
+        if (fileName.endsWith(".ts")) return "typescript";
+        if (fileName.endsWith(".json")) return "json";
+        if (fileName.endsWith(".md")) return "markdown";
+        if (fileName.endsWith(".html")) return "html";
+        if (fileName.endsWith(".css")) return "css";
+        if (fileName.endsWith(".cpp") || fileName.endsWith(".cc") || fileName.endsWith(".cxx")) return "cpp";
+        if (fileName.endsWith(".c")) return "c";
+        return "plaintext";
+      }
+
+      // --- MAIN IDE COMPONENT ---
+      function IDE({ theme, username, serverIP }) {
+        const [files, setFiles] = useState(loadWorkspaceFiles);
+        const [activeFile, setActiveFile] = useState(() => Object.keys(loadWorkspaceFiles())[0] || "main.cpp");
+        const [onlineUsers, setOnlineUsers] = useState([]);
+        const [socket, setSocket] = useState(null);
+        const serverBaseUrl = useMemo(() => normalizeServerBase(serverIP), [serverIP]);
+        const [cursor, setCursor] = useState({ line: 1, col: 1 });
+        const [connectionState, setConnectionState] = useState("connecting");
+        const [showMinimap, setShowMinimap] = useState(false);
+        const [wordWrap, setWordWrap] = useState(false);
+        const [commandOpen, setCommandOpen] = useState(false);
+        const [commandQuery, setCommandQuery] = useState("");
+        const [savedAt, setSavedAt] = useState(null);
+        
+        // AI State
+        const [aiPrompt, setAiPrompt] = useState("");
+        const [aiResponse, setAiResponse] = useState("");
+
+        const editorRef = useRef(null);
+        const monacoRef = useRef(null);
+        const terminalRef = useRef(null);
+        const xtermRef = useRef(null);
+        const decorationsCollectionRef = useRef(null); // Holds the Marathon bar
+        const socketRef = useRef(null);
+        const activeFileRef = useRef(activeFile);
+        const applyingRemoteUpdateRef = useRef(false);
+        const remoteCursorTimeoutRef = useRef(null);
+        const filesRef = useRef(files);
+
+        useEffect(() => {
+          filesRef.current = files;
+        }, [files]);
+
+        useEffect(() => {
+          try {
+            localStorage.setItem(WORKSPACE_KEY, JSON.stringify(files));
+            setSavedAt(new Date());
+          } catch (_) {}
+        }, [files]);
+
+        useEffect(() => {
+          activeFileRef.current = activeFile;
+        }, [activeFile]);
+
+        // 1. Initialize WebSockets & Xterm
+        useEffect(() => {
+          if (!serverBaseUrl) return;
+
+          // Connect to Koa Backend
+          const newSocket = io(serverBaseUrl);
+          setSocket(newSocket);
+          socketRef.current = newSocket;
+          setConnectionState("connecting");
+
+          newSocket.on("connect", () => setConnectionState("connected"));
+          newSocket.on("disconnect", () => setConnectionState("disconnected"));
+          newSocket.on("connect_error", () => setConnectionState("error"));
+
+          newSocket.emit('editor:join', username);
+          newSocket.on('system:users_update', setOnlineUsers);
+
+          // Initialize Xterm.js
+          const term = new Terminal({
+            theme: {
+              background: theme === 'forbidden' ? '#0a0d12' : '#0a0a0c',
+              foreground: theme === 'forbidden' ? '#b0c4cf' : '#a1a1aa',
+              cursor: theme === 'forbidden' ? '#e5ff00' : '#10b981'
+            },
+            fontFamily: '"JetBrains Mono", monospace',
+            fontSize: 12
+          });
+          
+          const fitAddon = new FitAddon.FitAddon();
+          term.loadAddon(fitAddon);
+          term.open(terminalRef.current);
+          fitAddon.fit();
+          xtermRef.current = term;
+
+          // Route keystrokes to Node-PTY backend
+          term.onData(data => newSocket.emit('terminal:input', data));
+          
+          // Route output from Node-PTY backend to Xterm
+          newSocket.on('terminal:output', data => term.write(data));
+
+          // Handle remote sync
+          newSocket.on('editor:sync_code', (data) => {
+            setFiles(p => ({ ...p, [data.file]: data.code }));
+
+            if (
+              data.file === activeFileRef.current &&
+              editorRef.current &&
+              editorRef.current.getValue() !== data.code
+            ) {
+              // Avoid rebroadcast loops while applying remote content.
+              applyingRemoteUpdateRef.current = true;
+              const currentPosition = editorRef.current.getPosition();
+              editorRef.current.setValue(data.code);
+              if (currentPosition) editorRef.current.setPosition(currentPosition);
+              applyingRemoteUpdateRef.current = false;
+            }
+          });
+
+          // Handle the Marathon Green Bar
+          newSocket.on('editor:remote_cursor', (data) => {
+            if (data.file === activeFileRef.current && decorationsCollectionRef.current) {
+              const barClass = theme === 'forbidden' ? 'marathon-bar-forbidden' : 'marathon-bar-synq';
+              decorationsCollectionRef.current.set([{
+                range: new monacoRef.current.Range(data.line, 1, data.line, 1),
+                options: { isWholeLine: true, className: barClass, hoverMessage: { value: `Editing: ${data.username}` } }
+              }]);
+              
+              // Clear highlight after 2 seconds of inactivity
+              clearTimeout(remoteCursorTimeoutRef.current);
+              remoteCursorTimeoutRef.current = setTimeout(() => {
+                if (decorationsCollectionRef.current) decorationsCollectionRef.current.set([]);
+              }, 2000);
+            }
+          });
+
+          return () => {
+            clearTimeout(remoteCursorTimeoutRef.current);
+            socketRef.current = null;
+            newSocket.disconnect();
+            term.dispose();
+          };
+        }, [serverBaseUrl, username, theme]);
+
+        // 2. Initialize Monaco Editor
+        useEffect(() => {
+          require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs' }});
+          require(['vs/editor/editor.main'], function () {
+            monacoRef.current = monaco;
+
+            const editorPalette = theme === 'forbidden'
+              ? {
+                  fg: 'B0C4CF',
+                  muted: '6F8A9A',
+                  accent: 'E5FF00',
+                  keyword: 'E5FF00',
+                  string: 'B9D7E6',
+                  number: 'D7FF6B',
+                  type: 'DCE9F0',
+                  fn: 'EAF6FF',
+                  variable: 'C9DAE3',
+                  comment: '6E8796',
+                  selection: '#E5FF0033',
+                  line: '#E5FF0018',
+                  bracket: '#E5FF0033'
+                }
+              : {
+                  fg: 'A1A1AA',
+                  muted: '5A5A68',
+                  accent: '10B981',
+                  keyword: '10B981',
+                  string: '9CD8C1',
+                  number: '6EE7B7',
+                  type: 'D1FAE5',
+                  fn: 'CFFAFE',
+                  variable: 'A7F3D0',
+                  comment: '5F7A72',
+                  selection: '#10B98133',
+                  line: '#10B98118',
+                  bracket: '#10B98133'
+                };
+            
+            // Custom Theme to match our UI
+            monaco.editor.defineTheme('custom-dark', {
+              base: 'vs-dark',
+              inherit: true,
+              rules: [
+                { token: 'comment', foreground: editorPalette.comment, fontStyle: 'italic' },
+                { token: 'keyword', foreground: editorPalette.keyword },
+                { token: 'operator', foreground: 'D4D4D4' },
+                { token: 'number', foreground: editorPalette.number },
+                { token: 'string', foreground: editorPalette.string },
+                { token: 'string.escape', foreground: 'D7BA7D' },
+                { token: 'type', foreground: editorPalette.type },
+                { token: 'class', foreground: editorPalette.type },
+                { token: 'interface', foreground: editorPalette.type },
+                { token: 'function', foreground: editorPalette.fn },
+                { token: 'function.call', foreground: editorPalette.fn },
+                { token: 'variable', foreground: editorPalette.variable },
+                { token: 'constant', foreground: editorPalette.accent },
+                { token: 'delimiter', foreground: 'D4D4D4' }
+              ],
+              colors: {
+                'editor.background': '#00000000',
+                'editor.foreground': `#${editorPalette.fg}`,
+                'editorLineNumber.foreground': `#${editorPalette.muted}`,
+                'editorLineNumber.activeForeground': `#${editorPalette.fg}`,
+                'editorCursor.foreground': `#${editorPalette.accent}`,
+                'editor.selectionBackground': editorPalette.selection,
+                'editor.inactiveSelectionBackground': '#3A3D41',
+                'editor.lineHighlightBackground': editorPalette.line,
+                'editorBracketMatch.background': editorPalette.bracket,
+                'editorBracketMatch.border': editorPalette.bracket,
+                'editorIndentGuide.background1': '#40404066',
+                'editorIndentGuide.activeBackground1': '#70707088',
+                'editorWhitespace.foreground': '#3B3B3B'
+              } // Transparent so UI background shows
+            });
+
+            const editor = monaco.editor.create(document.getElementById('monaco-container'), {
+              value: files[activeFile],
+              language: inferLanguage(activeFile),
+              theme: 'custom-dark',
+              minimap: { enabled: false },
+              automaticLayout: true,
+              fontFamily: '"JetBrains Mono", monospace',
+              fontSize: 13,
+              fontLigatures: true,
+              smoothScrolling: true,
+              renderLineHighlight: 'all',
+              cursorBlinking: 'phase',
+              cursorSmoothCaretAnimation: 'on',
+              bracketPairColorization: { enabled: true },
+              guides: {
+                bracketPairs: true,
+                indentation: true
+              }
+            });
+            
+            editorRef.current = editor;
+            decorationsCollectionRef.current = editor.createDecorationsCollection([]);
+
+            // Listen for changes
+            editor.onDidChangeModelContent(() => {
+              if (applyingRemoteUpdateRef.current) return;
+              const code = editor.getValue();
+              const currentFile = activeFileRef.current;
+              setFiles(p => ({ ...p, [currentFile]: code }));
+              if (socketRef.current) socketRef.current.emit('editor:code_change', { file: currentFile, code });
+            });
+
+            // Listen for cursor movement to broadcast
+            editor.onDidChangeCursorPosition((e) => {
+              const currentFile = activeFileRef.current;
+              setCursor({ line: e.position.lineNumber, col: e.position.column });
+              if (socketRef.current) {
+                socketRef.current.emit('editor:cursor_move', { file: currentFile, line: e.position.lineNumber });
+              }
+            });
+          });
+
+          return () => editorRef.current?.dispose();
+        }, []);
+
+        // 3. Handle File Switching
+        useEffect(() => {
+          if (editorRef.current && monacoRef.current) {
+            const currentCode = editorRef.current.getValue();
+            if (currentCode !== files[activeFile]) {
+              editorRef.current.setValue(files[activeFile]);
+              monaco.editor.setModelLanguage(editorRef.current.getModel(), inferLanguage(activeFile));
+            }
+          }
+        }, [activeFile]);
+
+        useEffect(() => {
+          if (!editorRef.current) return;
+          editorRef.current.updateOptions({
+            minimap: { enabled: showMinimap },
+            wordWrap: wordWrap ? "on" : "off"
+          });
+        }, [showMinimap, wordWrap]);
+
+        const saveWorkspace = () => {
+          try {
+            localStorage.setItem(WORKSPACE_KEY, JSON.stringify(filesRef.current));
+            setSavedAt(new Date());
+            xtermRef.current?.write(`\r\n\x1b[32m[SYSTEM] Workspace saved.\x1b[0m\r\n`);
+          } catch (e) {
+            xtermRef.current?.write(`\r\n\x1b[31m[ERROR] Save failed.\x1b[0m\r\n`);
+          }
+        };
+
+        const newFile = () => {
+          const fileName = prompt("New file name (example: app.js)");
+          if (!fileName) return;
+          if (filesRef.current[fileName]) return alert("File already exists.");
+          setFiles((prev) => ({ ...prev, [fileName]: "" }));
+          setActiveFile(fileName);
+        };
+
+        const renameFile = () => {
+          const nextName = prompt("Rename file to:", activeFile);
+          if (!nextName || nextName === activeFile) return;
+          if (filesRef.current[nextName]) return alert("A file with that name already exists.");
+          setFiles((prev) => {
+            const clone = { ...prev, [nextName]: prev[activeFile] };
+            delete clone[activeFile];
+            return clone;
+          });
+          setActiveFile(nextName);
+        };
+
+        const deleteFile = () => {
+          const keys = Object.keys(filesRef.current);
+          if (keys.length <= 1) return alert("At least one file must remain.");
+          if (!confirm(`Delete ${activeFile}?`)) return;
+          setFiles((prev) => {
+            const clone = { ...prev };
+            delete clone[activeFile];
+            return clone;
+          });
+          const remaining = keys.filter((k) => k !== activeFile);
+          setActiveFile(remaining[0]);
+        };
+
+        const downloadActiveFile = () => {
+          const content = filesRef.current[activeFile] || "";
+          const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+          const link = document.createElement("a");
+          link.href = URL.createObjectURL(blob);
+          link.download = activeFile;
+          link.click();
+          URL.revokeObjectURL(link.href);
+        };
+
+        const openFind = () => editorRef.current?.getAction("actions.find")?.run();
+        const openReplace = () => editorRef.current?.getAction("editor.action.startFindReplaceAction")?.run();
+        const formatDocument = () => editorRef.current?.getAction("editor.action.formatDocument")?.run();
+
+        const commandItems = [
+          { id: "save", label: "Save Workspace", hint: "Ctrl/Cmd+S", run: saveWorkspace },
+          { id: "new", label: "New File", hint: "Ctrl/Cmd+N", run: newFile },
+          { id: "rename", label: "Rename Active File", hint: "F2", run: renameFile },
+          { id: "delete", label: "Delete Active File", hint: "Del", run: deleteFile },
+          { id: "find", label: "Find", hint: "Ctrl/Cmd+F", run: openFind },
+          { id: "replace", label: "Replace", hint: "Ctrl/Cmd+H", run: openReplace },
+          { id: "format", label: "Format Document", hint: "Shift+Alt+F", run: formatDocument },
+          { id: "run", label: "Run Active File", hint: "Ctrl/Cmd+Enter", run: () => runCode() },
+          { id: "download", label: "Download Active File", hint: "-", run: downloadActiveFile },
+          { id: "wrap", label: `Toggle Word Wrap (${wordWrap ? "On" : "Off"})`, hint: "Alt+Z", run: () => setWordWrap((p) => !p) },
+          { id: "minimap", label: `Toggle Minimap (${showMinimap ? "On" : "Off"})`, hint: "-", run: () => setShowMinimap((p) => !p) }
+        ];
+
+        const visibleCommands = commandItems.filter((cmd) =>
+          cmd.label.toLowerCase().includes(commandQuery.trim().toLowerCase())
+        );
+
+        useEffect(() => {
+          const onKeyDown = (e) => {
+            const meta = e.ctrlKey || e.metaKey;
+            if (meta && e.shiftKey && e.key.toLowerCase() === "s") {
+              e.preventDefault();
+              downloadActiveFile();
+              return;
+            }
+            if (meta && e.key.toLowerCase() === "s") {
+              e.preventDefault();
+              saveWorkspace();
+              return;
+            }
+            if (meta && e.key.toLowerCase() === "n") {
+              e.preventDefault();
+              newFile();
+              return;
+            }
+            if (meta && e.key.toLowerCase() === "f") {
+              e.preventDefault();
+              openFind();
+              return;
+            }
+            if (meta && e.key.toLowerCase() === "h") {
+              e.preventDefault();
+              openReplace();
+              return;
+            }
+            if (meta && e.key.toLowerCase() === "p") {
+              e.preventDefault();
+              setCommandOpen(true);
+              return;
+            }
+            if (meta && e.key === "Enter") {
+              e.preventDefault();
+              runCode();
+              return;
+            }
+            if (e.key === "F2") {
+              e.preventDefault();
+              renameFile();
+              return;
+            }
+            if (e.altKey && e.key.toLowerCase() === "z") {
+              e.preventDefault();
+              setWordWrap((p) => !p);
+              return;
+            }
+            if (commandOpen && e.key === "Escape") {
+              e.preventDefault();
+              setCommandOpen(false);
+              setCommandQuery("");
+              return;
+            }
+            if (commandOpen && e.key === "Enter" && visibleCommands[0]) {
+              e.preventDefault();
+              visibleCommands[0].run();
+              setCommandOpen(false);
+              setCommandQuery("");
+            }
+          };
+
+          window.addEventListener("keydown", onKeyDown);
+          return () => window.removeEventListener("keydown", onKeyDown);
+        }, [commandOpen, visibleCommands, wordWrap, showMinimap, activeFile]);
+
+        // 4. API Actions (Run Code & AI)
+        async function runCode() {
+          xtermRef.current.write(`\r\n\x1b[33m[SYSTEM] Compiling & Executing ${activeFile}...\x1b[0m\r\n`);
+          try {
+            const res = await fetch(`${serverBaseUrl}/api/run`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ code: files[activeFile], language: activeFile.endsWith('.py') ? 'python' : 'cpp' })
+            });
+            const data = await res.json();
+            xtermRef.current.write(`\r\n${data.output.replace(/\n/g, '\r\n')}\r\n`);
+          } catch (e) {
+            xtermRef.current.write(`\r\n\x1b[31m[ERROR] Backend connection failed.\x1b[0m\r\n`);
+          }
+        }
+
+        async function askAI() {
+          setAiResponse("Uplink in progress...");
+          try {
+            const res = await fetch(`${serverBaseUrl}/api/ai/chat`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ prompt: aiPrompt, currentContext: files[activeFile] })
+            });
+            const data = await res.json();
+            setAiResponse(data.response || data.error || "No response from AI.");
+          } catch (e) {
+            setAiResponse("AI Core offline. Check server.");
+          }
+        }
+
+        return (
+          <div className={`theme-${theme}`} style={{ display: "flex", flexDirection: "column", height: "100vh", width: "100vw", padding: theme === 'forbidden' ? "48px" : "0" }}>
+            <div style={{ display: "flex", flexDirection: "column", flex: 1, border: theme === 'forbidden' ? "2px solid var(--accent)" : "none", background: "var(--bg)", boxShadow: theme === 'forbidden' ? "0 32px 80px rgba(0,0,0,0.9)" : "none" }}>
+              
+              {/* HEADER */}
+              <div style={{ display: "flex", height: 50, borderBottom: "1px solid var(--border)", background: "var(--panel)", alignItems: "center", padding: "0 24px" }}>
+                <div style={{ fontWeight: 800, color: "var(--text-bright)", flex: 1 }}>{theme === 'forbidden' ? 'FORBIDDEN // ROOT' : '✦ SYNQ IDE'}</div>
+                <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
+                  <span style={{color: "var(--text-pale)"}}>NODE: {username}</span>
+                  <button className="btn-ghost" onClick={saveWorkspace}>SAVE</button>
+                  <button className="btn-ghost" onClick={downloadActiveFile}>DOWNLOAD</button>
+                  <button className="btn-ghost" onClick={() => setCommandOpen(true)}>COMMANDS</button>
+                  <button className="btn-run" onClick={runCode}>[ RUN EXEC ]</button>
+                </div>
+              </div>
+
+              <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
+                
+                {/* SIDEBAR */}
+                <div style={{ width: 220, borderRight: "1px solid var(--border)", display: "flex", flexDirection: "column", padding: "16px 0" }}>
+                  <div style={{ padding: "0 16px", marginBottom: 8, color: "var(--text-muted)" }}>DIRECTORY //</div>
+                  <div style={{ display: "flex", gap: 6, padding: "0 16px", marginBottom: 12 }}>
+                    <button className="btn-ghost" onClick={newFile}>NEW</button>
+                    <button className="btn-ghost" onClick={renameFile}>RENAME</button>
+                    <button className="btn-ghost" onClick={deleteFile}>DEL</button>
+                  </div>
+                  {Object.keys(files).map(f => (
+                    <div key={f} onClick={() => setActiveFile(f)} style={{ padding: "8px 16px", cursor: "pointer", background: activeFile === f ? "var(--panel)" : "transparent", color: activeFile === f ? "var(--accent)" : "inherit", borderLeft: activeFile === f ? "2px solid var(--accent)" : "2px solid transparent" }}>
+                      {f}
+                    </div>
+                  ))}
+
+                  <div style={{ marginTop: "auto", padding: "16px", borderTop: "1px dashed var(--border)" }}>
+                    <div style={{ color: "var(--text-muted)", marginBottom: 8 }}>NETWORK PRESENCE //</div>
+                    {onlineUsers.map(u => (
+                      <div key={u.username} style={{ color: u.username === username ? "var(--accent)" : "var(--text-bright)", fontSize: 10, display: "flex", justifyContent: "space-between" }}>
+                        <span>{u.username}</span> <span>{u.currentLine ? `Ln ${u.currentLine}` : 'IDLE'}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* EDITOR PANE */}
+                <div style={{ flex: 1, display: "flex", flexDirection: "column", position: "relative" }}>
+                  <div style={{ display: "flex", borderBottom: "1px solid var(--border)", background: "var(--panel)" }}>
+                    {Object.keys(files).map(f => (
+                      <div key={f} className={`tab ${activeFile === f ? 'active' : ''}`} onClick={() => setActiveFile(f)} style={{ padding: "12px 24px", cursor: "pointer" }}>{f}</div>
+                    ))}
+                    <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 6, paddingRight: 10 }}>
+                      <button className="btn-ghost" onClick={openFind}>FIND</button>
+                      <button className="btn-ghost" onClick={openReplace}>REPLACE</button>
+                      <button className="btn-ghost" onClick={formatDocument}>FORMAT</button>
+                      <button className="btn-ghost" onClick={() => setWordWrap((p) => !p)}>{wordWrap ? "WRAP ON" : "WRAP OFF"}</button>
+                      <button className="btn-ghost" onClick={() => setShowMinimap((p) => !p)}>{showMinimap ? "MAP ON" : "MAP OFF"}</button>
+                    </div>
+                  </div>
+                  
+                  {/* MONACO MOUNT POINT */}
+                  <div id="monaco-container" style={{ flex: 1, width: '100%' }}></div>
+                  
+                  {/* TERMINAL PANE */}
+                  <div style={{ height: 250, borderTop: "1px solid var(--border)", background: "var(--panel)", display: "flex", flexDirection: "column" }}>
+                    <div style={{ padding: "4px 16px", fontSize: 10, background: "var(--accent)", color: "#000", fontWeight: "bold" }}>HOST TERMINAL //</div>
+                    <div ref={terminalRef} style={{ flex: 1, padding: "8px", overflow: "hidden" }}></div>
+                  </div>
+                </div>
+
+                {/* AI ASSISTANT PANEL */}
+                <div style={{ width: 300, borderLeft: "1px solid var(--border)", display: "flex", flexDirection: "column", background: "var(--panel)" }}>
+                  <div style={{ padding: "16px", borderBottom: "1px solid var(--border)", fontWeight: "bold", color: "var(--accent)" }}>AI UPLINK //</div>
+                  <div style={{ flex: 1, padding: "16px", overflowY: "auto", whiteSpace: "pre-wrap", color: "var(--text-bright)" }}>
+                    {aiResponse || "Awaiting query..."}
+                  </div>
+                  <div style={{ padding: "16px", borderTop: "1px solid var(--border)", display: "flex", gap: 8 }}>
+                    <input value={aiPrompt} onChange={e => setAiPrompt(e.target.value)} onKeyDown={e => e.key === 'Enter' && askAI()} placeholder="Query AI..." style={{ flex: 1, background: "transparent", border: "1px solid var(--border)", color: "inherit", padding: "8px", outline: "none", fontFamily: "inherit" }} />
+                    <button onClick={askAI} className="btn-run">SEND</button>
+                  </div>
+                </div>
+              </div>
+              <div className="status-bar">
+                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <span className={`status-pill ${connectionState === "connected" ? "ok" : ""}`}>{connectionState.toUpperCase()}</span>
+                  <span>{activeFile}</span>
+                  <span>{inferLanguage(activeFile).toUpperCase()}</span>
+                </div>
+                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <span>Ln {cursor.line}, Col {cursor.col}</span>
+                  <span>{savedAt ? `Saved ${savedAt.toLocaleTimeString()}` : "Unsaved"}</span>
+                </div>
+              </div>
+            </div>
+            {commandOpen && (
+              <div className="command-palette-backdrop" onClick={() => { setCommandOpen(false); setCommandQuery(""); }}>
+                <div className="command-palette" onClick={(e) => e.stopPropagation()}>
+                  <input
+                    className="command-input"
+                    autoFocus
+                    value={commandQuery}
+                    onChange={(e) => setCommandQuery(e.target.value)}
+                    placeholder="Type a command..."
+                  />
+                  {(visibleCommands.length ? visibleCommands : commandItems).slice(0, 10).map((cmd) => (
+                    <div
+                      key={cmd.id}
+                      className="command-item"
+                      onClick={() => {
+                        cmd.run();
+                        setCommandOpen(false);
+                        setCommandQuery("");
+                      }}
+                    >
+                      <span>{cmd.label}</span>
+                      <span style={{ opacity: 0.7 }}>{cmd.hint}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      }
+
+      // --- BOOTLOADER ---
+      function App() {
+        const savedUsername = getCookie("forbiden_username");
+        const savedServer = getCookie("forbiden_server");
+        const savedTheme = getCookie("forbiden_theme");
+        const validSavedTheme = savedTheme === "synq" || savedTheme === "forbidden" ? savedTheme : null;
+
+        const [step, setStep] = useState(savedUsername ? 1 : 0);
+        const [serverIP, setServerIP] = useState(savedServer || detectDefaultServer);
+        const [username, setUsername] = useState(savedUsername || "");
+        const [theme, setTheme] = useState(validSavedTheme);
+
+        useEffect(() => {
+          if (serverIP) setCookie("forbiden_server", serverIP);
+        }, [serverIP]);
+
+        useEffect(() => {
+          if (username) setCookie("forbiden_username", username);
+        }, [username]);
+
+        useEffect(() => {
+          if (theme) setCookie("forbiden_theme", theme);
+        }, [theme]);
+
+        const handleConnect = () => {
+          const normalized = username.trim();
+          if (!normalized) return;
+          setUsername(normalized);
+          setCookie("forbiden_username", normalized);
+          setCookie("forbiden_server", serverIP);
+          setStep(1);
+        };
+
+        if (step === 0) {
+          return (
+            <div className="boot-menu">
+              <div style={{ width: 400, marginBottom: 16 }}>ESTABLISHING NETWORK UPLINK...</div>
+              <input className="boot-input" value={serverIP} onChange={e => setServerIP(e.target.value)} placeholder="Server (e.g., localhost:3001)" />
+              <input className="boot-input" value={username} onChange={e => setUsername(e.target.value)} placeholder="Enter Ident (Username)" autoFocus onKeyDown={e => e.key === 'Enter' && handleConnect()} />
+              <button className="boot-btn" onClick={handleConnect} style={{textAlign: "center", justifyContent: "center"}}>CONNECT TO HOST</button>
+            </div>
+          );
+        }
+
+        if (theme === null) {
+          return (
+            <div className="boot-menu">
+              <div style={{ width: 400, marginBottom: 32 }}>NETWORK SECURED. SELECT OPERATING ENVIRONMENT:</div>
+              <button className="boot-btn" onClick={() => setTheme('synq')}>
+                <span>[1] SYNQIDE</span> <span>STANDARD MINIMAL</span>
+              </button>
+              <button className="boot-btn forbidden-btn" onClick={() => setTheme('forbidden')}>
+                <span>[2] FORBIDDEN</span> <span>RESTRICTED TIER</span>
+              </button>
+            </div>
+          );
+        }
+
+        return <IDE theme={theme} username={username} serverIP={serverIP} />;
+      }
+
+      const root = ReactDOM.createRoot(document.getElementById("root"));
+      root.render(<App />);
+    </script>
+  </body>
+</html>
