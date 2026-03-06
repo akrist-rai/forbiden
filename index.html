@@ -18,7 +18,7 @@
       overflow: hidden; 
       width: 100vw; height: 100vh;
       user-select: none; font-size: 10px;
-      background-color: #050505; /* Default background */
+      background-color: #050505; 
       margin: 0;
     }
 
@@ -40,28 +40,29 @@
     }
 
     /* =========================================
-       THEME 1: NOEINOI (BRUTALIST)
+       THEME 1: FORSAKEN (BRUTALIST)
        ========================================= */
     .theme-brutal {
-      --bg: #FFFFFF; --text: #000000; --border: #000000;
+      --bg: #ffffff; --text: #111111; --border: #111111; --node-bg: #ffffff;
       --border-w: 6px; --edge-w: 4px; --ui-radius: 0px;
       font-family: 'Inter', sans-serif;
       text-transform: uppercase; font-weight: 900;
-      box-shadow: 20px 20px 0px rgba(0,0,0,1);
+      box-shadow: 20px 20px 0px rgba(17,17,17,1);
     }
     
-    .theme-brutal.zone-white  { --bg: #FFFFFF; --text: #000000; --border: #000000; }
-    .theme-brutal.zone-yellow { --bg: #FFE500; --text: #000000; --border: #000000; }
-    .theme-brutal.zone-blue   { --bg: #0033FF; --text: #FFFFFF; --border: #FFFFFF; }
-    .theme-brutal.zone-red    { --bg: #FF0033; --text: #FFFFFF; --border: #FFFFFF; }
-    .theme-brutal.zone-green  { --bg: #00FF66; --text: #000000; --border: #000000; }
+    /* Forsaken Custom Color Zones */
+    .theme-brutal.zone-default { --bg: #ffffff; --text: #111111; --border: #111111; --node-bg: #ffffff; }
+    .theme-brutal.zone-1       { --bg: #111111; --text: #ff435a; --border: #ff435a; --node-bg: #111111; }
+    .theme-brutal.zone-2       { --bg: #7ca148; --text: #111111; --border: #111111; --node-bg: #ffc410; }
+    .theme-brutal.zone-3       { --bg: #1e836d; --text: #111111; --border: #111111; --node-bg: #1e836d; }
+    .theme-brutal.zone-4       { --bg: #f3f5f7; --text: #4285f4; --border: #4285f4; --node-bg: #f3f5f7; }
 
     .theme-brutal .btn { border: 4px solid var(--text); box-shadow: 4px 4px 0 var(--border); }
     .theme-brutal .btn:hover { background: var(--text); color: var(--bg); transform: translate(-2px, -2px); box-shadow: 6px 6px 0 var(--border); }
-    .theme-brutal .node-circle { background: #FFFFFF; border: 4px solid #000000; box-shadow: 4px 4px 0px rgba(0,0,0,1); }
-    .theme-brutal .node-label { background: #FFFFFF; color: #000000; border: 4px solid #000000; box-shadow: 4px 4px 0px rgba(0,0,0,1); font-weight: 900; }
-    .theme-brutal .code-area { background: #FFFFFF; border: 6px solid #000000; color: #000000; box-shadow: 8px 8px 0px #000000; font-weight: 700; }
-    .theme-brutal .modal-content { border: 6px solid #000000; box-shadow: 20px 20px 0px rgba(0,0,0,1); }
+    .theme-brutal .node-circle { background: var(--node-bg); border: 4px solid var(--border); box-shadow: 4px 4px 0px var(--border); }
+    .theme-brutal .node-label { background: var(--bg); color: var(--text); border: 4px solid var(--border); box-shadow: 4px 4px 0px var(--border); font-weight: 900; }
+    .theme-brutal .code-area { background: var(--node-bg); border: 6px solid var(--border); color: var(--text); box-shadow: 8px 8px 0px var(--border); font-weight: 700; }
+    .theme-brutal .modal-content { border: 6px solid var(--border); box-shadow: 20px 20px 0px var(--border); }
 
     /* =========================================
        THEME 2: OBSIDIAN (CYBERPUNK)
@@ -77,17 +78,17 @@
     .theme-cyber .canvas-bg { background-image: radial-gradient(circle, rgba(255,255,255,0.05) 1px, transparent 1px); background-size: 24px 24px; }
     .theme-cyber .btn { border: 1px solid var(--border); border-radius: 4px; background: transparent; color: var(--text); font-weight: 700; }
     .theme-cyber .btn:hover { border-color: #10b981; color: #10b981; box-shadow: 0 0 10px rgba(16,185,129,0.2); }
-    .theme-cyber .node-circle { border-radius: 50%; background: #0a0a0c; border: 2px solid var(--node-color, #10b981); box-shadow: 0 0 10px var(--node-color, #10b981); }
+    .theme-cyber .node-circle { border-radius: 50%; background: #0a0a0c; border: 2px solid var(--node-color, #ffffff); box-shadow: 0 0 10px var(--node-color, #ffffff); }
     .theme-cyber .node-label { background: #0a0a0c; color: #ffffff; border: 1px solid var(--border); border-radius: 4px; }
     .theme-cyber .code-area { background: #050505; border: 1px solid var(--border); color: #f0f0f5; border-radius: 8px; font-weight: 400; }
     .theme-cyber .modal-content { border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 20px 80px rgba(0,0,0,0.9); }
     .theme-cyber .edge-path { stroke: rgba(255,255,255,0.15); }
     
-    .theme-cyber .obs-node-wrapper.clr-white { --node-color: #ffffff; }
-    .theme-cyber .obs-node-wrapper.clr-yellow { --node-color: #f59e0b; }
-    .theme-cyber .obs-node-wrapper.clr-blue { --node-color: #3b82f6; }
-    .theme-cyber .obs-node-wrapper.clr-red { --node-color: #ef4444; }
-    .theme-cyber .obs-node-wrapper.clr-green { --node-color: #10b981; }
+    .theme-cyber .obs-node-wrapper.clr-default { --node-color: #ffffff; }
+    .theme-cyber .obs-node-wrapper.clr-1 { --node-color: #ff435a; }
+    .theme-cyber .obs-node-wrapper.clr-2 { --node-color: #ffc410; }
+    .theme-cyber .obs-node-wrapper.clr-3 { --node-color: #1e836d; }
+    .theme-cyber .obs-node-wrapper.clr-4 { --node-color: #4285f4; }
 
     /* =========================================
        LAYOUT COMPONENTS (Shared)
@@ -212,8 +213,8 @@
     .boot-half { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: all 0.3s; }
     .boot-half.cyber { background: #050505; color: #10b981; border-right: 1px solid #1f1f2e; }
     .boot-half.cyber:hover { background: #0a0a0c; box-shadow: inset 0 0 80px rgba(16,185,129,0.15); }
-    .boot-half.brutal { background: #FFFFFF; color: #000; font-family: 'Inter', sans-serif; text-transform: uppercase; font-weight: 900; }
-    .boot-half.brutal:hover { background: #FFE500; }
+    .boot-half.brutal { background: #FFFFFF; color: #111111; font-family: 'Inter', sans-serif; text-transform: uppercase; font-weight: 900; }
+    .boot-half.brutal:hover { background: #f3f5f7; }
   </style>
 </head>
 <body>
@@ -232,13 +233,22 @@
       Terminal: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>,
     };
 
-    const ZONES = ['white', 'yellow', 'blue', 'red', 'green'];
+    const ZONES = ['default', '1', '2', '3', '4'];
+    
+    // Fallback colors for the modal designator boxes
+    const ZONE_COLORS = {
+      'default': '#ffffff',
+      '1': '#ff435a',
+      '2': '#ffc410',
+      '3': '#1e836d',
+      '4': '#4285f4'
+    };
 
     // Initial Physics Nodes
     const INITIAL_NODES = [
-      { id: 'n1', type: 'entry', label: 'core_sys.py', isMain: true, x: 0, y: 0, vx: 0, vy: 0, themeIdx: 1, code: 'import torch\nprint("Central Architecture Booted")' },
-      { id: 'n2', type: 'function', label: 'load_network', isMain: false, x: 100, y: -100, vx: 0, vy: 0, themeIdx: 2, code: 'def load_network():\n    return DataLoader()' },
-      { id: 'n3', type: 'class', label: 'DataMatrix', isMain: false, x: -100, y: 150, vx: 0, vy: 0, themeIdx: 3, code: 'class DataMatrix:\n    def __init__(self):\n        self.active = True' },
+      { id: 'n1', type: 'entry', label: 'core_sys.py', isMain: true, x: 0, y: 0, vx: 0, vy: 0, themeIdx: 0, code: 'import torch\nprint("Central Architecture Booted")' },
+      { id: 'n2', type: 'function', label: 'load_network', isMain: false, x: 100, y: -100, vx: 0, vy: 0, themeIdx: 1, code: 'def load_network():\n    return DataLoader()' },
+      { id: 'n3', type: 'class', label: 'DataMatrix', isMain: false, x: -100, y: 150, vx: 0, vy: 0, themeIdx: 2, code: 'class DataMatrix:\n    def __init__(self):\n        self.active = True' },
       { id: 'n4', type: 'function', label: 'compile_node', isMain: false, x: 150, y: 100, vx: 0, vy: 0, themeIdx: 4, code: 'def compile_node():\n    pass' },
     ];
 
@@ -252,7 +262,6 @@
     function IDE({ initialTheme }) {
       const [themeMode, setThemeMode] = useState(initialTheme);
       
-      // Physics Refs
       const nodesRef = useRef(JSON.parse(JSON.stringify(INITIAL_NODES)));
       const edgesRef = useRef(INITIAL_EDGES);
       const [, forceRender] = useState({});
@@ -275,7 +284,7 @@
       
       let wrapperClass = `app-wrapper theme-${themeMode}`;
       if (themeMode === 'brutal') {
-        wrapperClass += activeNode ? ` zone-${ZONES[activeNode.themeIdx % ZONES.length]}` : ' zone-white';
+        wrapperClass += activeNode ? ` zone-${ZONES[activeNode.themeIdx % ZONES.length]}` : ' zone-default';
       }
 
       // --- Force Directed Graph Physics ---
@@ -293,7 +302,7 @@
               const dy = nodes[j].y - nodes[i].y;
               const distSq = dx*dx + dy*dy || 1;
               const dist = Math.sqrt(distSq);
-              const force = 4000 / distSq; // Repulsion strength
+              const force = 4000 / distSq; 
               const fx = (dx / dist) * force;
               const fy = (dy / dist) * force;
               nodes[i].vx -= fx; nodes[i].vy -= fy;
@@ -301,7 +310,7 @@
             }
           }
 
-          // Attraction (Springs)
+          // Attraction
           edges.forEach(edge => {
             const src = nodes.find(n => n.id === edge.source);
             const tgt = nodes.find(n => n.id === edge.target);
@@ -309,7 +318,7 @@
               const dx = tgt.x - src.x;
               const dy = tgt.y - src.y;
               const dist = Math.sqrt(dx*dx + dy*dy) || 1;
-              const force = (dist - 140) * 0.05; // Spring tension
+              const force = (dist - 140) * 0.05; 
               const fx = (dx / dist) * force;
               const fy = (dy / dist) * force;
               src.vx += fx; src.vy += fy;
@@ -319,12 +328,10 @@
 
           // Center Gravity & Integration
           nodes.forEach(n => {
-            // Main node stays strongly rooted to origin (0,0)
             const pullStrength = n.isMain ? 0.2 : 0.005;
             n.vx += (0 - n.x) * pullStrength;
             n.vy += (0 - n.y) * pullStrength;
 
-            // Friction
             n.vx *= 0.8;
             n.vy *= 0.8;
 
@@ -334,7 +341,6 @@
             if (Math.abs(n.vx) > 0.05 || Math.abs(n.vy) > 0.05) updated = true;
           });
 
-          // Overwrite position if dragging
           if (draggingNodeRef.current) {
             const d = nodes.find(n => n.id === draggingNodeRef.current.id);
             if (d) {
@@ -352,7 +358,7 @@
         return () => cancelAnimationFrame(rafId);
       }, []);
 
-      // --- Interaction Handlers ---
+      // --- Handlers ---
       const handleCanvasPointerDown = (e) => {
         if (e.target.closest('.obs-node-wrapper') || e.target.closest('.modal-overlay') || e.target.closest('.app-header')) return;
         setIsDraggingCanvas(true);
@@ -447,7 +453,7 @@
         <div style={{
           width: '100vw', height: '100vh',
           padding: themeMode === 'brutal' ? '40px' : '0px',
-          backgroundColor: themeMode === 'brutal' ? '#FFFFFF' : '#050505',
+          backgroundColor: themeMode === 'brutal' ? '#ffffff' : '#050505',
           transition: 'all 0.4s ease',
           boxSizing: 'border-box'
         }}>
@@ -458,7 +464,7 @@
               <div style={{ display: 'flex', gap: '16px' }}>
                 <button className="btn" onClick={addBlock}>+ ADD NODE</button>
                 <button className="btn" onClick={() => setThemeMode(themeMode === 'cyber' ? 'brutal' : 'cyber')}>
-                  SWITCH TO {themeMode === 'cyber' ? 'NOEINOI' : 'OBSIDIAN'}
+                  SWITCH TO {themeMode === 'cyber' ? 'FORSAKEN' : 'OBSIDIAN'}
                 </button>
               </div>
             </div>
@@ -569,7 +575,7 @@
                               onClick={() => updateNode(modalNodeObj.id, 'themeIdx', idx)}
                               style={{ 
                                 width: '24px', height: '24px', cursor: 'pointer', borderRadius: themeMode === 'cyber' ? '50%' : '0',
-                                background: zone === 'white' ? '#FFFFFF' : zone === 'yellow' ? '#FFE500' : zone === 'blue' ? '#3b82f6' : zone === 'red' ? '#ef4444' : '#10b981',
+                                background: ZONE_COLORS[zone],
                                 border: `2px solid ${modalNodeObj.themeIdx === idx ? 'var(--text)' : 'transparent'}`,
                               }} 
                             />
@@ -599,7 +605,7 @@
             <div style={{ fontSize: '12px', opacity: 0.6 }}>DARK MODE // EDGE-TO-EDGE // PHYSICS ENGINE</div>
           </div>
           <div className="boot-half brutal" onClick={() => setTheme('brutal')}>
-            <div style={{ fontSize: '36px', fontWeight: '900', marginBottom: '8px' }}>NOEINOI CORE</div>
+            <div style={{ fontSize: '36px', fontWeight: '900', marginBottom: '8px' }}>FORSAKEN CORE</div>
             <div style={{ fontSize: '12px', opacity: 0.6, fontWeight: '700' }}>BRUTALIST // THICK MARGINS // COLOR FLOOD</div>
           </div>
         </div>
