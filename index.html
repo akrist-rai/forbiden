@@ -20,6 +20,7 @@
       width: 100vw; height: 100vh;
       user-select: none; font-size: 10px;
       margin: 0; background-color: #050505; 
+      font-family: 'JetBrains Mono', monospace;
     }
 
     ::-webkit-scrollbar { width: 6px; height: 6px; }
@@ -43,7 +44,6 @@
       box-shadow: 20px 20px 0px var(--border);
     }
     .theme-brutal.zone-default { --bg: #ffffff; --text: #111111; --border: #111111; --node-bg: #ffffff; }
-    .theme-brutal.dark-mode.zone-default { --bg: #111111; --text: #ffffff; --border: #ffffff; --node-bg: #111111; }
     .theme-brutal.zone-1 { --bg: #111111; --text: #ff435a; --border: #ff435a; --node-bg: #111111; }
     .theme-brutal.zone-2 { --bg: #7ca148; --text: #111111; --border: #111111; --node-bg: #ffc410; }
     .theme-brutal.zone-3 { --bg: #1e836d; --text: #111111; --border: #111111; --node-bg: #1e836d; }
@@ -94,8 +94,8 @@
 
     /* IDE LAYOUT COMPONENTS */
     .app-header { height: 56px; display: flex; align-items: center; justify-content: space-between; padding: 0 24px; border-bottom: var(--border-w) solid var(--border); z-index: 50; flex-shrink: 0; background: var(--bg); }
-    .hdr-brand { font-size: 18px; letter-spacing: -0.5px; display: flex; align-items: center; gap: 12px; }
-    .btn { cursor: pointer; outline: none; padding: 8px 16px; font-size: 11px; transition: all 0.2s ease; }
+    .hdr-brand { font-size: 18px; letter-spacing: -0.5px; display: flex; align-items: center; gap: 12px; font-family: 'Inter', sans-serif; font-weight: 900;}
+    .btn { cursor: pointer; outline: none; padding: 8px 16px; font-size: 11px; transition: all 0.2s ease; font-family: inherit; }
     .app-body { display: flex; flex: 1; min-height: 0; position: relative; overflow: hidden; }
     
     .sidebar { width: 60px; border-right: var(--border-w) solid var(--border); display: flex; flex-direction: column; align-items: center; padding: 24px 0; gap: 24px; z-index: 200; flex-shrink: 0; background: var(--bg); position: relative; }
@@ -110,8 +110,16 @@
     .panel-hdr { padding: 12px 16px; font-size: 11px; border-bottom: var(--inner-w) solid var(--border); opacity: 0.9; font-weight: bold; display: flex; justify-content: space-between; align-items: center; background: rgba(128,128,128,0.05); }
     .panel-hdr:active { opacity: 1; }
     .panel-content-wrap { flex: 1; display: flex; flex-direction: column; overflow: hidden; position: relative; }
-    .panel-resizer { position: absolute; bottom: 0; right: 0; width: 14px; height: 14px; cursor: nwse-resize; background: linear-gradient(135deg, transparent 50%, var(--border) 50%); opacity: 0.5; transition: opacity 0.2s; }
-    .panel-resizer:hover { opacity: 1; }
+    
+    /* ENHANCED RESIZER */
+    .panel-resizer { 
+      position: absolute; bottom: 0; right: 0; width: 22px; height: 22px; 
+      cursor: nwse-resize; 
+      background: linear-gradient(135deg, transparent 50%, var(--text) 50%); 
+      opacity: 0.2; transition: opacity 0.2s, transform 0.2s; 
+    }
+    .panel-resizer:hover { opacity: 1; transform: scale(1.1); }
+    
     .list-item { padding: 10px 16px; cursor: pointer; display: flex; align-items: center; gap: 10px; font-size: 11px; transition: background 0.2s; border-bottom: 1px solid rgba(128,128,128,0.1); }
 
     .main-view { flex: 1; display: flex; flex-direction: column; position: relative; min-width: 0; }
@@ -152,6 +160,7 @@
     .editor-wrap { flex: 1; display: flex; background: var(--bg); overflow: hidden; }
     .line-numbers { padding: 24px 10px; background: rgba(128,128,128,0.05); color: var(--text); opacity: 0.5; font-family: 'JetBrains Mono', monospace; font-size: 13px; text-align: right; line-height: 1.6; border-right: var(--inner-w) solid var(--border); user-select: none; overflow: hidden; }
     .code-area { flex: 1; font-family: 'JetBrains Mono', monospace; font-size: 13px; padding: 24px; resize: none; outline: none; line-height: 1.6; background: transparent; color: var(--text); border: none; white-space: pre; }
+    .side-input { width: 100%; border: var(--inner-w) solid var(--text); padding: 10px; background: transparent; color: var(--text); font-family: inherit; font-size: 12px; outline: none; }
     
     /* KANBAN BOARDS & CHAT */
     .kanban-board { display: flex; flex: 1; overflow-x: auto; padding: 16px; gap: 16px; }
@@ -184,15 +193,18 @@
     /* DRAGGABLE PLAYHEAD STYLING */
     .nle-playhead { position: absolute; top: 0; bottom: 0; width: 2px; background: #ff435a; z-index: 30; cursor: ew-resize; }
     .nle-playhead::before { content: ''; position: absolute; top: 0; left: -6px; width: 14px; height: 14px; background: #ff435a; clip-path: polygon(0 0, 100% 0, 50% 100%); }
-    .nle-playhead::after { content: ''; position: absolute; top: 0; bottom: 0; left: -10px; width: 20px; background: transparent; } /* invisible hit area */
+    .nle-playhead::after { content: ''; position: absolute; top: 0; bottom: 0; left: -10px; width: 20px; background: transparent; }
 
-    /* Bootloader */
-    .boot-menu { position: fixed; inset: 0; display: flex; z-index: 9999; font-family: 'JetBrains Mono', monospace; }
-    .boot-half { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: all 0.3s; }
-    .boot-half.cyber { background: #0a0a0c; color: #10b981; border-right: 1px solid #1f1f2e; }
-    .boot-half.cyber:hover { background: #050505; box-shadow: inset 0 0 80px rgba(16,185,129,0.15); }
-    .boot-half.brutal { background: #FFFFFF; color: #111111; font-family: 'Inter', sans-serif; text-transform: uppercase; font-weight: 900; }
-    .boot-half.brutal:hover { background: #f3f5f7; }
+    /* Login Boot Sequence */
+    .login-container { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; background: #050505; color: #fff; }
+    .login-box { width: 100%; max-width: 800px; padding: 40px; display: flex; flex-direction: column; gap: 40px; }
+    .badge-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; place-items: center; }
+    .theme-btn { flex: 1; padding: 20px; font-size: 14px; cursor: pointer; transition: all 0.2s; text-align: center; }
+    .theme-btn:disabled { opacity: 0.2; cursor: not-allowed; }
+    .theme-btn.cyber { background: transparent; border: 1px solid #10b981; color: #10b981; }
+    .theme-btn.cyber:hover:not(:disabled) { box-shadow: 0 0 20px rgba(16,185,129,0.3); background: rgba(16,185,129,0.05); }
+    .theme-btn.brutal { background: #fff; border: 4px solid #fff; color: #000; font-family: 'Inter', sans-serif; font-weight: 900; text-transform: uppercase; }
+    .theme-btn.brutal:hover:not(:disabled) { box-shadow: 8px 8px 0px rgba(255,255,255,0.5); transform: translate(-2px, -2px); }
   </style>
 </head>
 <body>
@@ -223,10 +235,43 @@
 
     const INITIAL_NODES = [
       { id: 'n1', type: 'entry', label: 'core_sys.py', isMain: true, x: 0, y: 0, vx: 0, vy: 0, themeIdx: 0, code: 'import torch\nimport sys\n\nprint("Central Architecture Booted")\n\ndef init_sequence():\n    # Core logic entry\n    pass', modified: false },
-      { id: 'n2', type: 'function', label: 'load_network.py', isMain: false, x: 100, y: -100, vx: 0, vy: 0, themeIdx: 5, code: 'def load_network():\n    return DataLoader()\n\n# Network params defined here', modified: false },
+      { id: 'n2', type: 'function', label: 'load_network.py', isMain: false, x: 100, y: -100, vx: 0, vy: 0, themeIdx: 5, code: 'def load_network():\n    return DataLoader()\n\n# Network params defined here', modified: true },
       { id: 'n3', type: 'class', label: 'DataMatrix.py', isMain: false, x: -100, y: 150, vx: 0, vy: 0, themeIdx: 6, code: 'class DataMatrix:\n    def __init__(self):\n        self.active = True\n        self.buffer = []', modified: false },
     ];
     const INITIAL_EDGES = [ { id: 'e1', source: 'n1', target: 'n2' }, { id: 'e2', source: 'n1', target: 'n3' } ];
+
+    // REUSABLE OPERATOR BADGE (CSS SPRITE LOGIC)
+    const OperatorBadge = ({ index, size = 48, selected = false, onClick, style = {} }) => {
+      const col = index % 3;
+      const row = Math.floor(index / 3);
+      return (
+        <div
+          onClick={onClick}
+          style={{
+            width: size, height: size,
+            borderRadius: '50%', overflow: 'hidden',
+            cursor: onClick ? 'pointer' : 'default',
+            border: selected ? '2px solid #ff435a' : '2px solid transparent',
+            boxShadow: selected ? '0 0 20px rgba(255, 67, 90, 0.6)' : 'none',
+            background: '#dce8eb', // fallback color matching the image background
+            flexShrink: 0,
+            position: 'relative',
+            ...style
+          }}
+        >
+          {/* We use scale(1.8) to crop out the numbers and lines from the image */}
+          <div style={{
+            width: '100%', height: '100%',
+            transform: 'scale(1.8)',
+            backgroundImage: `url('./avatars.jpg')`,
+            backgroundSize: '300% 400%',
+            backgroundPosition: `${col * 50}% ${row * 33.3333}%`,
+            backgroundRepeat: 'no-repeat',
+            transition: 'transform 0.2s ease',
+          }} />
+        </div>
+      );
+    };
 
     const FloatingPanel = ({ title, isOpen, onClose, defaultX, defaultY, defaultW, defaultH, children }) => {
       const [pos, setPos] = useState({ x: defaultX, y: defaultY });
@@ -284,9 +329,8 @@
       );
     };
 
-    function IDE({ initialTheme }) {
+    function IDE({ initialTheme, initialAvatar }) {
       const [themeMode, setThemeMode] = useState(initialTheme);
-      const [isBrutalDark, setIsBrutalDark] = useState(false);
       
       const nodesRef = useRef(JSON.parse(JSON.stringify(INITIAL_NODES)));
       const edgesRef = useRef(INITIAL_EDGES);
@@ -300,6 +344,17 @@
       
       const [openTabs, setOpenTabs] = useState([]);
       const [activeTabId, setActiveTabId] = useState(null);
+
+      // --- STATE: SEARCH & SETTINGS ---
+      const [searchQuery, setSearchQuery] = useState("");
+      const [avatarIndex, setAvatarIndex] = useState(initialAvatar);
+      const [repoUrl, setRepoUrl] = useState("");
+      
+      const filteredSearch = nodesRef.current.filter((n) => {
+        const q = searchQuery.trim().toLowerCase();
+        if (!q) return true;
+        return (n.label || "").toLowerCase().includes(q) || (n.code || "").toLowerCase().includes(q);
+      });
 
       // --- NLE TIMELINE PLAYHEAD STATE ---
       const [playheadPos, setPlayheadPos] = useState(400);
@@ -315,10 +370,9 @@
       const handlePlayheadMove = (e) => {
         if (!playheadDragRef.current.isDragging) return;
         let newPos = playheadDragRef.current.startPos + (e.clientX - playheadDragRef.current.startX);
-        newPos = Math.max(0, Math.min(newPos, 1150)); // Clamp track bounds
+        newPos = Math.max(0, Math.min(newPos, 1150));
         setPlayheadPos(newPos);
         
-        // Time travel version map based on X coordinate
         let ver = "HEAD";
         if (newPos < 100) ver = "v1.0 (Init repo)";
         else if (newPos < 220) ver = "v1.1 (Write core_sys.py)";
@@ -333,7 +387,6 @@
         playheadDragRef.current.isDragging = false;
         e.currentTarget.releasePointerCapture(e.pointerId);
       };
-      // ------------------------------------
 
       const draggingNodeRef = useRef(null);
       const [hoveredNodeId, setHoveredNodeId] = useState(null);
@@ -344,20 +397,13 @@
       const activeNode = nodesRef.current.find(n => n.id === currentActiveId);
       const activeZoneKey = activeNode ? ZONES[activeNode.themeIdx % ZONES.length] : "default";
 
-      let wrapperClass = `app-wrapper theme-${themeMode} zone-${activeZoneKey}`;
-      if (themeMode === "brutal" && isBrutalDark && activeZoneKey === "default") wrapperClass += " dark-mode";
-
-      const outerBg = themeMode === "brutal"
-        ? (isBrutalDark && activeZoneKey === "default" ? "#111111" : OUTSIDE_COLORS[activeZoneKey])
-        : "#050505";
+      const wrapperClass = `app-wrapper theme-${themeMode} zone-${activeZoneKey}`;
+      const outerBg = themeMode === "brutal" ? OUTSIDE_COLORS[activeZoneKey] : "#050505";
 
       const modifiedNodes = nodesRef.current.filter((n) => n.modified);
 
-      // Filtering Nodes to simulate time travel
       const visibleNodes = nodesRef.current.filter(node => {
-        // Node n1 (core_sys.py) was added at x=100 (v1.1)
         if (node.id === 'n1' && playheadPos < 100) return false;
-        // Node n3 (DataMatrix) was added at x=250 (v1.3)
         if (node.id === 'n3' && playheadPos < 250) return false;
         return true;
       });
@@ -421,14 +467,26 @@
           setTransform((prev) => ({ ...prev, x: prev.x + dx, y: prev.y + dy }));
           lastMousePos.current = { x: e.clientX, y: e.clientY };
         } else if (draggingNodeRef.current) {
-          const dx = (e.clientX - lastMousePos.current.x) / transform.scale; const dy = (e.clientY - lastMousePos.current.y) / transform.scale;
-          draggingNodeRef.current.x += dx; draggingNodeRef.current.y += dy;
+          const dx = (e.clientX - lastMousePos.current.x) / transform.scale; 
+          const dy = (e.clientY - lastMousePos.current.y) / transform.scale;
+          
+          if (Math.abs(dx) > 1 || Math.abs(dy) > 1) {
+             draggingNodeRef.current.hasDragged = true;
+          }
+          
+          draggingNodeRef.current.x += dx; 
+          draggingNodeRef.current.y += dy;
           lastMousePos.current = { x: e.clientX, y: e.clientY };
         }
       };
-      const handleCanvasPointerUp = () => { setIsDraggingCanvas(false); draggingNodeRef.current = null; };
+      
+      const handleCanvasPointerUp = () => { 
+        setIsDraggingCanvas(false); 
+        draggingNodeRef.current = null; 
+      };
+      
       const handleWheel = (e) => {
-        if (e.target.closest(".code-area") || e.target.closest(".floating-panel")) return;
+        if (e.target.closest(".code-area") || e.target.closest(".floating-panel") || e.target.closest(".nle-wrap")) return;
         e.preventDefault();
         setTransform((prev) => ({ ...prev, scale: Math.min(Math.max(0.3, prev.scale * (e.deltaY > 0 ? 0.9 : 1.1)), 2.5) }));
       };
@@ -444,13 +502,8 @@
                 <Icons.Search /> FORBINDEN // {themeMode.toUpperCase()} IDE
               </div>
               <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                {themeMode === 'brutal' && (
-                  <button className="btn" onClick={() => setIsBrutalDark(!isBrutalDark)}>
-                    {isBrutalDark ? 'LIGHT MODE' : 'DARK MODE'}
-                  </button>
-                )}
                 <button className="btn" onClick={() => setThemeMode(themeMode === 'cyber' ? 'brutal' : 'cyber')}>
-                  SWAP ENGINE
+                  SWITCH THEME
                 </button>
               </div>
             </div>
@@ -471,7 +524,79 @@
                 
                 <div className={`strip-icon ${bottomPanelTab === 'timeline' ? 'active' : ''}`} onClick={() => setBottomPanelTab(bottomPanelTab === 'timeline' ? null : 'timeline')}><Icons.Timeline /></div>
                 <div className={`strip-icon ${bottomPanelTab === 'terminal' ? 'active' : ''}`} onClick={() => setBottomPanelTab(bottomPanelTab === 'terminal' ? null : 'terminal')}><Icons.Terminal /></div>
+                
+                {/* DYNAMIC AVATAR ICON in Sidebar */}
+                <div 
+                  className={`strip-icon ${sidebarMode === 'settings' ? 'active' : ''}`} 
+                  onClick={() => setSidebarMode(sidebarMode === 'settings' ? null : 'settings')}
+                  style={{ borderRadius: '50%', padding: '0', marginTop: '10px', border: sidebarMode === 'settings' ? '2px solid var(--border)' : '2px solid transparent' }}
+                >
+                  <OperatorBadge index={avatarIndex} size={28} />
+                </div>
               </div>
+
+              {/* SEARCH PANEL */}
+              <FloatingPanel title="SEARCH FILES" isOpen={sidebarMode === 'search'} onClose={() => setSidebarMode(null)} defaultX={80} defaultY={80} defaultW={300} defaultH={450}>
+                <div style={{ padding: "12px 16px", borderBottom: "1px solid rgba(128,128,128,0.2)" }}>
+                  <input 
+                    className="side-input" value={searchQuery} 
+                    onChange={(e) => setSearchQuery(e.target.value)} 
+                    placeholder="Find in labels and code..." 
+                    autoFocus={sidebarMode === 'search'}
+                  />
+                </div>
+                <div style={{ flex: 1, overflowY: "auto", paddingTop: "8px" }}>
+                  {filteredSearch.map((n) => (
+                    <div key={`search_${n.id}`} className="list-item" onClick={() => openNodeInEditor(n.id)}>
+                      <Icons.FileIcon /> <span>{n.label}</span>
+                    </div>
+                  ))}
+                  {!filteredSearch.length && <div style={{ padding: "20px", opacity: 0.6 }}>No matches found.</div>}
+                </div>
+              </FloatingPanel>
+
+              {/* GIT CHANGES PANEL */}
+              <FloatingPanel title="SOURCE CONTROL" isOpen={sidebarMode === 'git'} onClose={() => setSidebarMode(null)} defaultX={80} defaultY={80} defaultW={280} defaultH={450}>
+                <div style={{ flex: 1, overflowY: 'auto', paddingTop: '8px' }}>
+                  <div style={{ padding: '0 20px', marginBottom: '8px', fontSize: '9px', opacity: 0.6, fontWeight: 'bold' }}>UNCOMMITTED CHANGES ({modifiedNodes.length})</div>
+                  {modifiedNodes.length === 0 ?
+                    <div style={{padding: '20px', opacity: 0.5, fontSize: '11px'}}>Working tree clean.</div> :
+                    modifiedNodes.map(n => (
+                      <div key={'git_'+n.id} className="list-item" onClick={() => openNodeInEditor(n.id)}>
+                        <Icons.FileIcon /> <span style={{color: '#ffc410'}}>{n.label}</span> <span style={{marginLeft: 'auto', opacity: 0.5}}>M</span>
+                      </div>
+                    ))
+                  }
+                  {modifiedNodes.length > 0 && <div style={{padding: '20px'}}><button className="btn" style={{width:'100%'}}>COMMIT CHANGES</button></div>}
+                </div>
+              </FloatingPanel>
+
+              {/* WORKSPACE SETTINGS PANEL */}
+              <FloatingPanel title="WORKSPACE CONFIG" isOpen={sidebarMode === 'settings'} onClose={() => setSidebarMode(null)} defaultX={80} defaultY={window.innerHeight - 440} defaultW={320} defaultH={400}>
+                <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '24px', height: '100%', overflowY: 'auto' }}>
+                  
+                  <div>
+                    <div style={{ fontSize: '10px', fontWeight: 'bold', marginBottom: '12px', opacity: 0.8 }}>OPERATOR BADGE</div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px' }}>
+                      {[...Array(12)].map((_, i) => (
+                        <OperatorBadge 
+                          key={i} 
+                          index={i} 
+                          size={48} 
+                          selected={avatarIndex === i} 
+                          onClick={() => setAvatarIndex(i)} 
+                        />
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div style={{ fontSize: '10px', fontWeight: 'bold', marginBottom: '8px', opacity: 0.8 }}>UPSTREAM GIT REPO</div>
+                    <input className="side-input" value={repoUrl} onChange={e => setRepoUrl(e.target.value)} placeholder="https://github.com/..." />
+                  </div>
+                  <button className="btn" style={{marginTop: 'auto'}} onClick={() => setSidebarMode(null)}>SAVE CONFIG</button>
+                </div>
+              </FloatingPanel>
 
               <FloatingPanel title="EXPLORER" isOpen={sidebarMode === 'files'} onClose={() => setSidebarMode(null)} defaultX={80} defaultY={80} defaultW={280} defaultH={500}>
                 <div style={{ flex: 1, overflowY: 'auto', paddingTop: '8px' }}>
@@ -487,7 +612,10 @@
               <FloatingPanel title="COMMUNICATIONS" isOpen={sidebarMode === 'chat'} onClose={() => setSidebarMode(null)} defaultX={380} defaultY={80} defaultW={300} defaultH={400}>
                 <div className="chat-wrap">
                   <div className="chat-messages">
-                    <div className="chat-msg"><strong>Operator_1:</strong> Architecture booted. Testing WebSockets.</div>
+                    <div className="chat-msg" style={{ display: 'flex', gap: '8px' }}>
+                      <OperatorBadge index={avatarIndex} size={20} style={{boxShadow: 'none', border: 'none'}} />
+                      <div><strong>You:</strong> Architecture booted. Testing WebSockets.</div>
+                    </div>
                     <div className="chat-msg"><strong>System:</strong> Sync established.</div>
                   </div>
                   <div className="chat-input-wrap">
@@ -541,7 +669,6 @@
                   </div>
                 )}
                 
-                {/* NON-LINEAR EDITOR TIMELINE VIEW */}
                 {bottomPanelTab === 'timeline' && (
                   <div className="nle-wrap">
                     <div className="nle-body">
@@ -552,8 +679,8 @@
                           <Icons.Git />
                         </div>
                         <div className="nle-track-header">
-                          <span>OPERATOR 1</span>
-                          <div style={{width: '8px', height: '8px', background: '#ff435a', borderRadius: '50%'}}></div>
+                          <span>YOU</span>
+                          <OperatorBadge index={avatarIndex} size={16} style={{boxShadow: 'none', border: 'none'}} />
                         </div>
                         <div className="nle-track-header">
                           <span>OPERATOR 2</span>
@@ -577,7 +704,6 @@
                         </div>
                         
                         <div className="nle-tracks">
-                            {/* DRAGGABLE PLAYHEAD */}
                             <div 
                               className="nle-playhead" 
                               style={{left: `${playheadPos}px`}}
@@ -587,19 +713,16 @@
                               onPointerCancel={handlePlayheadUp}
                             ></div>
                             
-                            {/* Track 1: Main */}
                             <div className="nle-track-lane">
                               <div className="nle-clip" style={{left: '50px', width: '80px', background: 'transparent', color: 'var(--text)'}}>Init repo</div>
                               <div className="nle-clip" style={{left: '220px', width: '120px', background: 'transparent', color: 'var(--text)'}}>Merge PR #1</div>
                             </div>
                             
-                            {/* Track 2: Operator 1 */}
                             <div className="nle-track-lane">
                               <div className="nle-clip" style={{left: '100px', width: '150px', background: 'rgba(255, 67, 90, 0.2)', borderColor: '#ff435a', color: 'var(--text)'}}>Write core_sys.py</div>
                               <div className="nle-clip" style={{left: '380px', width: '100px', background: 'rgba(255, 67, 90, 0.2)', borderColor: '#ff435a', color: 'var(--text)'}}>Fix pipeline</div>
                             </div>
                             
-                            {/* Track 3: Operator 2 */}
                             <div className="nle-track-lane">
                               <div className="nle-clip" style={{left: '250px', width: '200px', background: 'rgba(66, 133, 244, 0.2)', borderColor: '#4285f4', color: 'var(--text)'}}>DataMatrix class setup</div>
                             </div>
@@ -635,8 +758,17 @@
                         style={{ left: node.x + 'px', top: node.y + 'px', opacity: hoveredNodeId && hoveredNodeId !== node.id && !activeTabId ? 0.3 : 1 }}
                         onPointerEnter={() => !activeTabId && !isDraggingCanvas && setHoveredNodeId(node.id)}
                         onPointerLeave={() => !activeTabId && setHoveredNodeId(null)}
-                        onPointerDown={(e) => { e.stopPropagation(); draggingNodeRef.current = { id: node.id, x: node.x, y: node.y }; lastMousePos.current = { x: e.clientX, y: e.clientY }; }}
-                        onPointerUp={(e) => { openNodeInEditor(node.id); draggingNodeRef.current = null; }}
+                        onPointerDown={(e) => { 
+                          e.stopPropagation(); 
+                          draggingNodeRef.current = { id: node.id, x: node.x, y: node.y, hasDragged: false }; 
+                          lastMousePos.current = { x: e.clientX, y: e.clientY }; 
+                        }}
+                        onPointerUp={(e) => { 
+                          if (!draggingNodeRef.current?.hasDragged) {
+                            openNodeInEditor(node.id); 
+                          }
+                          draggingNodeRef.current = null; 
+                        }}
                       >
                         <div className={`node-circle ${node.isMain ? 'main-node' : 'sub-node'}`}></div>
                         <div className="node-label">
@@ -709,18 +841,52 @@
       );
     }
 
+    // --- REBUILT BOOTLOADER / LOGIN SCREEN ---
     function Bootloader() {
       const [theme, setTheme] = useState(null);
-      if (theme) return <IDE initialTheme={theme} />;
+      const [avatar, setAvatar] = useState(null);
+
+      // If both are selected, launch the IDE
+      if (theme && avatar !== null) {
+        return <IDE initialTheme={theme} initialAvatar={avatar} />;
+      }
+
       return (
-        <div className="boot-menu">
-          <div className="boot-half cyber" onClick={() => setTheme('cyber')}>
-            <div style={{ fontSize: '36px', fontWeight: '700', marginBottom: '8px' }}>OBSIDIAN CORE</div>
-            <div style={{ fontSize: '12px', opacity: 0.6 }}>DARK MODE // EDGE-TO-EDGE // MODERN IDE</div>
-          </div>
-          <div className="boot-half brutal" onClick={() => setTheme('brutal')}>
-            <div style={{ fontSize: '36px', fontWeight: '900', marginBottom: '8px' }}>FORSAKEN CORE</div>
-            <div style={{ fontSize: '12px', opacity: 0.6, fontWeight: '700' }}>BRUTALIST // THICK MARGINS // COLOR FLOOD</div>
+        <div className="login-container">
+          <div className="login-box">
+            <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+              <h1 style={{ fontSize: '32px', fontWeight: 'bold', letterSpacing: '4px', marginBottom: '10px' }}>FORBINDEN</h1>
+              <div style={{ opacity: 0.5, letterSpacing: '2px' }}>SYSTEM BOOT SEQUENCE</div>
+            </div>
+
+            <div style={{ background: 'rgba(128,128,128,0.05)', padding: '30px', borderRadius: '12px', border: '1px solid rgba(128,128,128,0.2)' }}>
+              <h2 style={{ fontSize: '12px', opacity: 0.7, marginBottom: '24px', textAlign: 'center', letterSpacing: '1px' }}>1. SELECT OPERATOR BADGE</h2>
+              <div className="badge-grid">
+                {[...Array(12)].map((_, i) => (
+                  <OperatorBadge 
+                    key={i} 
+                    index={i} 
+                    size={72} 
+                    selected={avatar === i} 
+                    onClick={() => setAvatar(i)} 
+                  />
+                ))}
+              </div>
+            </div>
+
+            <div style={{ opacity: avatar !== null ? 1 : 0.3, transition: 'opacity 0.3s', pointerEvents: avatar !== null ? 'auto' : 'none' }}>
+              <h2 style={{ fontSize: '12px', opacity: 0.7, marginBottom: '16px', textAlign: 'center', letterSpacing: '1px' }}>2. INITIALIZE ENGINE</h2>
+              <div style={{ display: 'flex', gap: '20px' }}>
+                <button className="theme-btn cyber" disabled={avatar === null} onClick={() => setTheme('cyber')}>
+                  <div style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '8px' }}>OBSIDIAN</div>
+                  <div style={{ fontSize: '10px', opacity: 0.7 }}>DARK MODE // CYBERPUNK</div>
+                </button>
+                <button className="theme-btn brutal" disabled={avatar === null} onClick={() => setTheme('brutal')}>
+                  <div style={{ fontSize: '24px', fontWeight: '900', marginBottom: '8px' }}>FORSAKEN</div>
+                  <div style={{ fontSize: '10px', opacity: 0.7, fontWeight: 'bold' }}>LIGHT MODE // BRUTALIST</div>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       );
