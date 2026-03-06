@@ -125,7 +125,7 @@
 
     .term-content { flex: 1; padding: 16px; font-family: 'JetBrains Mono', monospace; font-size: 11px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
 
-    .obs-node-wrapper { position: absolute; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; z-index: 5; transform: translate(-50%, -50%); transition: opacity 0.2s ease; }
+    .obs-node-wrapper { position: absolute; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; z-index: 5; transform: translate(-50%, -50%); transition: opacity 0.2s ease, transform 0.2s; }
     .obs-node-wrapper:hover { z-index: 10; }
     .obs-node-wrapper:hover .node-circle { transform: scale(1.2); }
     .node-circle { display: flex; align-items: center; justify-content: center; transition: all 0.2s cubic-bezier(0.25, 1, 0.5, 1); }
@@ -152,9 +152,6 @@
     .editor-wrap { flex: 1; display: flex; background: var(--bg); overflow: hidden; }
     .line-numbers { padding: 24px 10px; background: rgba(128,128,128,0.05); color: var(--text); opacity: 0.5; font-family: 'JetBrains Mono', monospace; font-size: 13px; text-align: right; line-height: 1.6; border-right: var(--inner-w) solid var(--border); user-select: none; overflow: hidden; }
     .code-area { flex: 1; font-family: 'JetBrains Mono', monospace; font-size: 13px; padding: 24px; resize: none; outline: none; line-height: 1.6; background: transparent; color: var(--text); border: none; white-space: pre; }
-    .modal-side { width: 320px; display: flex; flex-direction: column; background: transparent; overflow-y: auto; }
-    .modal-side-sec { padding: 24px; border-bottom: var(--inner-w) solid var(--border); }
-    .side-input { width: 100%; border: var(--inner-w) solid var(--text); padding: 10px; background: transparent; color: var(--text); font-family: inherit; font-size: 12px; outline: none; }
     
     /* KANBAN BOARDS & CHAT */
     .kanban-board { display: flex; flex: 1; overflow-x: auto; padding: 16px; gap: 16px; }
@@ -184,8 +181,10 @@
     .theme-cyber .nle-clip { background: rgba(255,255,255,0.05); }
     .nle-clip:hover { transform: translateY(-2px); filter: brightness(1.2); }
     
-    .nle-playhead { position: absolute; top: 0; bottom: 0; width: 2px; background: #ff435a; z-index: 30; pointer-events: none; }
+    /* DRAGGABLE PLAYHEAD STYLING */
+    .nle-playhead { position: absolute; top: 0; bottom: 0; width: 2px; background: #ff435a; z-index: 30; cursor: ew-resize; }
     .nle-playhead::before { content: ''; position: absolute; top: 0; left: -6px; width: 14px; height: 14px; background: #ff435a; clip-path: polygon(0 0, 100% 0, 50% 100%); }
+    .nle-playhead::after { content: ''; position: absolute; top: 0; bottom: 0; left: -10px; width: 20px; background: transparent; } /* invisible hit area */
 
     /* Bootloader */
     .boot-menu { position: fixed; inset: 0; display: flex; z-index: 9999; font-family: 'JetBrains Mono', monospace; }
@@ -297,10 +296,44 @@
       const [isDraggingCanvas, setIsDraggingCanvas] = useState(false);
 
       const [sidebarMode, setSidebarMode] = useState("files");
-      const [bottomPanelTab, setBottomPanelTab] = useState('timeline'); // null, 'terminal', 'timeline'
+      const [bottomPanelTab, setBottomPanelTab] = useState('timeline');
       
       const [openTabs, setOpenTabs] = useState([]);
       const [activeTabId, setActiveTabId] = useState(null);
+
+      // --- NLE TIMELINE PLAYHEAD STATE ---
+      const [playheadPos, setPlayheadPos] = useState(400);
+      const [activeVersionName, setActiveVersionName] = useState("v1.4 (HEAD)");
+      const playheadDragRef = useRef({ isDragging: false, startX: 0, startPos: 0 });
+
+      const handlePlayheadDown = (e) => {
+        e.stopPropagation();
+        e.currentTarget.setPointerCapture(e.pointerId);
+        playheadDragRef.current = { isDragging: true, startX: e.clientX, startPos: playheadPos };
+      };
+      
+      const handlePlayheadMove = (e) => {
+        if (!playheadDragRef.current.isDragging) return;
+        let newPos = playheadDragRef.current.startPos + (e.clientX - playheadDragRef.current.startX);
+        newPos = Math.max(0, Math.min(newPos, 1150)); // Clamp track bounds
+        setPlayheadPos(newPos);
+        
+        // Time travel version map based on X coordinate
+        let ver = "HEAD";
+        if (newPos < 100) ver = "v1.0 (Init repo)";
+        else if (newPos < 220) ver = "v1.1 (Write core_sys.py)";
+        else if (newPos < 250) ver = "v1.2 (Merge PR #1)";
+        else if (newPos < 380) ver = "v1.3 (DataMatrix class setup)";
+        else ver = "v1.4 (HEAD - Fix pipeline)";
+        
+        if (ver !== activeVersionName) setActiveVersionName(ver);
+      };
+
+      const handlePlayheadUp = (e) => {
+        playheadDragRef.current.isDragging = false;
+        e.currentTarget.releasePointerCapture(e.pointerId);
+      };
+      // ------------------------------------
 
       const draggingNodeRef = useRef(null);
       const [hoveredNodeId, setHoveredNodeId] = useState(null);
@@ -319,6 +352,21 @@
         : "#050505";
 
       const modifiedNodes = nodesRef.current.filter((n) => n.modified);
+
+      // Filtering Nodes to simulate time travel
+      const visibleNodes = nodesRef.current.filter(node => {
+        // Node n1 (core_sys.py) was added at x=100 (v1.1)
+        if (node.id === 'n1' && playheadPos < 100) return false;
+        // Node n3 (DataMatrix) was added at x=250 (v1.3)
+        if (node.id === 'n3' && playheadPos < 250) return false;
+        return true;
+      });
+
+      const visibleEdges = edgesRef.current.filter(edge => {
+        const srcVis = visibleNodes.find(n => n.id === edge.source);
+        const tgtVis = visibleNodes.find(n => n.id === edge.target);
+        return srcVis && tgtVis;
+      });
 
       useEffect(() => {
         let rafId;
@@ -428,7 +476,7 @@
               <FloatingPanel title="EXPLORER" isOpen={sidebarMode === 'files'} onClose={() => setSidebarMode(null)} defaultX={80} defaultY={80} defaultW={280} defaultH={500}>
                 <div style={{ flex: 1, overflowY: 'auto', paddingTop: '8px' }}>
                   <div style={{ padding: '0 20px', marginBottom: '8px', fontSize: '9px', opacity: 0.6, fontWeight: 'bold' }}>GRAPH WORKSPACE</div>
-                  {nodesRef.current.map(n => (
+                  {visibleNodes.map(n => (
                     <div key={'expl_'+n.id} className="list-item" onClick={() => openNodeInEditor(n.id)}>
                       <Icons.FileIcon /> <span style={{color: n.modified ? '#ffc410' : 'inherit'}}>{n.label}</span>
                     </div>
@@ -497,8 +545,6 @@
                 {bottomPanelTab === 'timeline' && (
                   <div className="nle-wrap">
                     <div className="nle-body">
-                      
-                      {/* Left: Track Headers */}
                       <div className="nle-track-headers">
                         <div className="nle-ruler" style={{borderBottom: 'none'}}></div>
                         <div className="nle-track-header">
@@ -515,9 +561,7 @@
                         </div>
                       </div>
                       
-                      {/* Right: Scrollable Tracks Area */}
                       <div style={{flex: 1, overflowX: 'auto', display: 'flex', flexDirection: 'column'}}>
-                        
                         <div className="nle-ruler">
                             <div className="nle-ruler-tick major" style={{left: '50px'}}>v1.0</div>
                             <div className="nle-ruler-tick" style={{left: '100px'}}></div>
@@ -533,8 +577,15 @@
                         </div>
                         
                         <div className="nle-tracks">
-                            {/* The Scrubber / Playhead */}
-                            <div className="nle-playhead" style={{left: '380px'}}></div>
+                            {/* DRAGGABLE PLAYHEAD */}
+                            <div 
+                              className="nle-playhead" 
+                              style={{left: `${playheadPos}px`}}
+                              onPointerDown={handlePlayheadDown}
+                              onPointerMove={handlePlayheadMove}
+                              onPointerUp={handlePlayheadUp}
+                              onPointerCancel={handlePlayheadUp}
+                            ></div>
                             
                             {/* Track 1: Main */}
                             <div className="nle-track-lane">
@@ -553,7 +604,6 @@
                               <div className="nle-clip" style={{left: '250px', width: '200px', background: 'rgba(66, 133, 244, 0.2)', borderColor: '#4285f4', color: 'var(--text)'}}>DataMatrix class setup</div>
                             </div>
                         </div>
-                        
                       </div>
                     </div>
                   </div>
@@ -570,15 +620,15 @@
                   <div className="canvas-bg"></div>
                   <div className="graph-layer" style={{ transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.scale})` }}>
                     <svg className="svg-edges">
-                      {edgesRef.current.map(edge => {
-                        const src = nodesRef.current.find(n => n.id === edge.source);
-                        const tgt = nodesRef.current.find(n => n.id === edge.target);
+                      {visibleEdges.map(edge => {
+                        const src = visibleNodes.find(n => n.id === edge.source);
+                        const tgt = visibleNodes.find(n => n.id === edge.target);
                         if (!src || !tgt) return null;
                         return <path key={edge.id} className="edge-path" d={`M ${src.x} ${src.y} L ${tgt.x} ${tgt.y}`} />
                       })}
                     </svg>
 
-                    {nodesRef.current.map(node => (
+                    {visibleNodes.map(node => (
                       <div 
                         key={node.id} 
                         className={`obs-node-wrapper clr-${ZONES[node.themeIdx % ZONES.length]}`}
@@ -604,6 +654,9 @@
               <div className="status-group">
                 <span>CONNECTED</span>
                 <span>{themeMode.toUpperCase()} ENGINE</span>
+              </div>
+              <div className="status-group">
+                <span style={{color: '#ffc410', fontWeight: 'bold'}}>VERSION: {activeVersionName}</span>
               </div>
             </div>
 
