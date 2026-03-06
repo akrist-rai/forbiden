@@ -11,6 +11,7 @@ const path = require('path');
 const aiRouter = require('./routes/ai');
 const runnerRouter = require('./routes/runner');
 const graphRouter = require('./routes/graph');
+const repoRouter = require('./routes/repo');
 
 // Socket Handlers
 const setupEditorSockets = require('./sockets/editor');
@@ -41,6 +42,7 @@ app.use(async (ctx, next) => {
 app.use(aiRouter.routes()).use(aiRouter.allowedMethods());
 app.use(runnerRouter.routes()).use(runnerRouter.allowedMethods());
 app.use(graphRouter.routes()).use(graphRouter.allowedMethods());
+app.use(repoRouter.routes()).use(repoRouter.allowedMethods());
 
 // WebSocket Initialization
 const io = new Server(server, {

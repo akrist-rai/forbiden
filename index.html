@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.css" />
   <script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.js"></script>
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 
   <style>
     @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=JetBrains+Mono:wght@400;700;800&display=swap");
@@ -285,64 +286,520 @@
     ];
     const INITIAL_EDGES = [ { id: 'e1', source: 'n1', target: 'n2' }, { id: 'e2', source: 'n1', target: 'n3' } ];
 
-    function IDE({ initialTheme }) {
+    const DEFAULT_SERVER = (() => {
+      const isHttp = window.location.protocol === "http:" || window.location.protocol === "https:";
+      return isHttp ? window.location.origin : "http://localhost:3000";
+    })();
+
+    function normalizeServerUrl(raw = "") {
+      const v = String(raw).trim();
+      if (!v) return DEFAULT_SERVER;
+      if (/^https?:\/\//i.test(v)) return v.replace(/\/+$/, "");
+      return `http://${v}`.replace(/\/+$/, "");
+    }
+
+    function safeJsonParse(raw, fallback) {
+      try { return JSON.parse(raw); } catch (_) { return fallback; }
+    }
+
+    function inferRunLanguage(label = "") {
+      if (label.endsWith(".py")) return "python";
+      if (label.endsWith(".cpp") || label.endsWith(".cc") || label.endsWith(".cxx")) return "cpp";
+      return null;
+    }
+
+    function hashThemeIndex(value = "") {
+      let h = 0;
+      for (let i = 0; i < value.length; i++) h = ((h << 5) - h + value.charCodeAt(i)) | 0;
+      return Math.abs(h) % ZONES.length;
+    }
+
+    function IDE({ initialTheme, username = "operator", serverUrl = DEFAULT_SERVER, repoUrl = "" }) {
       const [themeMode, setThemeMode] = useState(initialTheme);
       const [isBrutalDark, setIsBrutalDark] = useState(false);
-      
+      const [connectionState, setConnectionState] = useState("connecting");
+      const [repoWorkspaceId, setRepoWorkspaceId] = useState("");
+      const [repoName, setRepoName] = useState("");
+      const [terminalLines, setTerminalLines] = useState([
+        { id: "boot-1", t: "info", v: "Connecting to backend..." }
+      ]);
+      const [scmStatus, setScmStatus] = useState({ branch: "-", ahead: 0, behind: 0, changes: [], clean: true });
+      const [scmLog, setScmLog] = useState([]);
+      const [scmBranches, setScmBranches] = useState([]);
+      const [scmMessage, setScmMessage] = useState("[forbiden] sync");
+      const [scmBusy, setScmBusy] = useState(false);
+      const [searchQuery, setSearchQuery] = useState("");
+      const [aiPrompts, setAiPrompts] = useState({});
+      const [aiReplies, setAiReplies] = useState({});
+
       const nodesRef = useRef(JSON.parse(JSON.stringify(INITIAL_NODES)));
       const edgesRef = useRef(INITIAL_EDGES);
+      const socketRef = useRef(null);
+      const syncTimersRef = useRef(new Map());
+      const repoWorkspaceRef = useRef("");
       const [, forceRender] = useState({});
 
       const [transform, setTransform] = useState({ x: window.innerWidth / 2, y: window.innerHeight / 2, scale: 1 });
       const [isDraggingCanvas, setIsDraggingCanvas] = useState(false);
-      
-      const [sidebarMode, setSidebarMode] = useState('files'); 
+
+      const [sidebarMode, setSidebarMode] = useState("files");
       const [terminalOpen, setTerminalOpen] = useState(false);
       const [cmdOpen, setCmdOpen] = useState(false);
-      const [cmdSearch, setCmdSearch] = useState('');
-      
+      const [cmdSearch, setCmdSearch] = useState("");
+
       const [openTabs, setOpenTabs] = useState([]);
       const [activeTabId, setActiveTabId] = useState(null);
       const [cursorPos, setCursorPos] = useState({ ln: 1, col: 1 });
-      
+
       const draggingNodeRef = useRef(null);
       const [hoveredNodeId, setHoveredNodeId] = useState(null);
       const lastMousePos = useRef({ x: 0, y: 0 });
 
-      // Sync Line Numbers Scroll
       const lineNumRef = useRef(null);
       const handleEditorScroll = (e) => {
         if (lineNumRef.current) lineNumRef.current.scrollTop = e.target.scrollTop;
       };
 
+      const appendTerminal = (v, t = "info") => {
+        setTerminalLines((prev) => [...prev.slice(-300), { id: `t-${Date.now()}-${Math.random()}`, v: String(v), t }]);
+      };
+
+      const getNodeById = (id) => nodesRef.current.find((n) => n.id === id);
+
+      const activeTabNode = getNodeById(activeTabId);
+      const repoMode = Boolean(String(repoUrl || "").trim());
       const currentActiveId = activeTabId || hoveredNodeId;
-      const activeNode = nodesRef.current.find(n => n.id === currentActiveId);
-      const activeZoneKey = activeNode ? ZONES[activeNode.themeIdx % ZONES.length] : 'default';
-      
+      const activeNode = getNodeById(currentActiveId);
+      const activeZoneKey = activeNode ? ZONES[activeNode.themeIdx % ZONES.length] : "default";
+
       let wrapperClass = `app-wrapper theme-${themeMode} zone-${activeZoneKey}`;
-      if (themeMode === 'brutal' && isBrutalDark && activeZoneKey === 'default') {
-        wrapperClass += ' dark-mode';
-      }
+      if (themeMode === "brutal" && isBrutalDark && activeZoneKey === "default") wrapperClass += " dark-mode";
 
-      const outerBg = themeMode === 'brutal' 
-        ? (isBrutalDark && activeZoneKey === 'default' ? '#111111' : OUTSIDE_COLORS[activeZoneKey]) 
-        : '#050505';
+      const outerBg = themeMode === "brutal"
+        ? (isBrutalDark && activeZoneKey === "default" ? "#111111" : OUTSIDE_COLORS[activeZoneKey])
+        : "#050505";
 
-      const modifiedNodes = nodesRef.current.filter(n => n.modified);
-      const activeTabNode = nodesRef.current.find(n => n.id === activeTabId);
+      const modifiedNodes = nodesRef.current.filter((n) => n.modified);
+
+      useEffect(() => {
+        repoWorkspaceRef.current = repoWorkspaceId;
+      }, [repoWorkspaceId]);
+
+      const normalizeGraphNode = (raw, idx, type) => ({
+        id: raw.id,
+        type,
+        label: raw.label || raw.name || raw.path || raw.id,
+        isMain: type === "entry",
+        x: raw.x ?? (Math.cos(idx) * (type === "entry" ? 0 : 220 + idx * 8)),
+        y: raw.y ?? (Math.sin(idx) * (type === "entry" ? 0 : 180 + idx * 6)),
+        vx: 0,
+        vy: 0,
+        themeIdx: hashThemeIndex(raw.id),
+        code: raw.code || "",
+        modified: false,
+        nodeKind: raw.kind || "",
+        filePath: raw.path || raw.filePath || "",
+        owner: raw.owner || "",
+        classThreadId: raw.classThreadId || "",
+        backendBlock: raw.kind === "function-block"
+      });
+
+      const applySnapshot = (snapshot) => {
+        if (!snapshot || typeof snapshot !== "object") return;
+
+        const prevMap = new Map(nodesRef.current.map((n) => [n.id, n]));
+        const nextNodes = [];
+        const nextEdges = [];
+        let idx = 0;
+
+        const files = Array.isArray(snapshot.files) ? snapshot.files : [];
+        const blocks = Array.isArray(snapshot.blocks) ? snapshot.blocks : [];
+        const classes = Array.isArray(snapshot.classes) ? snapshot.classes : [];
+        const links = Array.isArray(snapshot.links) ? snapshot.links : [];
+
+        files.forEach((f) => {
+          const existing = prevMap.get(f.id);
+          const node = normalizeGraphNode(
+            {
+              ...f,
+              x: existing?.x,
+              y: existing?.y,
+              code: existing?.code || `// ${f.path}\n// Linked from server.js graph`
+            },
+            idx++,
+            f.central ? "entry" : "function"
+          );
+          nextNodes.push(node);
+        });
+
+        blocks.forEach((b) => {
+          const existing = prevMap.get(b.id);
+          const node = normalizeGraphNode({ ...b, x: existing?.x, y: existing?.y }, idx++, b.classThreadId ? "class" : "function");
+          node.modified = existing?.modified || false;
+          nextNodes.push(node);
+        });
+
+        classes.forEach((cls) => {
+          const existing = prevMap.get(cls.id);
+          nextNodes.push(normalizeGraphNode({
+            ...cls,
+            label: cls.name,
+            code: `// Class Thread\n// ${cls.name}\n// Blocks: ${cls.blockIds?.join(", ") || "none"}`,
+            x: existing?.x,
+            y: existing?.y
+          }, idx++, "class"));
+        });
+
+        links.forEach((e) => {
+          nextEdges.push({
+            id: e.id || `edge-${Math.random()}`,
+            source: e.from || e.source,
+            target: e.to || e.target,
+            label: e.label || e.kind || ""
+          });
+        });
+
+        classes.forEach((cls) => {
+          (cls.blockIds || []).forEach((blockId, i) => {
+            nextEdges.push({ id: `bind:${cls.id}:${blockId}:${i}`, source: cls.id, target: blockId, label: "class-bind" });
+          });
+        });
+
+        if (nextNodes.length) {
+          nodesRef.current = nextNodes;
+          edgesRef.current = nextEdges;
+          setOpenTabs((tabs) => tabs.filter((id) => nextNodes.some((n) => n.id === id)));
+          if (activeTabId && !nextNodes.some((n) => n.id === activeTabId)) setActiveTabId(null);
+          forceRender({});
+        }
+      };
+
+      const queueSyncNode = (node) => {
+        if (!node || node.nodeKind === "file" || node.nodeKind === "class-thread") return;
+
+        if (node.nodeKind === "repo-file") {
+          const wsId = repoWorkspaceRef.current;
+          if (!wsId || !node.repoPath) return;
+          const timerMap = syncTimersRef.current;
+          if (timerMap.has(node.id)) clearTimeout(timerMap.get(node.id));
+          timerMap.set(node.id, setTimeout(() => {
+            fetch(`${serverUrl}/api/repo/file`, {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                workspaceId: wsId,
+                path: node.repoPath,
+                content: node.code || "",
+                username
+              })
+            })
+              .then((r) => r.json())
+              .then((data) => {
+                if (data?.ok) {
+                  appendTerminal(`[REPO] Synced ${node.repoPath} to GitHub`, "success");
+                  if (data.scm) setScmStatus(data.scm);
+                } else {
+                  appendTerminal(`[REPO] Save failed for ${node.repoPath}`, "error");
+                }
+              })
+              .catch(() => appendTerminal(`[REPO] Save failed for ${node.repoPath}`, "error"));
+          }, 350));
+          return;
+        }
+
+        const timerMap = syncTimersRef.current;
+        if (timerMap.has(node.id)) clearTimeout(timerMap.get(node.id));
+        timerMap.set(node.id, setTimeout(() => {
+          const payload = {
+            id: node.id.startsWith("class:") ? undefined : node.id,
+            functionName: node.label,
+            filePath: node.filePath || `src/${node.label}`,
+            code: node.code || "",
+            owner: username,
+            classThreadId: node.classThreadId || ""
+          };
+          if (socketRef.current?.connected) socketRef.current.emit("graph:block_upsert", payload);
+          else {
+            fetch(`${serverUrl}/api/graph/block`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(payload)
+            }).catch(() => {});
+          }
+        }, 350));
+      };
+
+      const saveAllChanges = () => {
+        modifiedNodes.forEach((n) => {
+          n.modified = false;
+          queueSyncNode(n);
+        });
+        appendTerminal(`[SAVE] Synced ${modifiedNodes.length} block(s).`, "success");
+        forceRender({});
+      };
+
+      const refreshScm = async () => {
+        if (!repoMode || !repoWorkspaceRef.current) return;
+        try {
+          const [statusRes, logRes, branchRes] = await Promise.all([
+            fetch(`${serverUrl}/api/repo/scm/status?workspaceId=${encodeURIComponent(repoWorkspaceRef.current)}`),
+            fetch(`${serverUrl}/api/repo/scm/log?workspaceId=${encodeURIComponent(repoWorkspaceRef.current)}&limit=12`),
+            fetch(`${serverUrl}/api/repo/scm/branches?workspaceId=${encodeURIComponent(repoWorkspaceRef.current)}`)
+          ]);
+          const statusData = await statusRes.json();
+          const logData = await logRes.json();
+          const branchData = await branchRes.json();
+          if (statusData?.ok) setScmStatus(statusData);
+          if (logData?.ok) setScmLog(logData.commits || []);
+          if (branchData?.ok) setScmBranches(branchData.branches || []);
+        } catch (_) {
+          appendTerminal("[SCM] Unable to refresh source control state.", "warn");
+        }
+      };
+
+      const runScmAction = async (fn) => {
+        if (scmBusy || !repoWorkspaceRef.current) return;
+        setScmBusy(true);
+        try {
+          await fn();
+          await refreshScm();
+        } catch (err) {
+          appendTerminal(`[SCM] ${err.message || "Action failed."}`, "error");
+        } finally {
+          setScmBusy(false);
+        }
+      };
+
+      const scmCommit = () => runScmAction(async () => {
+        const res = await fetch(`${serverUrl}/api/repo/scm/commit`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            workspaceId: repoWorkspaceRef.current,
+            message: scmMessage,
+            username
+          })
+        });
+        const data = await res.json();
+        if (!res.ok || !data.ok) throw new Error(data.error || "Commit failed");
+        appendTerminal(data.sync?.pushed ? `[SCM] Commit+push ${data.sync.sha || ""}` : "[SCM] Commit completed", "success");
+      });
+
+      const scmPush = () => runScmAction(async () => {
+        const res = await fetch(`${serverUrl}/api/repo/scm/push`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ workspaceId: repoWorkspaceRef.current })
+        });
+        const data = await res.json();
+        if (!res.ok || !data.ok) throw new Error(data.error || "Push failed");
+        appendTerminal("[SCM] Push completed", "success");
+      });
+
+      const scmPull = () => runScmAction(async () => {
+        const res = await fetch(`${serverUrl}/api/repo/scm/pull`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ workspaceId: repoWorkspaceRef.current })
+        });
+        const data = await res.json();
+        if (!res.ok || !data.ok) throw new Error(data.error || "Pull failed");
+        appendTerminal("[SCM] Pull completed", "success");
+      });
+
+      const scmCheckout = (branch) => runScmAction(async () => {
+        const res = await fetch(`${serverUrl}/api/repo/scm/checkout`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ workspaceId: repoWorkspaceRef.current, branch })
+        });
+        const data = await res.json();
+        if (!res.ok || !data.ok) throw new Error(data.error || "Checkout failed");
+        appendTerminal(`[SCM] Checked out ${branch}`, "success");
+      });
+
+      const runActiveCode = async () => {
+        const node = activeTabNode;
+        if (!node) return;
+        const lang = inferRunLanguage(node.label);
+        if (!lang) {
+          appendTerminal(`[RUN] Unsupported runtime for ${node.label}. Use .py or .cpp/.cc/.cxx`, "warn");
+          return;
+        }
+        appendTerminal(`[RUN] Executing ${node.label}...`, "info");
+        setTerminalOpen(true);
+        try {
+          const res = await fetch(`${serverUrl}/api/run`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ code: node.code || "", language: lang })
+          });
+          const data = await res.json();
+          appendTerminal(data.output || data.error || "No output.", data.success ? "success" : "error");
+        } catch (_) {
+          appendTerminal("[RUN] Backend unreachable.", "error");
+        }
+      };
+
+      const analyzeActiveCode = async () => {
+        const node = activeTabNode;
+        if (!node) return;
+        const prompt = (aiPrompts[node.id] || "").trim();
+        if (!prompt) {
+          appendTerminal("[AI] Enter a prompt first.", "warn");
+          return;
+        }
+        appendTerminal(`[AI] Analyzing ${node.label}...`, "info");
+        try {
+          const res = await fetch(`${serverUrl}/api/ai/chat`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ prompt, currentContext: node.code || "" })
+          });
+          const data = await res.json();
+          const reply = data.response || data.error || "No AI response.";
+          setAiReplies((prev) => ({ ...prev, [node.id]: reply }));
+          appendTerminal(`[AI] ${reply}`, data.response ? "success" : "warn");
+        } catch (_) {
+          appendTerminal("[AI] Backend unavailable.", "error");
+        }
+      };
+
+      const loadRepoWorkspace = async (workspaceId, displayName) => {
+        const res = await fetch(`${serverUrl}/api/repo/tree?workspaceId=${encodeURIComponent(workspaceId)}`);
+        const data = await res.json();
+        if (!res.ok || !data.ok) throw new Error(data.error || "Failed to load repository tree.");
+
+        const files = Array.isArray(data.files) ? data.files : [];
+        const rootId = "repo:root";
+        const rootNode = {
+          id: rootId,
+          type: "entry",
+          label: displayName || "repository",
+          isMain: true,
+          x: 0,
+          y: 0,
+          vx: 0,
+          vy: 0,
+          themeIdx: 0,
+          code: `// ${displayName || "repository"}\n// ${files.length} files loaded`,
+          modified: false,
+          nodeKind: "repo-root"
+        };
+
+        const fileNodes = files.map((relPath, idx) => {
+          const id = `repo-file:${relPath}`;
+          return {
+            id,
+            type: "function",
+            label: relPath,
+            isMain: false,
+            x: Math.cos(idx * 0.35) * (200 + (idx % 10) * 14),
+            y: Math.sin(idx * 0.35) * (180 + (idx % 7) * 12),
+            vx: 0,
+            vy: 0,
+            themeIdx: hashThemeIndex(relPath),
+            code: "",
+            loaded: false,
+            modified: false,
+            nodeKind: "repo-file",
+            repoPath: relPath,
+            filePath: relPath
+          };
+        });
+
+        nodesRef.current = [rootNode, ...fileNodes];
+        edgesRef.current = fileNodes.map((n, i) => ({ id: `repo-edge:${i}:${n.id}`, source: rootId, target: n.id, label: "contains" }));
+        setOpenTabs([]);
+        setActiveTabId(null);
+        forceRender({});
+      };
+
+      const connectRepository = async () => {
+        if (!repoMode) return;
+        appendTerminal(`[REPO] Connecting ${repoUrl} ...`, "info");
+        const res = await fetch(`${serverUrl}/api/repo/connect`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ repoUrl })
+        });
+        const data = await res.json();
+        if (!res.ok || !data.ok) throw new Error(data.error || "Repository connection failed.");
+
+        setRepoWorkspaceId(data.workspaceId);
+        setRepoName(`${data.repo.owner}/${data.repo.name}`);
+        await loadRepoWorkspace(data.workspaceId, `${data.repo.owner}/${data.repo.name}`);
+        appendTerminal(`[REPO] Ready: ${data.repo.owner}/${data.repo.name}`, "success");
+        await refreshScm();
+      };
+
+      useEffect(() => {
+        let mounted = true;
+
+        if (repoMode) {
+          connectRepository().catch((err) => appendTerminal(`[REPO] ${err.message}`, "error"));
+        } else {
+          fetch(`${serverUrl}/api/graph/state`)
+            .then((r) => r.json())
+            .then((data) => { if (mounted) applySnapshot(data); })
+            .catch(() => appendTerminal("[GRAPH] Failed to load initial graph state.", "warn"));
+        }
+
+        if (typeof io !== "function") {
+          appendTerminal("[WS] socket.io client unavailable.", "error");
+          setConnectionState("error");
+          return () => {};
+        }
+
+        const sock = io(serverUrl, { transports: ["websocket", "polling"] });
+        socketRef.current = sock;
+        setConnectionState("connecting");
+
+        sock.on("connect", () => {
+          setConnectionState("connected");
+          appendTerminal("[WS] Connected to backend.", "success");
+          sock.emit("graph:join", { username });
+          if (!repoMode) sock.emit("graph:refresh_main");
+        });
+        sock.on("disconnect", () => { setConnectionState("disconnected"); appendTerminal("[WS] Disconnected.", "warn"); });
+        sock.on("connect_error", () => { setConnectionState("error"); appendTerminal("[WS] Connection error.", "error"); });
+        sock.on("graph:state", (snapshot) => { if (!repoMode) applySnapshot(snapshot); });
+        sock.on("terminal:output", (data) => appendTerminal(String(data).replace(/\r?\n/g, " ").trim(), "info"));
+
+        return () => {
+          mounted = false;
+          for (const timer of syncTimersRef.current.values()) clearTimeout(timer);
+          syncTimersRef.current.clear();
+          socketRef.current = null;
+          sock.disconnect();
+        };
+      }, [serverUrl, username, repoMode, repoUrl]);
 
       useEffect(() => {
         const handleKeyDown = (e) => {
-          if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-            e.preventDefault(); setCmdOpen(prev => !prev);
+          const meta = e.metaKey || e.ctrlKey;
+          if (meta && e.key.toLowerCase() === "k") { e.preventDefault(); setCmdOpen((p) => !p); }
+          if (meta && e.key.toLowerCase() === "s") { e.preventDefault(); saveAllChanges(); }
+          if (meta && e.key.toLowerCase() === "n") { e.preventDefault(); addBlock(); }
+          if (meta && e.key.toLowerCase() === "p") { e.preventDefault(); setCmdOpen(true); }
+          if (meta && e.key.toLowerCase() === "b") { e.preventDefault(); setSidebarMode((m) => (m === "files" ? null : "files")); }
+          if (meta && e.key === "`") { e.preventDefault(); setTerminalOpen((p) => !p); }
+          if (meta && e.key === "Enter") { e.preventDefault(); runActiveCode(); }
+          if (meta && e.key.toLowerCase() === "f") { e.preventDefault(); setSidebarMode("search"); }
+          if (meta && e.key.toLowerCase() === "w" && activeTabId) {
+            e.preventDefault();
+            const nextTabs = openTabs.filter((id) => id !== activeTabId);
+            setOpenTabs(nextTabs);
+            setActiveTabId(nextTabs[nextTabs.length - 1] || null);
           }
-          if (e.key === 'Escape') {
-            setCmdOpen(false); setActiveTabId(null);
+          if (e.key === "Escape") {
+            setCmdOpen(false);
+            if (!activeTabId) setHoveredNodeId(null);
           }
         };
-        window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
-      }, []);
+        window.addEventListener("keydown", handleKeyDown);
+        return () => window.removeEventListener("keydown", handleKeyDown);
+      }, [activeTabId, openTabs, modifiedNodes.length, sidebarMode]);
 
       useEffect(() => {
         let rafId;
@@ -353,35 +810,52 @@
 
           for (let i = 0; i < nodes.length; i++) {
             for (let j = i + 1; j < nodes.length; j++) {
-              const dx = nodes[j].x - nodes[i].x; const dy = nodes[j].y - nodes[i].y;
-              const distSq = dx*dx + dy*dy || 1; const dist = Math.sqrt(distSq);
-              const force = 4000 / distSq; 
-              nodes[i].vx -= (dx / dist) * force; nodes[i].vy -= (dy / dist) * force;
-              nodes[j].vx += (dx / dist) * force; nodes[j].vy += (dy / dist) * force;
+              const dx = nodes[j].x - nodes[i].x;
+              const dy = nodes[j].y - nodes[i].y;
+              const distSq = dx * dx + dy * dy || 1;
+              const dist = Math.sqrt(distSq);
+              const force = 4000 / distSq;
+              nodes[i].vx -= (dx / dist) * force;
+              nodes[i].vy -= (dy / dist) * force;
+              nodes[j].vx += (dx / dist) * force;
+              nodes[j].vy += (dy / dist) * force;
             }
           }
 
-          edges.forEach(edge => {
-            const src = nodes.find(n => n.id === edge.source); const tgt = nodes.find(n => n.id === edge.target);
-            if (src && tgt) {
-              const dx = tgt.x - src.x; const dy = tgt.y - src.y;
-              const dist = Math.sqrt(dx*dx + dy*dy) || 1; const force = (dist - 140) * 0.05; 
-              src.vx += (dx / dist) * force; src.vy += (dy / dist) * force;
-              tgt.vx -= (dx / dist) * force; tgt.vy -= (dy / dist) * force;
-            }
+          edges.forEach((edge) => {
+            const src = nodes.find((n) => n.id === edge.source);
+            const tgt = nodes.find((n) => n.id === edge.target);
+            if (!src || !tgt) return;
+            const dx = tgt.x - src.x;
+            const dy = tgt.y - src.y;
+            const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+            const force = (dist - 140) * 0.05;
+            src.vx += (dx / dist) * force;
+            src.vy += (dy / dist) * force;
+            tgt.vx -= (dx / dist) * force;
+            tgt.vy -= (dy / dist) * force;
           });
 
-          nodes.forEach(n => {
+          nodes.forEach((n) => {
             const pullStrength = n.isMain ? 0.2 : 0.005;
-            n.vx += (0 - n.x) * pullStrength; n.vy += (0 - n.y) * pullStrength;
-            n.vx *= 0.8; n.vy *= 0.8;
-            n.x += n.vx; n.y += n.vy;
+            n.vx += (0 - n.x) * pullStrength;
+            n.vy += (0 - n.y) * pullStrength;
+            n.vx *= 0.8;
+            n.vy *= 0.8;
+            n.x += n.vx;
+            n.y += n.vy;
             if (Math.abs(n.vx) > 0.05 || Math.abs(n.vy) > 0.05) updated = true;
           });
 
           if (draggingNodeRef.current) {
-            const d = nodes.find(n => n.id === draggingNodeRef.current.id);
-            if (d) { d.x = draggingNodeRef.current.x; d.y = draggingNodeRef.current.y; d.vx = 0; d.vy = 0; updated = true; }
+            const d = nodes.find((n) => n.id === draggingNodeRef.current.id);
+            if (d) {
+              d.x = draggingNodeRef.current.x;
+              d.y = draggingNodeRef.current.y;
+              d.vx = 0;
+              d.vy = 0;
+              updated = true;
+            }
           }
 
           if (updated) forceRender({});
@@ -392,36 +866,59 @@
       }, []);
 
       const handleCanvasPointerDown = (e) => {
-        if (e.target.closest('.obs-node-wrapper') || e.target.closest('.modal-overlay')) return;
-        setIsDraggingCanvas(true); lastMousePos.current = { x: e.clientX, y: e.clientY };
+        if (e.target.closest(".obs-node-wrapper") || e.target.closest(".modal-overlay")) return;
+        setIsDraggingCanvas(true);
+        lastMousePos.current = { x: e.clientX, y: e.clientY };
       };
       const handleCanvasPointerMove = (e) => {
         if (isDraggingCanvas) {
-          const dx = e.clientX - lastMousePos.current.x; const dy = e.clientY - lastMousePos.current.y;
-          setTransform(prev => ({ ...prev, x: prev.x + dx, y: prev.y + dy }));
+          const dx = e.clientX - lastMousePos.current.x;
+          const dy = e.clientY - lastMousePos.current.y;
+          setTransform((prev) => ({ ...prev, x: prev.x + dx, y: prev.y + dy }));
           lastMousePos.current = { x: e.clientX, y: e.clientY };
         } else if (draggingNodeRef.current) {
-          const dx = (e.clientX - lastMousePos.current.x) / transform.scale; const dy = (e.clientY - lastMousePos.current.y) / transform.scale;
-          draggingNodeRef.current.x += dx; draggingNodeRef.current.y += dy;
+          const dx = (e.clientX - lastMousePos.current.x) / transform.scale;
+          const dy = (e.clientY - lastMousePos.current.y) / transform.scale;
+          draggingNodeRef.current.x += dx;
+          draggingNodeRef.current.y += dy;
           lastMousePos.current = { x: e.clientX, y: e.clientY };
         }
       };
-      const handleCanvasPointerUp = () => { setIsDraggingCanvas(false); draggingNodeRef.current = null; };
+      const handleCanvasPointerUp = () => {
+        setIsDraggingCanvas(false);
+        draggingNodeRef.current = null;
+      };
       const handleWheel = (e) => {
-        if (e.target.closest('.code-area')) return;
+        if (e.target.closest(".code-area")) return;
         e.preventDefault();
-        setTransform(prev => ({ ...prev, scale: Math.min(Math.max(0.3, prev.scale * (e.deltaY > 0 ? 0.9 : 1.1)), 2.5) }));
+        setTransform((prev) => ({ ...prev, scale: Math.min(Math.max(0.3, prev.scale * (e.deltaY > 0 ? 0.9 : 1.1)), 2.5) }));
       };
 
       const handleNodePointerDown = (e, id) => {
         e.stopPropagation();
-        const node = nodesRef.current.find(n => n.id === id);
+        const node = getNodeById(id);
+        if (!node) return;
         draggingNodeRef.current = { id, x: node.x, y: node.y };
         lastMousePos.current = { x: e.clientX, y: e.clientY };
       };
-      
-      const openNodeInEditor = (id) => {
-        if (!openTabs.includes(id)) setOpenTabs([...openTabs, id]);
+
+      const openNodeInEditor = async (id) => {
+        const node = getNodeById(id);
+        if (node?.nodeKind === "repo-file" && !node.loaded && repoWorkspaceRef.current) {
+          try {
+            const res = await fetch(`${serverUrl}/api/repo/file?workspaceId=${encodeURIComponent(repoWorkspaceRef.current)}&path=${encodeURIComponent(node.repoPath)}`);
+            const data = await res.json();
+            if (res.ok && data.ok) {
+              node.code = data.content || "";
+              node.loaded = true;
+            } else {
+              appendTerminal(`[REPO] Cannot open ${node.repoPath}`, "warn");
+            }
+          } catch (_) {
+            appendTerminal(`[REPO] Failed to open ${node.repoPath}`, "error");
+          }
+        }
+        setOpenTabs((tabs) => (tabs.includes(id) ? tabs : [...tabs, id]));
         setActiveTabId(id);
       };
 
@@ -432,47 +929,122 @@
 
       const closeTab = (e, id) => {
         e.stopPropagation();
-        const newTabs = openTabs.filter(t => t !== id);
+        const newTabs = openTabs.filter((t) => t !== id);
         setOpenTabs(newTabs);
-        if (activeTabId === id) setActiveTabId(newTabs.length > 0 ? newTabs[newTabs.length - 1] : null);
+        if (activeTabId === id) setActiveTabId(newTabs.length ? newTabs[newTabs.length - 1] : null);
       };
 
       const updateNodeCode = (id, newCode) => {
-        const node = nodesRef.current.find(n => n.id === id);
-        if (node) { node.code = newCode; node.modified = true; forceRender({}); }
+        const node = getNodeById(id);
+        if (!node) return;
+        node.code = newCode;
+        node.modified = true;
+        queueSyncNode(node);
+        forceRender({});
       };
 
       const updateCursorPos = (e) => {
-        const text = e.target.value; const pos = e.target.selectionStart;
-        const lines = text.substring(0, pos).split('\n');
+        const text = e.target.value;
+        const pos = e.target.selectionStart;
+        const lines = text.substring(0, pos).split("\n");
         setCursorPos({ ln: lines.length, col: lines[lines.length - 1].length + 1 });
       };
 
       const getLanguage = (label) => {
-        if (label.endsWith('.py')) return 'Python';
-        if (label.endsWith('.js') || label.endsWith('.ts')) return 'JavaScript';
-        if (label.endsWith('.json')) return 'JSON';
-        return 'Plain Text';
+        if (label.endsWith(".py")) return "Python";
+        if (label.endsWith(".js") || label.endsWith(".ts")) return "JavaScript";
+        if (label.endsWith(".cpp") || label.endsWith(".cc") || label.endsWith(".cxx")) return "C++";
+        if (label.endsWith(".json")) return "JSON";
+        return "Plain Text";
       };
 
       const addBlock = () => {
-        const id = 'node_' + Date.now();
+        if (repoMode) {
+          const relPath = prompt("New file path in repo:", "src/new_file.py");
+          if (!relPath) return;
+          const id = `repo-file:${relPath}`;
+          const existing = getNodeById(id);
+          if (existing) {
+            openNodeInEditor(existing.id);
+            return;
+          }
+          const node = {
+            id,
+            type: "function",
+            label: relPath,
+            isMain: false,
+            x: (0 - transform.x) / transform.scale + (Math.random() * 80 - 40),
+            y: (0 - transform.y) / transform.scale + (Math.random() * 80 - 40),
+            vx: 0,
+            vy: 0,
+            themeIdx: hashThemeIndex(relPath),
+            code: "",
+            loaded: true,
+            modified: true,
+            nodeKind: "repo-file",
+            repoPath: relPath,
+            filePath: relPath
+          };
+          nodesRef.current.push(node);
+          edgesRef.current.push({ id: `repo-edge:new:${Date.now()}`, source: "repo:root", target: id, label: "contains" });
+          forceRender({});
+          openNodeInEditor(id);
+          queueSyncNode(node);
+          setCmdOpen(false);
+          return;
+        }
+
+        const id = `block:${Date.now().toString(36)}:${Math.random().toString(36).slice(2, 6)}`;
         const x = (0 - transform.x) / transform.scale + (Math.random() * 100 - 50);
         const y = (0 - transform.y) / transform.scale + (Math.random() * 100 - 50);
         const themeIdx = Math.floor(Math.random() * 6) + 1;
-        nodesRef.current.push({ id, type: 'function', label: 'new_file.py', isMain: false, x, y, vx: 0, vy: 0, themeIdx, code: '', modified: true });
-        edgesRef.current.push({ id: 'e_' + Date.now(), source: 'n1', target: id });
-        forceRender({}); setCmdOpen(false);
+
+        const node = {
+          id,
+          type: "function",
+          label: "new_file.py",
+          isMain: false,
+          x,
+          y,
+          vx: 0,
+          vy: 0,
+          themeIdx,
+          code: "",
+          modified: true,
+          nodeKind: "function-block",
+          filePath: "src/new_file.py",
+          owner: username,
+          classThreadId: "",
+          backendBlock: true
+        };
+        nodesRef.current.push(node);
+        forceRender({});
+        openNodeInEditor(id);
+        queueSyncNode(node);
+        setCmdOpen(false);
       };
 
       const drawLine = (sx, sy, tx, ty) => `M ${sx} ${sy} L ${tx} ${ty}`;
 
+      const filteredSearch = nodesRef.current.filter((n) => {
+        const q = searchQuery.trim().toLowerCase();
+        if (!q) return true;
+        return (n.label || "").toLowerCase().includes(q) || (n.code || "").toLowerCase().includes(q);
+      });
+
       const commands = [
         { name: "Create New Node", action: addBlock },
-        { name: "Toggle Theme (Forsaken / Obsidian)", action: () => { setThemeMode(themeMode==='cyber'?'brutal':'cyber'); setCmdOpen(false); } },
+        { name: "Save All (Ctrl/Cmd+S)", action: () => { saveAllChanges(); setCmdOpen(false); } },
+        { name: "Run Active Block (Ctrl/Cmd+Enter)", action: () => { runActiveCode(); setCmdOpen(false); } },
+        { name: "Toggle Theme (Forsaken / Obsidian)", action: () => { setThemeMode(themeMode === "cyber" ? "brutal" : "cyber"); setCmdOpen(false); } },
         { name: "Toggle Terminal", action: () => { setTerminalOpen(!terminalOpen); setCmdOpen(false); } },
-        { name: "Toggle Explorer", action: () => { setSidebarMode(sidebarMode === 'files' ? null : 'files'); setCmdOpen(false); } }
-      ].filter(c => c.name.toLowerCase().includes(cmdSearch.toLowerCase()));
+        { name: "Toggle Explorer", action: () => { setSidebarMode(sidebarMode === "files" ? null : "files"); setCmdOpen(false); } },
+        { name: repoMode ? "Refresh Repository" : "Refresh Main Graph", action: () => {
+          if (repoMode) connectRepository().catch((err) => appendTerminal(`[REPO] ${err.message}`, "error"));
+          else socketRef.current?.emit("graph:refresh_main");
+          setCmdOpen(false);
+        } }
+      ].filter((c) => c.name.toLowerCase().includes(cmdSearch.toLowerCase()));
 
       return (
         <div style={{
@@ -485,7 +1057,26 @@
               <div className="hdr-brand">
                 <Icons.Search /> FORBINDEN // {themeMode.toUpperCase()} IDE
               </div>
-              <div style={{ display: 'flex', gap: '16px' }}>
+              <div style={{ display: 'flex', gap: '10px', alignItems: 'center', minWidth: 0 }}>
+                <input
+                  className="side-input"
+                  style={{ width: "300px", padding: "8px 10px" }}
+                  spellCheck="false"
+                  placeholder={activeTabNode ? `Ask Gemini about ${activeTabNode.label}...` : "Select a file to ask Gemini"}
+                  value={activeTabNode ? (aiPrompts[activeTabNode.id] || "") : ""}
+                  onChange={(e) => {
+                    if (!activeTabNode) return;
+                    setAiPrompts((prev) => ({ ...prev, [activeTabNode.id]: e.target.value }));
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      analyzeActiveCode();
+                    }
+                  }}
+                  disabled={!activeTabNode}
+                />
+                <button className="btn" onClick={analyzeActiveCode} disabled={!activeTabNode}>GEMINI</button>
                 <button className="btn" onClick={addBlock}>+ ADD NODE</button>
                 {themeMode === 'brutal' && (
                   <button className="btn" onClick={() => setIsBrutalDark(!isBrutalDark)}>
@@ -539,20 +1130,102 @@
                 </div>
               )}
 
+              {sidebarMode === "search" && (
+                <div className="explorer-panel">
+                  <div className="panel-hdr">SEARCH</div>
+                  <div style={{ padding: "12px 16px", borderBottom: "1px solid rgba(128,128,128,0.2)" }}>
+                    <input
+                      className="side-input"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Find in labels and code..."
+                    />
+                  </div>
+                  <div style={{ flex: 1, overflowY: "auto", paddingTop: "8px" }}>
+                    {filteredSearch.map((n) => (
+                      <div key={`search_${n.id}`} className="list-item" onClick={() => openNodeInEditor(n.id)}>
+                        <Icons.FileIcon />
+                        <span>{n.label}</span>
+                      </div>
+                    ))}
+                    {!filteredSearch.length && (
+                      <div style={{ padding: "20px", opacity: 0.6 }}>No matches.</div>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {sidebarMode === 'git' && (
                 <div className="explorer-panel">
                   <div className="panel-hdr">SOURCE CONTROL</div>
                   <div style={{ flex: 1, overflowY: 'auto', paddingTop: '8px' }}>
-                    <div style={{ padding: '0 20px', marginBottom: '8px', fontSize: '9px', opacity: 0.6, fontWeight: 'bold' }}>CHANGES ({modifiedNodes.length})</div>
-                    {modifiedNodes.length === 0 ? 
-                      <div style={{padding: '20px', opacity: 0.5, fontSize: '11px'}}>No uncommitted changes.</div> :
-                      modifiedNodes.map(n => (
-                        <div key={'git_'+n.id} className="list-item" onClick={() => openNodeInEditor(n.id)}>
-                          <Icons.FileIcon /> <span style={{color: '#ffc410'}}>{n.label}</span> <span style={{marginLeft: 'auto', opacity: 0.5}}>M</span>
+                    {repoMode ? (
+                      <>
+                        <div style={{ padding: '0 20px', marginBottom: '8px', fontSize: '9px', opacity: 0.8, fontWeight: 'bold' }}>
+                          BRANCH {scmStatus.branch} | AHEAD {scmStatus.ahead} | BEHIND {scmStatus.behind}
                         </div>
-                      ))
-                    }
-                    {modifiedNodes.length > 0 && <div style={{padding: '20px'}}><button className="btn" style={{width:'100%'}} onClick={() => {nodesRef.current.forEach(n=>n.modified=false); forceRender({})}}>COMMIT CHANGES</button></div>}
+                        <div style={{ padding: '0 20px 10px' }}>
+                          <input
+                            className="side-input"
+                            value={scmMessage}
+                            onChange={(e) => setScmMessage(e.target.value)}
+                            placeholder="Commit message"
+                            style={{ marginBottom: 8 }}
+                          />
+                          <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+                            <button className="btn" onClick={scmCommit} disabled={scmBusy}>COMMIT+PUSH</button>
+                            <button className="btn" onClick={scmPush} disabled={scmBusy}>PUSH</button>
+                            <button className="btn" onClick={scmPull} disabled={scmBusy}>PULL</button>
+                            <button className="btn" onClick={refreshScm} disabled={scmBusy}>REFRESH</button>
+                          </div>
+                          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                            {scmBranches.map((b) => (
+                              <button
+                                key={b.name}
+                                className="btn"
+                                style={{ opacity: b.current ? 1 : 0.7 }}
+                                onClick={() => scmCheckout(b.name)}
+                                disabled={scmBusy || b.current}
+                              >
+                                {b.current ? `* ${b.name}` : b.name}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                        <div style={{ padding: '0 20px', marginBottom: '8px', fontSize: '9px', opacity: 0.6, fontWeight: 'bold' }}>
+                          CHANGES ({scmStatus.changes?.length || 0})
+                        </div>
+                        {(scmStatus.changes?.length || 0) === 0 ? (
+                          <div style={{padding: '20px', opacity: 0.5, fontSize: '11px'}}>Working tree clean.</div>
+                        ) : (
+                          (scmStatus.changes || []).map((c, idx) => (
+                            <div key={`scm_${idx}_${c.path}`} className="list-item">
+                              <Icons.FileIcon /> <span>{c.path}</span> <span style={{marginLeft: 'auto', opacity: 0.6}}>{c.status}</span>
+                            </div>
+                          ))
+                        )}
+                        <div style={{ padding: '16px 20px 8px', fontSize: '9px', opacity: 0.6, fontWeight: 'bold' }}>RECENT COMMITS</div>
+                        {(scmLog || []).map((entry) => (
+                          <div key={entry.sha} className="list-item" title={entry.sha}>
+                            <span style={{ maxWidth: 170, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{entry.subject}</span>
+                            <span style={{marginLeft: 'auto', opacity: 0.6}}>{entry.shortSha}</span>
+                          </div>
+                        ))}
+                      </>
+                    ) : (
+                      <>
+                        <div style={{ padding: '0 20px', marginBottom: '8px', fontSize: '9px', opacity: 0.6, fontWeight: 'bold' }}>CHANGES ({modifiedNodes.length})</div>
+                        {modifiedNodes.length === 0 ?
+                          <div style={{padding: '20px', opacity: 0.5, fontSize: '11px'}}>No uncommitted changes.</div> :
+                          modifiedNodes.map(n => (
+                            <div key={'git_'+n.id} className="list-item" onClick={() => openNodeInEditor(n.id)}>
+                              <Icons.FileIcon /> <span style={{color: '#ffc410'}}>{n.label}</span> <span style={{marginLeft: 'auto', opacity: 0.5}}>M</span>
+                            </div>
+                          ))
+                        }
+                        {modifiedNodes.length > 0 && <div style={{padding: '20px'}}><button className="btn" style={{width:'100%'}} onClick={saveAllChanges}>COMMIT CHANGES</button></div>}
+                      </>
+                    )}
                   </div>
                 </div>
               )}
@@ -602,10 +1275,24 @@
                       <span style={{cursor:'pointer'}} onClick={() => setTerminalOpen(false)}>✕</span>
                     </div>
                     <div className="term-content">
-                      <div className="term-line info">root@forbinden ~/workspace $ ./core_sys.py</div>
-                      <div className="term-line">Compiling computational graph...</div>
-                      <div className="term-line success">Build success. 0 errors, 0 warnings.</div>
-                      <div className="term-line">Watching for file changes...</div>
+                      {terminalLines.map((line) => (
+                        <div
+                          key={line.id}
+                          className="term-line"
+                          style={{
+                            color:
+                              line.t === "error"
+                                ? "#ff6666"
+                                : line.t === "success"
+                                  ? "#28f1c3"
+                                  : line.t === "warn"
+                                    ? "#ffc410"
+                                    : "inherit"
+                          }}
+                        >
+                          {line.v}
+                        </div>
+                      ))}
                     </div>
                   </div>
                 )}
@@ -614,9 +1301,15 @@
 
             <div className="status-bar">
               <div className="status-group">
+                <span>{connectionState.toUpperCase()}</span>
                 <span>{themeMode.toUpperCase()} ENGINE</span>
-                <span><Icons.Git /> main*</span>
-                {modifiedNodes.length > 0 && <span style={{color: '#ffc410'}}>{modifiedNodes.length} modified</span>}
+                {repoMode && <span>REPO: {repoName || repoUrl}</span>}
+                <span><Icons.Git /> {repoMode ? (scmStatus.branch || "detached") : "main*"}</span>
+                {(repoMode ? (scmStatus.changes?.length || 0) : modifiedNodes.length) > 0 && (
+                  <span style={{color: '#ffc410'}}>
+                    {repoMode ? (scmStatus.changes?.length || 0) : modifiedNodes.length} modified
+                  </span>
+                )}
               </div>
               <div className="status-group">
                 {activeTabNode && <span>Ln {cursorPos.ln}, Col {cursorPos.col}</span>}
@@ -699,8 +1392,8 @@
                           value={activeTabNode.label} 
                           onChange={e => {
                             const node = nodesRef.current.find(n => n.id === activeTabNode.id);
-                            if(node) { node.label = e.target.value; forceRender({}); }
-                          }} 
+                            if(node) { node.label = e.target.value; node.modified = true; queueSyncNode(node); forceRender({}); }
+                          }}
                           style={{marginBottom: '8px'}}
                         />
                         <select 
@@ -708,7 +1401,16 @@
                           value={activeTabNode.type} 
                           onChange={e => {
                             const node = nodesRef.current.find(n => n.id === activeTabNode.id);
-                            if(node) { node.type = e.target.value; forceRender({}); }
+                            if(node) {
+                              node.type = e.target.value;
+                              node.classThreadId = e.target.value === "class" ? (node.classThreadId || node.label) : "";
+                              node.modified = true;
+                              queueSyncNode(node);
+                              if (node.classThreadId && socketRef.current?.connected) {
+                                socketRef.current.emit("graph:class_bind", { classThreadId: node.classThreadId, className: node.label, blockIds: [node.id] });
+                              }
+                              forceRender({});
+                            }
                           }}
                         >
                           <option value="entry">Entry Point</option>
@@ -716,11 +1418,14 @@
                           <option value="class">Class</option>
                         </select>
                       </div>
-                      <div className="modal-side-sec">
-                        <div style={{marginBottom:'12px', fontSize:'12px', fontWeight:'bold'}}>AI ASSISTANT</div>
-                        <textarea className="side-input" style={{ height: '120px', resize: 'none' }} placeholder="QUERY LOGIC..." spellCheck="false" />
-                        <button className="btn" style={{ width: '100%', marginTop: '16px' }}>ANALYZE</button>
-                      </div>
+                      {aiReplies[activeTabNode.id] && (
+                        <div className="modal-side-sec">
+                          <div style={{marginBottom:'12px', fontSize:'12px', fontWeight:'bold'}}>GEMINI RESPONSE</div>
+                          <div style={{ fontSize: "10px", opacity: 0.9, whiteSpace: "pre-wrap" }}>
+                            {aiReplies[activeTabNode.id]}
+                          </div>
+                        </div>
+                      )}
                       <div className="modal-side-sec" style={{ borderBottom: 'none', marginTop: 'auto' }}>
                         <div style={{marginBottom:'12px', fontSize:'12px', fontWeight:'bold'}}>ASSIGN COLOR ZONE</div>
                         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
@@ -731,7 +1436,7 @@
                               <div 
                                 key={idx} onClick={() => {
                                   const node = nodesRef.current.find(n => n.id === activeTabNode.id);
-                                  if(node) { node.themeIdx = idx; forceRender({}); }
+                                  if(node) { node.themeIdx = idx; node.modified = true; queueSyncNode(node); forceRender({}); }
                                 }}
                                 style={{ 
                                   width: '24px', height: '24px', cursor: 'pointer', borderRadius: themeMode === 'cyber' ? '50%' : '0',
@@ -757,9 +1462,52 @@
 
     function Bootloader() {
       const [theme, setTheme] = useState(null);
-      if (theme) return <IDE initialTheme={theme} />;
+      const stored = safeJsonParse(localStorage.getItem("forbiden_boot_cfg"), {});
+      const [username, setUsername] = useState(typeof stored?.username === "string" && stored.username.trim() ? stored.username.trim() : "operator");
+      const [serverUrl, setServerUrl] = useState(typeof stored?.serverUrl === "string" && stored.serverUrl.trim() ? stored.serverUrl.trim() : DEFAULT_SERVER);
+      const [repoUrl, setRepoUrl] = useState(typeof stored?.repoUrl === "string" ? stored.repoUrl : "");
+
+      if (theme) {
+        const normalizedServer = normalizeServerUrl(serverUrl);
+        localStorage.setItem("forbiden_boot_cfg", JSON.stringify({ username, serverUrl: normalizedServer, repoUrl }));
+        return <IDE initialTheme={theme} username={username} serverUrl={normalizedServer} repoUrl={repoUrl} />;
+      }
       return (
         <div className="boot-menu">
+          <div style={{
+            position: "fixed",
+            top: 16,
+            left: "50%",
+            transform: "translateX(-50%)",
+            zIndex: 10000,
+            width: "min(900px, 92vw)",
+            padding: "14px",
+            border: "1px solid #2a2a2a",
+            background: "rgba(0,0,0,0.65)",
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr 2fr",
+            gap: "10px",
+            fontFamily: "'JetBrains Mono', monospace"
+          }}>
+            <input
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="Username"
+              style={{ padding: "10px", background: "#0a0a0a", border: "1px solid #333", color: "#ddd", fontFamily: "inherit" }}
+            />
+            <input
+              value={serverUrl}
+              onChange={(e) => setServerUrl(e.target.value)}
+              placeholder="Server URL (localhost:3000)"
+              style={{ padding: "10px", background: "#0a0a0a", border: "1px solid #333", color: "#ddd", fontFamily: "inherit" }}
+            />
+            <input
+              value={repoUrl}
+              onChange={(e) => setRepoUrl(e.target.value)}
+              placeholder="GitHub Repo URL (optional): https://github.com/owner/repo"
+              style={{ padding: "10px", background: "#0a0a0a", border: "1px solid #333", color: "#ddd", fontFamily: "inherit" }}
+            />
+          </div>
           <div className="boot-half cyber" onClick={() => setTheme('cyber')}>
             <div style={{ fontSize: '36px', fontWeight: '700', marginBottom: '8px' }}>OBSIDIAN CORE</div>
             <div style={{ fontSize: '12px', opacity: 0.6 }}>DARK MODE // EDGE-TO-EDGE // MODERN IDE</div>

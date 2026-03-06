@@ -1,0 +1,11 @@
+{
+  "octocat__hello-world": {
+    "repo": {
+      "owner": "octocat",
+      "name": "Hello-World",
+      "canonical": "https://github.com/octocat/Hello-World.git"
+    },
+    "branch": "master",
+    "updatedAt": "2026-03-06T14:47:04.615Z"
+  }
+}
