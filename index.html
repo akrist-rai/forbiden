@@ -179,6 +179,41 @@
     /* copied toast */
     .copy-toast { position: fixed; bottom: 60px; left: 50%; transform: translateX(-50%); background: #10b981; color: #000; padding: 8px 20px; font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: bold; z-index: 9999; pointer-events: none; animation: toastIn 0.2s ease, toastOut 0.3s ease 1.5s forwards; }
     @keyframes toastIn { from { opacity: 0; transform: translateX(-50%) translateY(10px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+    .create-modal { position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:2000; display:flex; align-items:center; justify-content:center; backdrop-filter:blur(12px); }
+    .create-modal-box { background:#0d0d0f; border:1px solid rgba(255,255,255,0.12); border-radius:10px; padding:32px; width:420px; display:flex; flex-direction:column; gap:20px; box-shadow:0 24px 80px rgba(0,0,0,0.9); max-height:90vh; overflow-y:auto; }
+    .create-modal-title { font-size:13px; font-weight:bold; letter-spacing:2px; opacity:0.9; }
+    .create-modal-field { display:flex; flex-direction:column; gap:6px; }
+    .create-modal-label { font-size:10px; opacity:0.5; letter-spacing:1px; }
+    .create-modal-input { background:transparent; border:1px solid rgba(255,255,255,0.15); color:#fff; font-family:'JetBrains Mono',monospace; font-size:12px; padding:10px 14px; outline:none; border-radius:4px; transition:border-color 0.2s; }
+    .create-modal-input:focus { border-color:#10b981; }
+    .type-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; }
+    .type-btn { padding:10px 8px; border:1px solid rgba(255,255,255,0.12); background:transparent; color:rgba(255,255,255,0.6); font-family:'JetBrains Mono',monospace; font-size:10px; cursor:pointer; border-radius:4px; transition:all 0.15s; text-align:center; }
+    .type-btn.selected { border-color:#10b981; color:#10b981; background:rgba(16,185,129,0.08); }
+    .color-grid { display:flex; gap:8px; }
+    .color-dot-btn { width:24px; height:24px; border-radius:50%; border:2px solid transparent; cursor:pointer; transition:all 0.15s; flex-shrink:0; }
+    .color-dot-btn.selected { border-color:#fff; transform:scale(1.2); }
+    .create-modal-actions { display:flex; gap:10px; padding-top:4px; }
+    .board-wrap { display:flex; flex-direction:column; flex:1; overflow:hidden; min-height:0; }
+    .board-topbar { display:flex; align-items:center; gap:10px; padding:10px 16px; border-bottom:1px solid rgba(128,128,128,0.15); flex-shrink:0; }
+    .board-meta { font-size:10px; opacity:0.45; margin-left:auto; display:flex; gap:16px; }
+    .board-cols { display:flex; flex:1; overflow-x:auto; padding:14px; gap:14px; align-items:flex-start; min-height:0; }
+    .board-col { width:220px; flex-shrink:0; display:flex; flex-direction:column; gap:8px; }
+    .board-col-hdr { display:flex; align-items:center; justify-content:space-between; padding:6px 10px; border-radius:4px; font-size:10px; font-weight:bold; letter-spacing:1px; }
+    .board-col-count { background:rgba(128,128,128,0.15); padding:1px 7px; border-radius:10px; font-size:9px; }
+    .board-card { background:rgba(255,255,255,0.03); border:1px solid rgba(128,128,128,0.15); border-radius:6px; padding:12px; display:flex; flex-direction:column; gap:8px; cursor:pointer; transition:all 0.15s; position:relative; overflow:hidden; }
+    .board-card:hover { border-color:rgba(255,255,255,0.2); background:rgba(255,255,255,0.05); transform:translateY(-1px); }
+    .board-card-accent { position:absolute; left:0; top:0; bottom:0; width:3px; }
+    .board-card-title { font-size:11px; line-height:1.4; padding-left:8px; }
+    .board-card-tags { display:flex; flex-wrap:wrap; gap:4px; padding-left:8px; }
+    .board-tag { font-size:9px; padding:2px 7px; border-radius:10px; letter-spacing:0.5px; border:1px solid transparent; }
+    .board-card-footer { display:flex; align-items:center; gap:8px; padding-left:8px; font-size:9px; opacity:0.5; }
+    .board-priority { font-size:9px; font-weight:bold; padding:2px 6px; border-radius:3px; letter-spacing:0.5px; }
+    .board-progress { height:3px; background:rgba(128,128,128,0.2); border-radius:2px; overflow:hidden; margin:0 8px; }
+    .board-progress-bar { height:100%; border-radius:2px; transition:width 0.3s; }
+    .board-add-card { border:1px dashed rgba(128,128,128,0.25); border-radius:6px; padding:10px; text-align:center; font-size:10px; opacity:0.45; cursor:pointer; transition:all 0.15s; }
+    .board-add-card:hover { opacity:0.8; border-color:rgba(255,255,255,0.3); }
+    .card-detail-overlay { position:absolute; inset:0; background:rgba(0,0,0,0.75); z-index:50; display:flex; align-items:center; justify-content:center; backdrop-filter:blur(6px); }
+    .card-detail-box { background:#0d0d14; border:1px solid rgba(255,255,255,0.12); border-radius:8px; width:340px; padding:24px; display:flex; flex-direction:column; gap:16px; max-height:88%; overflow-y:auto; }
     @keyframes toastOut { from { opacity: 1; } to { opacity: 0; } }
   </style>
 </head>
@@ -191,110 +226,251 @@
     const { useState, useEffect, useRef, useCallback } = React;
 
     // ────────────────────────────────────────────────────────────────
-    //  CYBERPUNK AVATAR SVGs  (6 designs)
+    //  OCCULT / SACRED GEOMETRY AVATARS  (6 designs)
     // ────────────────────────────────────────────────────────────────
     const CYBER_AVATARS = [
-      // 0 — CIRCUIT MASK
+
+      // 0 — OUROBOROS  (Serpent devouring its own tail — alchemical eternity)
       ({ size = 48, accent = '#10b981' }) => (
         <svg width={size} height={size} viewBox="0 0 48 48" fill="none">
-          <rect width="48" height="48" fill="#050a0c"/>
-          <rect x="14" y="10" width="20" height="22" rx="2" fill="none" stroke={accent} strokeWidth="1.5"/>
-          <rect x="18" y="15" width="4" height="4" rx="1" fill={accent} opacity="0.9"/>
-          <rect x="26" y="15" width="4" height="4" rx="1" fill={accent} opacity="0.9"/>
-          <path d="M20 24 h8" stroke={accent} strokeWidth="1.5"/>
-          <path d="M14 18 h-6 M14 24 h-6 M34 18 h6 M34 24 h6" stroke={accent} strokeWidth="1" opacity="0.5"/>
-          <path d="M8 18 v-4 h4 M8 24 v4 h4 M40 18 v-4 h-4 M40 24 v4 h-4" stroke={accent} strokeWidth="1" opacity="0.3"/>
-          <path d="M19 32 v6 M29 32 v6" stroke={accent} strokeWidth="1.5"/>
-          <path d="M16 38 h16" stroke={accent} strokeWidth="1.5"/>
-          <circle cx="24" cy="42" r="1.5" fill={accent}/>
+          <rect width="48" height="48" fill="#010d07"/>
+          <circle cx="24" cy="24" r="21" stroke={accent} strokeWidth="0.35" opacity="0.2"/>
+          {[15,35,55,75,95,115,135,155,175,195,215,235,255,275,295,315,335].map(a=>(
+            <line key={a} x1="24" y1="6" x2="24" y2="9" stroke={accent} strokeWidth="0.8" opacity="0.35" transform={`rotate(${a} 24 24)`}/>
+          ))}
+          {/* Serpent body arc — gap at top for head/tail join */}
+          <path d="M 21.5 7.5 A 16.5 16.5 0 1 1 26.5 7.5" stroke={accent} strokeWidth="4.8" strokeLinecap="butt"/>
+          {/* Scale texture overlay */}
+          <path d="M 21.5 7.5 A 16.5 16.5 0 1 1 26.5 7.5" stroke="#010d07" strokeWidth="1.5" strokeLinecap="butt" strokeDasharray="3.5 3.5" opacity="0.55"/>
+          {/* Tail tip */}
+          <path d="M 21.5 7.5 L 17 4 L 20 6.5" stroke={accent} strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+          {/* Head block */}
+          <path d="M 26.5 7.5 L 31 3.5 L 35.5 6 L 33 11 L 26.5 7.5" fill={accent} stroke={accent} strokeWidth="0.5"/>
+          {/* Eye */}
+          <circle cx="31.5" cy="5.5" r="1" fill="#010d07"/>
+          <circle cx="31.5" cy="5.5" r="0.45" fill={accent} opacity="0.5"/>
+          {/* Tongue */}
+          <path d="M 35.5 6.5 L 39 4.5 M 35.5 6.5 L 39 8.5" stroke={accent} strokeWidth="0.75" strokeLinecap="round"/>
+          {/* Inner ⊙ sun symbol */}
+          <circle cx="24" cy="24" r="6.5" stroke={accent} strokeWidth="0.7" opacity="0.3"/>
+          <circle cx="24" cy="24" r="2.2" fill={accent} opacity="0.6"/>
+          <line x1="24" y1="17" x2="24" y2="31" stroke={accent} strokeWidth="0.45" opacity="0.2"/>
+          <line x1="17" y1="24" x2="31" y2="24" stroke={accent} strokeWidth="0.45" opacity="0.2"/>
         </svg>
       ),
-      // 1 — GHOST EYE
+
+      // 1 — TRISKELION  (Triple spiral — Celtic / Mycenaean — motion, progress, competition)
       ({ size = 48, accent = '#ff435a' }) => (
         <svg width={size} height={size} viewBox="0 0 48 48" fill="none">
-          <rect width="48" height="48" fill="#0a0008"/>
-          <ellipse cx="24" cy="22" rx="14" ry="16" fill="none" stroke={accent} strokeWidth="1.5"/>
-          <ellipse cx="24" cy="22" rx="7" ry="8" fill="none" stroke={accent} strokeWidth="1"/>
-          <circle cx="24" cy="22" r="3" fill={accent} opacity="0.9"/>
-          <circle cx="25.5" cy="20.5" r="1" fill="#fff" opacity="0.6"/>
-          <path d="M10 22 h4 M34 22 h4" stroke={accent} strokeWidth="1" opacity="0.6"/>
-          <path d="M14 14 l-4-4 M34 14 l4-4 M14 30 l-4 4 M34 30 l4 4" stroke={accent} strokeWidth="1" opacity="0.4"/>
-          <path d="M18 38 Q24 44 30 38" stroke={accent} strokeWidth="1.5" fill="none"/>
-          <path d="M6 8 h6 v6 M42 8 h-6 v6 M6 40 h6 v-6 M42 40 h-6 v-6" stroke={accent} strokeWidth="1" opacity="0.3"/>
+          <rect width="48" height="48" fill="#0d0002"/>
+          <circle cx="24" cy="24" r="21" stroke={accent} strokeWidth="0.5" opacity="0.2"/>
+          <circle cx="24" cy="24" r="2.5" fill={accent} opacity="0.8"/>
+          {/* Three arms — each rotated 120° — spiral sweeping outward */}
+          {[0, 120, 240].map(rot => (
+            <g key={rot} transform={`rotate(${rot} 24 24)`}>
+              {/* Arm spiral: starts center, sweeps CW outward then curves back */}
+              <path
+                d="M 24 24 C 28 22 32 18 30 13 C 28 8 22 7 18 10 C 14 13 13 18 15 22"
+                stroke={accent} strokeWidth="2.2" fill="none" strokeLinecap="round"
+              />
+              {/* Secondary inner curl */}
+              <path
+                d="M 24 24 C 26 23 27.5 21.5 27 19.5"
+                stroke={accent} strokeWidth="1" fill="none" strokeLinecap="round" opacity="0.5"
+              />
+            </g>
+          ))}
+          {/* Outer tick marks at 0/120/240 to mark the arms */}
+          {[90, 210, 330].map(a => (
+            <line key={a}
+              x1={24+18.5*Math.cos(a*Math.PI/180)} y1={24+18.5*Math.sin(a*Math.PI/180)}
+              x2={24+21*Math.cos(a*Math.PI/180)}   y2={24+21*Math.sin(a*Math.PI/180)}
+              stroke={accent} strokeWidth="1.2" opacity="0.45"/>
+          ))}
+          {/* Decorative outer ring dots */}
+          {[0,60,120,180,240,300].map(a => (
+            <circle key={a}
+              cx={24+21*Math.cos(a*Math.PI/180)} cy={24+21*Math.sin(a*Math.PI/180)}
+              r="0.8" fill={accent} opacity="0.3"/>
+          ))}
         </svg>
       ),
-      // 2 — HEX SKULL
+
+      // 2 — HELM OF AWE / ÆGISHJÁLMUR  (Norse protective symbol — 8 trident staves radiating from center)
       ({ size = 48, accent = '#ffc410' }) => (
         <svg width={size} height={size} viewBox="0 0 48 48" fill="none">
-          <rect width="48" height="48" fill="#0c0900"/>
-          <polygon points="24,6 38,14 38,30 24,38 10,30 10,14" fill="none" stroke={accent} strokeWidth="1.5"/>
-          <polygon points="24,10 34,16 34,28 24,34 14,28 14,16" fill="none" stroke={accent} strokeWidth="0.7" opacity="0.4"/>
-          <circle cx="19" cy="20" r="3.5" fill="none" stroke={accent} strokeWidth="1.5"/>
-          <circle cx="29" cy="20" r="3.5" fill="none" stroke={accent} strokeWidth="1.5"/>
-          <circle cx="19" cy="20" r="1.5" fill={accent}/>
-          <circle cx="29" cy="20" r="1.5" fill={accent}/>
-          <path d="M20 27 h8" stroke={accent} strokeWidth="1.5"/>
-          <path d="M18 29 h12" stroke={accent} strokeWidth="1"/>
-          <path d="M22 34 v6 M26 34 v6" stroke={accent} strokeWidth="1.5"/>
-          <path d="M19 40 h10" stroke={accent} strokeWidth="1.5"/>
+          <rect width="48" height="48" fill="#0b0700"/>
+          <circle cx="24" cy="24" r="21" stroke={accent} strokeWidth="0.4" opacity="0.2"/>
+          {/* Outer ring */}
+          <circle cx="24" cy="24" r="19.5" stroke={accent} strokeWidth="0.7" opacity="0.35"/>
+          {/* Inner binding circle */}
+          <circle cx="24" cy="24" r="3.5" stroke={accent} strokeWidth="1.3" opacity="0.9"/>
+          <circle cx="24" cy="24" r="1.4" fill={accent} opacity="0.85"/>
+          {/* 8 Ægishjálmur staves — each has a spine + two curved side branches + terminal dots */}
+          {[0,45,90,135,180,225,270,315].map(angle => (
+            <g key={angle} transform={`rotate(${angle} 24 24)`}>
+              {/* Main spine */}
+              <line x1="24" y1="20.5" x2="24" y2="5.5" stroke={accent} strokeWidth="1.8" strokeLinecap="round"/>
+              {/* Upper branch left */}
+              <path d="M 24 10 C 21 9 19 7 20 5" stroke={accent} strokeWidth="1.1" fill="none" strokeLinecap="round"/>
+              {/* Upper branch right */}
+              <path d="M 24 10 C 27 9 29 7 28 5" stroke={accent} strokeWidth="1.1" fill="none" strokeLinecap="round"/>
+              {/* Lower branch left */}
+              <path d="M 24 14 C 21.5 13.5 20 12 21 10.5" stroke={accent} strokeWidth="0.9" fill="none" strokeLinecap="round" opacity="0.7"/>
+              {/* Lower branch right */}
+              <path d="M 24 14 C 26.5 13.5 28 12 27 10.5" stroke={accent} strokeWidth="0.9" fill="none" strokeLinecap="round" opacity="0.7"/>
+              {/* Terminal dots at branch tips */}
+              <circle cx="20" cy="5" r="1" fill={accent} opacity="0.8"/>
+              <circle cx="28" cy="5" r="1" fill={accent} opacity="0.8"/>
+              <circle cx="24" cy="5.5" r="1" fill={accent} opacity="0.6"/>
+            </g>
+          ))}
         </svg>
       ),
-      // 3 — GLITCH FACE
+
+      // 3 — CELTIC KNOT  (Endless interlace — eternity, no beginning or end)
       ({ size = 48, accent = '#4285f4' }) => (
         <svg width={size} height={size} viewBox="0 0 48 48" fill="none">
-          <rect width="48" height="48" fill="#00050f"/>
-          <rect x="10" y="8" width="28" height="32" rx="3" fill="none" stroke={accent} strokeWidth="1.5"/>
-          <rect x="10" y="14" width="28" height="3" fill={accent} opacity="0.15"/>
-          <rect x="10" y="28" width="28" height="2" fill={accent} opacity="0.1"/>
-          <rect x="16" y="17" width="6" height="6" rx="1" fill="none" stroke={accent} strokeWidth="1.5"/>
-          <rect x="26" y="17" width="6" height="6" rx="1" fill="none" stroke={accent} strokeWidth="1.5"/>
-          <rect x="17.5" y="18.5" width="3" height="3" fill={accent} opacity="0.8"/>
-          <rect x="27.5" y="18.5" width="3" height="3" fill={accent} opacity="0.8"/>
-          <path d="M17 28 h5 l2 3 l2-3 h5" stroke={accent} strokeWidth="1.5" fill="none"/>
-          <path d="M4 18 h6 M38 18 h6 M4 30 h6 M38 30 h6" stroke={accent} strokeWidth="1" opacity="0.5"/>
-          <rect x="30" y="12" width="4" height="2" fill={accent} opacity="0.6"/>
-          <rect x="14" y="12" width="4" height="2" fill={accent} opacity="0.3"/>
-          <path d="M10 40 h28 M10 42 h20 M10 44 h14" stroke={accent} strokeWidth="1" opacity="0.3"/>
+          <rect width="48" height="48" fill="#00040f"/>
+          <circle cx="24" cy="24" r="21.5" stroke={accent} strokeWidth="0.5" opacity="0.2"/>
+          {/* Outer decorative ring */}
+          <circle cx="24" cy="24" r="20" stroke={accent} strokeWidth="0.8" opacity="0.3"/>
+          {/* Corner dot marks */}
+          {[45,135,225,315].map(a=>(
+            <circle key={a} cx={24+20*Math.cos(a*Math.PI/180)} cy={24+20*Math.sin(a*Math.PI/180)} r="1" fill={accent} opacity="0.4"/>
+          ))}
+          {/* Classic endless Celtic square knot — 4-fold interlace constructed from overlapping loops */}
+          {/* Outer square frame that the knot weaves around */}
+          <rect x="10" y="10" width="28" height="28" stroke={accent} strokeWidth="0.4" opacity="0.12" fill="none"/>
+          {/* Knot strand 1 — horizontal weave pass (over) */}
+          <path d="M 10 18 Q 14 18 16 16 Q 18 14 18 10" stroke={accent} strokeWidth="2.8" fill="none" strokeLinecap="round"/>
+          <path d="M 30 10 Q 30 14 32 16 Q 34 18 38 18" stroke={accent} strokeWidth="2.8" fill="none" strokeLinecap="round"/>
+          <path d="M 38 30 Q 34 30 32 32 Q 30 34 30 38" stroke={accent} strokeWidth="2.8" fill="none" strokeLinecap="round"/>
+          <path d="M 18 38 Q 18 34 16 32 Q 14 30 10 30" stroke={accent} strokeWidth="2.8" fill="none" strokeLinecap="round"/>
+          {/* Inner loops — crossing strands */}
+          <path d="M 10 18 Q 10 24 10 30" stroke={accent} strokeWidth="2.8" fill="none" strokeLinecap="round"/>
+          <path d="M 38 18 Q 38 24 38 30" stroke={accent} strokeWidth="2.8" fill="none" strokeLinecap="round"/>
+          <path d="M 18 10 Q 24 10 30 10" stroke={accent} strokeWidth="2.8" fill="none" strokeLinecap="round"/>
+          <path d="M 18 38 Q 24 38 30 38" stroke={accent} strokeWidth="2.8" fill="none" strokeLinecap="round"/>
+          {/* Center crossing loops — the interlace heart */}
+          <path d="M 16 16 Q 24 20 32 16" stroke={accent} strokeWidth="2.8" fill="none" strokeLinecap="round"/>
+          <path d="M 32 16 Q 28 24 32 32" stroke={accent} strokeWidth="2.8" fill="none" strokeLinecap="round"/>
+          <path d="M 32 32 Q 24 28 16 32" stroke={accent} strokeWidth="2.8" fill="none" strokeLinecap="round"/>
+          <path d="M 16 32 Q 20 24 16 16" stroke={accent} strokeWidth="2.8" fill="none" strokeLinecap="round"/>
+          {/* Under-passes (gap simulation via background-color rect) */}
+          <rect x="21.5" y="9" width="5" height="4" fill="#00040f"/>
+          <rect x="21.5" y="35" width="5" height="4" fill="#00040f"/>
+          <rect x="9" y="21.5" width="4" height="5" fill="#00040f"/>
+          <rect x="35" y="21.5" width="4" height="5" fill="#00040f"/>
+          {/* Re-draw crossing strand (over) */}
+          <path d="M 18 10 Q 24 10 30 10" stroke={accent} strokeWidth="2.8" fill="none" strokeLinecap="round"/>
+          <path d="M 18 38 Q 24 38 30 38" stroke={accent} strokeWidth="2.8" fill="none" strokeLinecap="round"/>
+          <path d="M 10 18 Q 10 24 10 30" stroke={accent} strokeWidth="2.8" fill="none" strokeLinecap="round"/>
+          <path d="M 38 18 Q 38 24 38 30" stroke={accent} strokeWidth="2.8" fill="none" strokeLinecap="round"/>
+          {/* Center void */}
+          <circle cx="24" cy="24" r="4.5" fill="#00040f"/>
+          <circle cx="24" cy="24" r="3" stroke={accent} strokeWidth="1" opacity="0.6" fill="none"/>
+          <circle cx="24" cy="24" r="1.2" fill={accent} opacity="0.8"/>
         </svg>
       ),
-      // 4 — DEMON MASK
-      ({ size = 48, accent = '#28f1c3' }) => (
-        <svg width={size} height={size} viewBox="0 0 48 48" fill="none">
-          <rect width="48" height="48" fill="#00100e"/>
-          <path d="M24 6 L36 16 L36 30 L30 38 L18 38 L12 30 L12 16 Z" fill="none" stroke={accent} strokeWidth="1.5"/>
-          <path d="M17 16 L21 22 L17 28" stroke={accent} strokeWidth="1.5" fill="none" strokeLinejoin="round"/>
-          <path d="M31 16 L27 22 L31 28" stroke={accent} strokeWidth="1.5" fill="none" strokeLinejoin="round"/>
-          <path d="M19 32 Q24 36 29 32" stroke={accent} strokeWidth="1.5" fill="none"/>
-          <circle cx="19" cy="22" r="2" fill={accent} opacity="0.7"/>
-          <circle cx="29" cy="22" r="2" fill={accent} opacity="0.7"/>
-          <path d="M24 6 v-3 M12 16 l-5-3 M36 16 l5-3" stroke={accent} strokeWidth="1" opacity="0.5"/>
-          <path d="M20 10 l-3-4 M28 10 l3-4" stroke={accent} strokeWidth="1.5" opacity="0.8" strokeLinecap="round"/>
-          <path d="M8 22 h4 M36 22 h4" stroke={accent} strokeWidth="1" opacity="0.4"/>
-        </svg>
-      ),
-      // 5 — NEURAL WEB
-      ({ size = 48, accent = '#ff1650' }) => (
-        <svg width={size} height={size} viewBox="0 0 48 48" fill="none">
-          <rect width="48" height="48" fill="#0f0008"/>
-          <circle cx="24" cy="24" r="16" fill="none" stroke={accent} strokeWidth="1.2"/>
-          <circle cx="24" cy="24" r="10" fill="none" stroke={accent} strokeWidth="0.8" opacity="0.5"/>
-          <circle cx="24" cy="24" r="4" fill={accent} opacity="0.8"/>
-          <path d="M24 8 L24 16 M24 32 L24 40 M8 24 L16 24 M32 24 L40 24" stroke={accent} strokeWidth="1.2"/>
-          <path d="M13 13 L19 19 M29 29 L35 35 M35 13 L29 19 M19 29 L13 35" stroke={accent} strokeWidth="0.8" opacity="0.6"/>
-          <circle cx="24" cy="8" r="2" fill={accent}/>
-          <circle cx="24" cy="40" r="2" fill={accent}/>
-          <circle cx="8" cy="24" r="2" fill={accent}/>
-          <circle cx="40" cy="24" r="2" fill={accent}/>
-          <circle cx="13" cy="13" r="1.5" fill={accent} opacity="0.7"/>
-          <circle cx="35" cy="35" r="1.5" fill={accent} opacity="0.7"/>
-          <circle cx="35" cy="13" r="1.5" fill={accent} opacity="0.7"/>
-          <circle cx="13" cy="35" r="1.5" fill={accent} opacity="0.7"/>
-          <circle cx="24" cy="24" r="1.5" fill="#fff"/>
-        </svg>
-      ),
+
+      // 4 — TRIQUETRA  (Trinity knot — three interlocked arcs, Christian / Celtic / Norse)
+      ({ size = 48, accent = '#28f1c3' }) => {
+        // Three lobe centres — equilateral triangle arrangement
+        const R = 7.5;
+        const r = 10;
+        const lobes = [270, 30, 150].map(a => [
+          24 + r * Math.cos(a * Math.PI / 180),
+          24 + r * Math.sin(a * Math.PI / 180)
+        ]);
+        return (
+          <svg width={size} height={size} viewBox="0 0 48 48" fill="none">
+            <rect width="48" height="48" fill="#000f0c"/>
+            <circle cx="24" cy="24" r="21" stroke={accent} strokeWidth="0.4" opacity="0.18"/>
+            {/* Outer ring */}
+            <circle cx="24" cy="24" r="19.5" stroke={accent} strokeWidth="0.7" opacity="0.3"/>
+            {/* Outer horizon line (classic triquetra sits on this) */}
+            <line x1="10" y1="34.5" x2="38" y2="34.5" stroke={accent} strokeWidth="1.2" opacity="0.5" strokeLinecap="round"/>
+            {/* The triquetra — three overlapping vesica piscis arcs */}
+            {/* Top lobe */}
+            <path d="M 17 34 A 9 9 0 0 1 31 34 A 9 9 0 0 1 24 21 A 9 9 0 0 1 17 34 Z"
+              stroke={accent} strokeWidth="2.5" fill="none" strokeLinejoin="round"/>
+            {/* Under-pass gaps to simulate interlace */}
+            {/* Left under gap */}
+            <path d="M 17 34 A 9 9 0 0 1 20 28" stroke="#000f0c" strokeWidth="3.5" fill="none"/>
+            {/* Right under gap */}
+            <path d="M 31 34 A 9 9 0 0 0 28 28" stroke="#000f0c" strokeWidth="3.5" fill="none"/>
+            {/* Re-draw top lobe over */}
+            <path d="M 20.5 29 A 9 9 0 0 1 24 21 A 9 9 0 0 1 27.5 29"
+              stroke={accent} strokeWidth="2.5" fill="none"/>
+            {/* Inner circle */}
+            <circle cx="24" cy="24" r="4" stroke={accent} strokeWidth="1" opacity="0.5" fill="none"/>
+            {/* Tick markers around outer ring at 60° intervals */}
+            {[0,60,120,180,240,300].map(a=>(
+              <line key={a}
+                x1={24+18.5*Math.cos(a*Math.PI/180)} y1={24+18.5*Math.sin(a*Math.PI/180)}
+                x2={24+20.5*Math.cos(a*Math.PI/180)} y2={24+20.5*Math.sin(a*Math.PI/180)}
+                stroke={accent} strokeWidth="0.9" opacity="0.4"/>
+            ))}
+            {/* Center dot */}
+            <circle cx="24" cy="24" r="1.5" fill={accent} opacity="0.85"/>
+          </svg>
+        );
+      },
+
+      // 5 — HEXAGON / FLOWER OF LIFE SEED  (Sacred geometry — the primordial pattern)
+      ({ size = 48, accent = '#ff1650' }) => {
+        // 6 outer hex corners + center
+        const hexPts = Array.from({length:6},(_,i)=>{
+          const a = (i*60 - 30) * Math.PI / 180;
+          return [+(24 + 15 * Math.cos(a)).toFixed(2), +(24 + 15 * Math.sin(a)).toFixed(2)];
+        });
+        const hexSmall = Array.from({length:6},(_,i)=>{
+          const a = (i*60 - 30) * Math.PI / 180;
+          return [+(24 + 7.5 * Math.cos(a)).toFixed(2), +(24 + 7.5 * Math.sin(a)).toFixed(2)];
+        });
+        const outerHex = Array.from({length:6},(_,i)=>{
+          const a = (i*60 - 30) * Math.PI / 180;
+          return [+(24 + 20 * Math.cos(a)).toFixed(2), +(24 + 20 * Math.sin(a)).toFixed(2)];
+        });
+        return (
+          <svg width={size} height={size} viewBox="0 0 48 48" fill="none">
+            <rect width="48" height="48" fill="#0f0003"/>
+            {/* Outer decorative ring */}
+            <circle cx="24" cy="24" r="21.5" stroke={accent} strokeWidth="0.4" opacity="0.18"/>
+            {/* Outer hex frame */}
+            <polygon points={outerHex.map(p=>p.join(',')).join(' ')} stroke={accent} strokeWidth="0.7" fill="none" opacity="0.25"/>
+            {/* 6 outer circle petals (Flower of Life) */}
+            {hexPts.map(([x,y],i)=>(
+              <circle key={i} cx={x} cy={y} r="7.5" stroke={accent} strokeWidth="1" fill="none" opacity="0.55"/>
+            ))}
+            {/* Center circle */}
+            <circle cx="24" cy="24" r="7.5" stroke={accent} strokeWidth="1.3" fill="none" opacity="0.7"/>
+            {/* Main hex outline */}
+            <polygon points={hexPts.map(p=>p.join(',')).join(' ')} stroke={accent} strokeWidth="1.5" fill={accent} fillOpacity="0.06"/>
+            {/* Inner hex */}
+            <polygon points={hexSmall.map(p=>p.join(',')).join(' ')} stroke={accent} strokeWidth="1" fill="none" opacity="0.5"/>
+            {/* Spokes from center to outer corners */}
+            {hexPts.map(([x,y],i)=>(
+              <line key={i} x1="24" y1="24" x2={x} y2={y} stroke={accent} strokeWidth="0.6" opacity="0.3"/>
+            ))}
+            {/* Outer corner dots */}
+            {outerHex.map(([x,y],i)=>(
+              <circle key={i} cx={x} cy={y} r="1.2" fill={accent} opacity="0.45"/>
+            ))}
+            {/* Star of David inner lines */}
+            <line x1={hexPts[0][0]} y1={hexPts[0][1]} x2={hexPts[3][0]} y2={hexPts[3][1]} stroke={accent} strokeWidth="0.6" opacity="0.3"/>
+            <line x1={hexPts[1][0]} y1={hexPts[1][1]} x2={hexPts[4][0]} y2={hexPts[4][1]} stroke={accent} strokeWidth="0.6" opacity="0.3"/>
+            <line x1={hexPts[2][0]} y1={hexPts[2][1]} x2={hexPts[5][0]} y2={hexPts[5][1]} stroke={accent} strokeWidth="0.6" opacity="0.3"/>
+            {/* Center dot */}
+            <circle cx="24" cy="24" r="1.8" fill={accent} opacity="0.9"/>
+          </svg>
+        );
+      },
+
     ];
-    const AVATAR_ACCENTS = ['#10b981','#ff435a','#ffc410','#4285f4','#28f1c3','#ff1650'];
-    const AVATAR_NAMES = ['CIRCUIT', 'GHOST', 'HEX', 'GLITCH', 'DAEMON', 'NEURAL'];
+        const AVATAR_ACCENTS = ['#10b981','#ff435a','#ffc410','#4285f4','#28f1c3','#ff1650'];
+    const AVATAR_NAMES = ['OUROBOROS', 'TRISKELION', 'HELM OF AWE', 'CELTIC KNOT', 'TRIQUETRA', 'HEXAGON'];
 
     const CyberAvatar = ({ index, size = 48, selected = false, onClick }) => {
       const AvatarSVG = CYBER_AVATARS[index % CYBER_AVATARS.length];
@@ -739,10 +915,33 @@
 
     const INITIAL_NODES = [
       { id: 'n1', type: 'entry', label: 'core_sys.py', isMain: true, x: 0, y: 0, vx: 0, vy: 0, themeIdx: 0, code: 'import torch\nimport sys\n\nprint("Central Architecture Booted")\n\ndef init_sequence():\n    # Core logic entry\n    pass\n\nif __name__ == "__main__":\n    init_sequence()', modified: false },
-      { id: 'n2', type: 'function', label: 'load_network.py', isMain: false, x: 100, y: -100, vx: 0, vy: 0, themeIdx: 5, code: 'def load_network(config=None):\n    """Load the neural network from disk.\n    \n    Args:\n        config: Optional configuration dict\n    Returns:\n        DataLoader instance\n    """\n    loader = DataLoader(config)\n    loader.init()\n    return loader\n\n# Network params defined here\nDEFAULT_LR = 0.001\nDEFAULT_BATCH = 32', modified: true },
-      { id: 'n3', type: 'class', label: 'DataMatrix.py', isMain: false, x: -100, y: 150, vx: 0, vy: 0, themeIdx: 6, code: 'class DataMatrix:\n    """Core data matrix handler."""\n\n    def __init__(self, size=128):\n        self.active = True\n        self.buffer = []\n        self.size = size\n\n    def push(self, data):\n        if len(self.buffer) < self.size:\n            self.buffer.append(data)\n            return True\n        return False\n\n    def flush(self):\n        self.buffer = []\n        return self', modified: false },
+      { id: 'n2', type: 'function', label: 'load_network.py', isMain: false, x: 140, y: -130, vx: 0, vy: 0, themeIdx: 5, classId:'g1', code: 'def load_network(config=None):\n    """Load the neural network from disk.\n    \n    Args:\n        config: Optional configuration dict\n    Returns:\n        DataLoader instance\n    """\n    loader = DataLoader(config)\n    loader.init()\n    return loader\n\n# Network params defined here\nDEFAULT_LR = 0.001\nDEFAULT_BATCH = 32', modified: true },
+      { id: 'n3', type: 'class', label: 'DataMatrix.py', isMain: false, x: -100, y: 150, vx: 0, vy: 0, themeIdx: 6, code: 'class DataMatrix:\n    """Core data matrix handler."""\n\n    def __init__(self, size=128):\n        self.active = True\n        self.buffer = []\n        self.size = size\n\n    def push(self, data):\n        if len(self.buffer) < self.size:\n            self.buffer.append(data)\n            return True\n        return False\n\n    def flush(self):\n        self.buffer = []\n        return self', modified: false, classId:'g1' },
+      { id: 'n4', type: 'function', label: 'preprocess.py', isMain: false, x: 60, y: 180, vx: 0, vy: 0, themeIdx: 4, classId: null,
+        code: 'def preprocess(data):\n    return data', modified: false },
     ];
-    const INITIAL_EDGES = [{ id: 'e1', source: 'n1', target: 'n2' }, { id: 'e2', source: 'n1', target: 'n3' }];
+    const INITIAL_EDGES = [{ id: 'e1', source: 'n1', target: 'n2' }, { id: 'e2', source: 'n1', target: 'n3' }, { id: 'e3', source: 'n2', target: 'n4' }];
+    const INITIAL_GROUPS = [{ id: 'g1', name: 'NetworkLayer', color: '#10b981', nodeIds: ['n2','n3'] }];
+    const INITIAL_BOARD = {
+      cols: [
+        { id: 'c1', title: 'BACKLOG',     color: '#4a4a6a' },
+        { id: 'c2', title: 'TO DO',       color: '#4285f4' },
+        { id: 'c3', title: 'IN PROGRESS', color: '#ffc410' },
+        { id: 'c4', title: 'REVIEW',      color: '#ff435a' },
+        { id: 'c5', title: 'DONE',        color: '#10b981' },
+      ],
+      cards: [
+        { id:'k1', colId:'c3', title:'Build graph force simulation', priority:'HIGH', tags:['core','physics'],  progress:70,  due:'Mar 12', assignee:0 },
+        { id:'k2', colId:'c2', title:'WebSocket sync protocol',      priority:'HIGH', tags:['backend','net'],   progress:0,   due:'Mar 18', assignee:1 },
+        { id:'k3', colId:'c2', title:'Class grouping thread UI',     priority:'MED',  tags:['ui','graph'],      progress:20,  due:'Mar 15', assignee:0 },
+        { id:'k4', colId:'c1', title:'Gemini API prompts',           priority:'LOW',  tags:['ai'],              progress:0,   due:'Apr 01', assignee:2 },
+        { id:'k5', colId:'c4', title:'Syntax highlight engine',      priority:'MED',  tags:['editor','parser'], progress:90,  due:'Mar 10', assignee:0 },
+        { id:'k6', colId:'c5', title:'Babel JSX setup',              priority:'DONE', tags:['infra'],           progress:100, due:'Feb 28', assignee:1 },
+        { id:'k7', colId:'c5', title:'Boot sequence modal',          priority:'DONE', tags:['ui'],              progress:100, due:'Feb 25', assignee:0 },
+        { id:'k8', colId:'c3', title:'Color palette engine',         priority:'MED',  tags:['editor','ui'],     progress:45,  due:'Mar 14', assignee:2 },
+        { id:'k9', colId:'c1', title:'Terminal REPL integration',    priority:'LOW',  tags:['terminal'],        progress:0,   due:'Apr 10', assignee:1 },
+      ],
+    };
 
     // ────────────────────────────────────────────────────────────────
     //  FLOATING PANEL
@@ -812,6 +1011,19 @@
       const draggingNodeRef = useRef(null);
       const [hoveredNodeId, setHoveredNodeId] = useState(null);
       const lastMousePos = useRef({ x: 0, y: 0 });
+      const [showCreateNode, setShowCreateNode] = useState(false);
+      const [newNodeName, setNewNodeName] = useState('');
+      const [newNodeType, setNewNodeType] = useState('function');
+      const [newNodeColor, setNewNodeColor] = useState(0);
+      const groupsRef = useRef(JSON.parse(JSON.stringify(INITIAL_GROUPS)));
+      const [showCreateGroup, setShowCreateGroup] = useState(false);
+      const [groupName, setGroupName] = useState('');
+      const [groupColor, setGroupColor] = useState('#10b981');
+      const [groupSelected, setGroupSelected] = useState([]);
+      const [board, setBoard] = useState(INITIAL_BOARD);
+      const [focusCard, setFocusCard] = useState(null);
+      const [newCardCol, setNewCardCol] = useState(null);
+      const [newCardTitle, setNewCardTitle] = useState('');
 
       const filteredSearch = nodesRef.current.filter((n) => {
         const q = searchQuery.trim().toLowerCase();
@@ -915,6 +1127,44 @@
       };
       const openNodeInEditor = (id) => { setOpenTabs(tabs => tabs.includes(id) ? tabs : [...tabs, id]); setActiveTabId(id); };
 
+      const handleCreateNode = () => {
+        if (!newNodeName.trim()) return;
+        const nid = 'n' + Date.now();
+        const slug = newNodeName.trim().replace(/\s+/g,'_');
+        nodesRef.current = [...nodesRef.current, {
+          id:nid, label:slug+'.py', type:newNodeType, isMain:false,
+          x:(Math.random()-0.5)*300, y:(Math.random()-0.5)*300,
+          vx:0, vy:0, themeIdx:newNodeColor, classId:null,
+          code:'def '+slug+'():\n    pass', modified:false,
+        }];
+        setShowCreateNode(false); setNewNodeName(''); forceRender({});
+      };
+
+      const handleCreateGroup = () => {
+        if (!groupName.trim() || groupSelected.length < 2) return;
+        const gid = 'g' + Date.now();
+        groupsRef.current = [...groupsRef.current, { id:gid, name:groupName.trim(), color:groupColor, nodeIds:[...groupSelected] }];
+        nodesRef.current = nodesRef.current.map(n => groupSelected.includes(n.id) ? {...n, classId:gid} : n);
+        setShowCreateGroup(false); setGroupName(''); setGroupSelected([]); forceRender({});
+      };
+
+      const dissolveGroup = (gid) => {
+        groupsRef.current = groupsRef.current.filter(g => g.id!==gid);
+        nodesRef.current = nodesRef.current.map(n => n.classId===gid ? {...n,classId:null} : n);
+        forceRender({});
+      };
+
+      const toggleGroupSel = (id) => setGroupSelected(prev => prev.includes(id)?prev.filter(x=>x!==id):[...prev,id]);
+
+      const addCard = (colId) => {
+        if (!newCardTitle.trim()) return;
+        setBoard(b => ({...b, cards:[...b.cards, {id:'k'+Date.now(),colId,title:newCardTitle.trim(),priority:'MED',tags:[],progress:0,due:'',assignee:avatarIndex}]}));
+        setNewCardCol(null); setNewCardTitle('');
+      };
+      const moveCard = (cardId,colId) => setBoard(b=>({...b,cards:b.cards.map(c=>c.id===cardId?{...c,colId}:c)}));
+      const updateCard = (cardId,patch) => setBoard(b=>({...b,cards:b.cards.map(c=>c.id===cardId?{...c,...patch}:c)}));
+      const deleteCard = (cardId) => { setBoard(b=>({...b,cards:b.cards.filter(c=>c.id!==cardId)})); setFocusCard(null); };
+
       return (
         <div style={{ width:'100vw', height:'100vh', padding: themeMode==='brutal' ? '40px' : '0px', backgroundColor: outerBg, transition:'all 0.4s ease', boxSizing:'border-box' }}>
           <div className={wrapperClass}>
@@ -923,6 +1173,8 @@
                 <Icons.Search /> FORBINDEN // {themeMode.toUpperCase()} IDE
               </div>
               <div style={{ display:'flex', gap:'10px', alignItems:'center' }}>
+                <button className="btn" onClick={() => setShowCreateNode(true)}>+ NODE</button>
+                <button className="btn" onClick={() => { setShowCreateGroup(true); setGroupSelected([]); }}>&#x2B21; GROUP</button>
                 <button className="btn" onClick={() => setThemeMode(themeMode==='cyber' ? 'brutal' : 'cyber')}>SWITCH THEME</button>
               </div>
             </div>
@@ -1029,12 +1281,121 @@
                 <textarea className="code-area" style={{width:'100%', height:'100%', resize:'none'}} placeholder="Personal scratchpad..." />
               </FloatingPanel>
 
-              <FloatingPanel title="PLANNING BOARD" isOpen={sidebarMode==='board'} onClose={() => setSidebarMode(null)} defaultX={200} defaultY={100} defaultW={650} defaultH={450}>
-                <div className="kanban-board">
-                  <div className="kanban-col"><div className="kanban-col-title">TO DO</div><div className="kanban-card">Integrate Websocket Sync</div><div className="kanban-card">Setup Gemini Prompts</div></div>
-                  <div className="kanban-col"><div className="kanban-col-title">IN PROGRESS</div><div className="kanban-card">Draft Graph UI</div></div>
-                  <div className="kanban-col" style={{borderRight:'none'}}><div className="kanban-col-title">DONE</div><div className="kanban-card">Initialize Babel setup</div></div>
-                </div>
+              <FloatingPanel title="PLANNING BOARD" isOpen={sidebarMode==='board'} onClose={() => setSidebarMode(null)} defaultX={120} defaultY={50} defaultW={940} defaultH={540}>
+                {(()=>{
+                  const PC={HIGH:'#ff435a',MED:'#ffc410',LOW:'#4285f4',DONE:'#10b981'};
+                  const done=board.cards.filter(c=>c.colId==='c5').length;
+                  const total=board.cards.length;
+                  return(
+                  <div className='board-wrap' style={{position:'relative'}}>
+                    <div className='board-topbar'>
+                      <span style={{fontSize:'11px',fontWeight:'bold',opacity:0.8,letterSpacing:'1px'}}>FORBINDEN / SPRINT-1</span>
+                      <div style={{display:'flex',gap:'6px',marginLeft:'12px'}}>{[0,1,2].map(i=><CyberAvatar key={i} index={i} size={18}/>)}</div>
+                      <div className='board-meta'>
+                        <span>{done}/{total} DONE</span>
+                        <span style={{color:'#ffc410'}}>{board.cards.filter(c=>c.priority==='HIGH'&&c.colId!=='c5').length} HIGH-PRI</span>
+                        <span style={{color:'#ff435a'}}>{board.cards.filter(c=>c.colId==='c4').length} IN REVIEW</span>
+                        <span style={{color:'#4285f4'}}>{board.cards.filter(c=>c.progress>0&&c.progress<100).length} ACTIVE</span>
+                      </div>
+                    </div>
+                    <div style={{height:'3px',background:'rgba(128,128,128,0.1)',flexShrink:0}}>
+                      <div style={{height:'100%',width:`${done/Math.max(total,1)*100}%`,background:'#10b981',transition:'width 0.4s'}}/>
+                    </div>
+                    <div className='board-cols'>
+                      {board.cols.map(col=>{
+                        const cards=board.cards.filter(c=>c.colId===col.id);
+                        return(
+                        <div key={col.id} className='board-col'>
+                          <div className='board-col-hdr' style={{background:col.color+'18',borderLeft:'3px solid '+col.color}}>
+                            <span style={{color:col.color}}>{col.title}</span>
+                            <span className='board-col-count' style={{color:col.color}}>{cards.length}</span>
+                          </div>
+                          {cards.map(card=>(
+                            <div key={card.id} className='board-card' onClick={()=>setFocusCard(card.id)}>
+                              <div className='board-card-accent' style={{background:PC[card.priority]||'#555'}}/>
+                              <div className='board-card-title'>{card.title}</div>
+                              {card.tags.length>0&&<div className='board-card-tags'>{card.tags.map(t=><span key={t} className='board-tag' style={{color:col.color,borderColor:col.color+'44',background:col.color+'11'}}>{t}</span>)}</div>}
+                              {card.progress>0&&<div className='board-progress'><div className='board-progress-bar' style={{width:`${card.progress}%`,background:card.progress===100?'#10b981':PC[card.priority]}}/></div>}
+                              <div className='board-card-footer'>
+                                <span className='board-priority' style={{color:PC[card.priority],background:PC[card.priority]+'18'}}>{card.priority}</span>
+                                {card.due&&<span>&#128197; {card.due}</span>}
+                                {card.assignee!=null&&<div style={{marginLeft:'auto'}}><CyberAvatar index={card.assignee} size={14}/></div>}
+                              </div>
+                            </div>
+                          ))}
+                          {newCardCol===col.id?(
+                            <div style={{display:'flex',flexDirection:'column',gap:'6px',padding:'8px',border:'1px solid rgba(255,255,255,0.1)',borderRadius:'6px',background:'rgba(255,255,255,0.02)'}}>
+                              <input className='create-modal-input' value={newCardTitle} onChange={e=>setNewCardTitle(e.target.value)}
+                                onKeyDown={e=>{if(e.key==='Enter')addCard(col.id);if(e.key==='Escape')setNewCardCol(null);}}
+                                placeholder='Card title...' autoFocus style={{fontSize:'11px',padding:'6px 10px'}}/>
+                              <div style={{display:'flex',gap:'6px'}}>
+                                <button className='editor-toolbar-btn' onClick={()=>addCard(col.id)} style={{flex:1,justifyContent:'center'}}>ADD</button>
+                                <button className='editor-toolbar-btn' onClick={()=>setNewCardCol(null)} style={{color:'#ff435a'}}>&#x2715;</button>
+                              </div>
+                            </div>
+                          ):(
+                            <div className='board-add-card' onClick={()=>{setNewCardCol(col.id);setNewCardTitle('');}}>+ ADD CARD</div>
+                          )}
+                        </div>
+                        );
+                      })}
+                    </div>
+                    {focusCard&&(()=>{
+                      const card=board.cards.find(c=>c.id===focusCard); if(!card)return null;
+                      const col=board.cols.find(c=>c.id===card.colId);
+                      return(
+                      <div className='card-detail-overlay' onClick={()=>setFocusCard(null)}>
+                        <div className='card-detail-box' onClick={e=>e.stopPropagation()}>
+                          <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:'10px'}}>
+                            <div style={{fontSize:'12px',fontWeight:'bold',lineHeight:1.4,flex:1}}>{card.title}</div>
+                            <div style={{cursor:'pointer',opacity:0.5,flexShrink:0}} onClick={()=>setFocusCard(null)}>&#x2715;</div>
+                          </div>
+                          <div>
+                            <div style={{fontSize:'9px',opacity:0.45,marginBottom:'6px',letterSpacing:'1px'}}>PRIORITY</div>
+                            <div style={{display:'flex',gap:'6px',flexWrap:'wrap'}}>
+                              {['HIGH','MED','LOW','DONE'].map(p=>(
+                                <button key={p} className='editor-toolbar-btn' onClick={()=>updateCard(card.id,{priority:p})}
+                                  style={{color:PC[p],borderColor:card.priority===p?PC[p]:'rgba(128,128,128,0.2)',background:card.priority===p?PC[p]+'18':'transparent'}}>{p}</button>
+                              ))}
+                            </div>
+                          </div>
+                          <div>
+                            <div style={{fontSize:'9px',opacity:0.45,marginBottom:'6px',letterSpacing:'1px'}}>MOVE TO</div>
+                            <div style={{display:'flex',gap:'6px',flexWrap:'wrap'}}>
+                              {board.cols.map(c=>(
+                                <button key={c.id} className='editor-toolbar-btn' onClick={()=>moveCard(card.id,c.id)}
+                                  style={{color:c.id===card.colId?c.color:'inherit',borderColor:c.id===card.colId?c.color:'rgba(128,128,128,0.2)'}}>{c.title}</button>
+                              ))}
+                            </div>
+                          </div>
+                          <div>
+                            <div style={{fontSize:'9px',opacity:0.45,marginBottom:'6px',letterSpacing:'1px'}}>PROGRESS &#8212; {card.progress}%</div>
+                            <input type='range' min='0' max='100' value={card.progress} onChange={e=>updateCard(card.id,{progress:+e.target.value})} style={{width:'100%',accentColor:col?col.color:'#10b981'}}/>
+                          </div>
+                          <div style={{display:'flex',gap:'12px',alignItems:'flex-end'}}>
+                            <div style={{flex:1}}>
+                              <div style={{fontSize:'9px',opacity:0.45,marginBottom:'6px',letterSpacing:'1px'}}>DUE DATE</div>
+                              <input className='create-modal-input' value={card.due} onChange={e=>updateCard(card.id,{due:e.target.value})} placeholder='Mar 15' style={{fontSize:'11px',padding:'6px 10px',width:'100%'}}/>
+                            </div>
+                            <div>
+                              <div style={{fontSize:'9px',opacity:0.45,marginBottom:'6px',letterSpacing:'1px'}}>ASSIGNEE</div>
+                              <div style={{display:'flex',gap:'6px'}}>
+                                {[0,1,2].map(i=>(
+                                  <div key={i} onClick={()=>updateCard(card.id,{assignee:i})} style={{cursor:'pointer',outline:card.assignee===i?'2px solid #10b981':'none',outlineOffset:'2px',borderRadius:'50%'}}>
+                                    <CyberAvatar index={i} size={22}/>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                          <button className='editor-toolbar-btn' onClick={()=>deleteCard(card.id)} style={{color:'#ff435a',borderColor:'#ff435a44',justifyContent:'center'}}>DELETE CARD</button>
+                        </div>
+                      </div>
+                      );
+                    })()}
+                  </div>
+                  );
+                })()}
               </FloatingPanel>
 
               <FloatingPanel
@@ -1097,18 +1458,50 @@
                         return <path key={edge.id} className="edge-path" d={`M ${src.x} ${src.y} L ${tgt.x} ${tgt.y}`} />
                       })}
                     </svg>
-                    {visibleNodes.map(node => (
-                      <div key={node.id} className={`obs-node-wrapper clr-${ZONES[node.themeIdx % ZONES.length]}`}
-                        style={{ left:node.x+'px', top:node.y+'px', opacity: hoveredNodeId && hoveredNodeId!==node.id && !activeTabId ? 0.3 : 1 }}
-                        onPointerEnter={() => !activeTabId && !isDraggingCanvas && setHoveredNodeId(node.id)}
-                        onPointerLeave={() => !activeTabId && setHoveredNodeId(null)}
-                        onPointerDown={e => { e.stopPropagation(); draggingNodeRef.current = { id:node.id, x:node.x, y:node.y, hasDragged:false }; lastMousePos.current = { x:e.clientX, y:e.clientY }; }}
-                        onPointerUp={() => { if (!draggingNodeRef.current?.hasDragged) openNodeInEditor(node.id); draggingNodeRef.current = null; }}
-                      >
-                        <div className={`node-circle ${node.isMain ? 'main-node' : 'sub-node'}`}></div>
-                        <div className="node-label">{node.label}{node.modified && <span className="modified-dot"></span>}</div>
-                      </div>
-                    ))}
+                    {/* group convex-hull threads */}
+                    {groupsRef.current.map(grp => {
+                      const gn = visibleNodes.filter(n => grp.nodeIds.includes(n.id));
+                      if (gn.length < 2) return null;
+                      const cx=gn.reduce((s,n)=>s+n.x,0)/gn.length, cy=gn.reduce((s,n)=>s+n.y,0)/gn.length;
+                      const sorted=[...gn].sort((a,b)=>Math.atan2(a.y-cy,a.x-cx)-Math.atan2(b.y-cy,b.x-cx));
+                      const PAD=44;
+                      const pts=sorted.map(n=>{const dx=n.x-cx,dy=n.y-cy,d=Math.sqrt(dx*dx+dy*dy)||1;return[cx+dx/d*(d+PAD),cy+dy/d*(d+PAD)];});
+                      const pathD=pts.map((p,i)=>(i===0?'M':'L')+p[0].toFixed(1)+' '+p[1].toFixed(1)).join(' ')+' Z';
+                      const lx=cx, ly=Math.min(...gn.map(n=>n.y))-PAD-8;
+                      return (
+                        <g key={grp.id}>
+                          <path d={pathD} fill={grp.color+'10'} stroke={grp.color} strokeWidth='1.5' strokeDasharray='7 3' opacity='0.8'/>
+                          <foreignObject x={lx-64} y={ly-12} width='130' height='22' style={{overflow:'visible'}}>
+                            <div xmlns='http://www.w3.org/1999/xhtml'
+                              style={{background:grp.color+'22',color:grp.color,border:'1px solid '+grp.color+'55',
+                                fontSize:'9px',padding:'2px 8px',fontFamily:"'JetBrains Mono',monospace",
+                                letterSpacing:'1px',borderRadius:'2px',whiteSpace:'nowrap',cursor:'pointer',
+                                display:'inline-block',userSelect:'none'}}
+                              onClick={e=>{e.stopPropagation();if(window.confirm('Dissolve class '+grp.name+'?'))dissolveGroup(grp.id);}}>
+                              &#x2B21; {grp.name}
+                            </div>
+                          </foreignObject>
+                        </g>
+                      );
+                    })}
+                    {visibleNodes.map(node => {
+                      const grp = groupsRef.current.find(g=>g.nodeIds.includes(node.id));
+                      return (
+                        <div key={node.id} className={`obs-node-wrapper clr-${ZONES[node.themeIdx % ZONES.length]}`}
+                          style={{ left:node.x+'px', top:node.y+'px', opacity: hoveredNodeId&&hoveredNodeId!==node.id&&!activeTabId?0.3:1 }}
+                          onPointerEnter={() => !activeTabId&&!isDraggingCanvas&&setHoveredNodeId(node.id)}
+                          onPointerLeave={() => !activeTabId&&setHoveredNodeId(null)}
+                          onPointerDown={e => { e.stopPropagation(); draggingNodeRef.current={id:node.id,x:node.x,y:node.y,hasDragged:false}; lastMousePos.current={x:e.clientX,y:e.clientY}; }}
+                          onPointerUp={() => { if(!draggingNodeRef.current?.hasDragged)openNodeInEditor(node.id); draggingNodeRef.current=null; }}
+                        >
+                          <div className={`node-circle ${node.isMain?'main-node':'sub-node'}`}
+                            style={grp?{boxShadow:'0 0 10px '+grp.color+'99'}:{}}></div>
+                          <div className='node-label' style={grp?{borderColor:grp.color+'55'}:{}}>
+                            {node.label}{node.modified&&<span className='modified-dot'/>}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               </div>
@@ -1119,6 +1512,83 @@
               <div className="status-group"><span style={{color:'#ffc410', fontWeight:'bold'}}>VERSION: {activeVersionName}</span></div>
             </div>
 
+            {/* CREATE NODE MODAL */}
+            {showCreateNode&&(
+              <div className='create-modal' onPointerDown={()=>setShowCreateNode(false)}>
+                <div className='create-modal-box' onPointerDown={e=>e.stopPropagation()}>
+                  <div className='create-modal-title'>+ CREATE FUNCTION NODE</div>
+                  <div className='create-modal-field'>
+                    <div className='create-modal-label'>FUNCTION NAME</div>
+                    <input className='create-modal-input' value={newNodeName} onChange={e=>setNewNodeName(e.target.value)}
+                      onKeyDown={e=>e.key==='Enter'&&handleCreateNode()} placeholder='my_function' autoFocus/>
+                  </div>
+                  <div className='create-modal-field'>
+                    <div className='create-modal-label'>TYPE</div>
+                    <div className='type-grid'>
+                      {['function','entry','helper','hook','util','class'].map(t=>(
+                        <button key={t} className={`type-btn ${newNodeType===t?'selected':''}`} onClick={()=>setNewNodeType(t)}>{t}</button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className='create-modal-field'>
+                    <div className='create-modal-label'>NODE COLOR</div>
+                    <div className='color-grid'>
+                      {['#ffffff','#ff435a','#ffc410','#1e836d','#4285f4','#28f1c3','#ff1650'].map((c,i)=>(
+                        <div key={i} className={`color-dot-btn ${newNodeColor===i?'selected':''}`}
+                          style={{background:c,opacity:i===0?0.3:0.85}} onClick={()=>setNewNodeColor(i)}/>
+                      ))}
+                    </div>
+                  </div>
+                  <div className='create-modal-actions'>
+                    <button className='btn' style={{flex:1,borderColor:'#10b981',color:'#10b981'}} onClick={handleCreateNode}>CREATE</button>
+                    <button className='btn' onClick={()=>setShowCreateNode(false)}>CANCEL</button>
+                  </div>
+                </div>
+              </div>
+            )}
+            {/* CREATE GROUP MODAL */}
+            {showCreateGroup&&(
+              <div className='create-modal' onPointerDown={()=>setShowCreateGroup(false)}>
+                <div className='create-modal-box' onPointerDown={e=>e.stopPropagation()}>
+                  <div className='create-modal-title'>&#x2B21; GROUP AS CLASS</div>
+                  <div className='create-modal-field'>
+                    <div className='create-modal-label'>CLASS NAME</div>
+                    <input className='create-modal-input' value={groupName} onChange={e=>setGroupName(e.target.value)}
+                      onKeyDown={e=>e.key==='Enter'&&handleCreateGroup()} placeholder='MyClass' autoFocus/>
+                  </div>
+                  <div className='create-modal-field'>
+                    <div className='create-modal-label'>THREAD COLOR</div>
+                    <div className='color-grid'>
+                      {['#10b981','#ff435a','#ffc410','#4285f4','#28f1c3','#ff1650','#bb9af7'].map(c=>(
+                        <div key={c} className={`color-dot-btn ${groupColor===c?'selected':''}`} style={{background:c}} onClick={()=>setGroupColor(c)}/>
+                      ))}
+                    </div>
+                  </div>
+                  <div className='create-modal-field'>
+                    <div className='create-modal-label'>MEMBER FUNCTIONS (min 2)</div>
+                    <div style={{display:'flex',flexDirection:'column',gap:'6px',maxHeight:'180px',overflowY:'auto',marginTop:'4px'}}>
+                      {nodesRef.current.map(n=>(
+                        <div key={n.id} onClick={()=>toggleGroupSel(n.id)}
+                          style={{padding:'8px 12px',border:'1px solid '+(groupSelected.includes(n.id)?groupColor:'rgba(128,128,128,0.2)'),
+                            background:groupSelected.includes(n.id)?groupColor+'18':'transparent',
+                            borderRadius:'4px',cursor:'pointer',display:'flex',alignItems:'center',gap:'10px',transition:'all 0.15s'}}>
+                          <div style={{width:'8px',height:'8px',borderRadius:'50%',background:groupSelected.includes(n.id)?groupColor:'rgba(128,128,128,0.3)',flexShrink:0}}/>
+                          <span style={{fontSize:'11px',color:groupSelected.includes(n.id)?groupColor:'inherit'}}>{n.label}</span>
+                          <span style={{fontSize:'9px',opacity:0.35,marginLeft:'auto'}}>{n.type}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div style={{fontSize:'10px',opacity:0.45}}>{groupSelected.length} selected (need &#8805;2)</div>
+                  <div className='create-modal-actions'>
+                    <button className='btn' onClick={handleCreateGroup}
+                      style={{flex:1,borderColor:groupSelected.length>=2&&groupName.trim()?groupColor:'rgba(128,128,128,0.3)',
+                        color:groupSelected.length>=2&&groupName.trim()?groupColor:'rgba(128,128,128,0.4)'}}>CREATE CLASS</button>
+                    <button className='btn' onClick={()=>setShowCreateGroup(false)}>CANCEL</button>
+                  </div>
+                </div>
+              </div>
+            )}
             {/* EDITOR MODAL */}
             <div className={`modal-overlay ${activeTabId ? 'open' : ''}`} onPointerDown={() => setActiveTabId(null)}>
               {activeTabNode && (
