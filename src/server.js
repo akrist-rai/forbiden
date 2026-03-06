@@ -10,10 +10,12 @@ const path = require('path');
 // Routers
 const aiRouter = require('./routes/ai');
 const runnerRouter = require('./routes/runner');
+const graphRouter = require('./routes/graph');
 
 // Socket Handlers
 const setupEditorSockets = require('./sockets/editor');
 const setupTerminalSockets = require('./sockets/terminal');
+const setupGraphSockets = require('./sockets/graph');
 
 const app = new Koa();
 const server = http.createServer(app.callback());
@@ -38,6 +40,7 @@ app.use(async (ctx, next) => {
 // REST Routes
 app.use(aiRouter.routes()).use(aiRouter.allowedMethods());
 app.use(runnerRouter.routes()).use(runnerRouter.allowedMethods());
+app.use(graphRouter.routes()).use(graphRouter.allowedMethods());
 
 // WebSocket Initialization
 const io = new Server(server, {
@@ -53,6 +56,7 @@ io.on('connection', (socket) => {
   // Attach modular socket handlers
   setupEditorSockets(io, socket, activeUsers);
   setupTerminalSockets(socket);
+  setupGraphSockets(io, socket);
 });
 
 // Boot Server on 0.0.0.0 to expose to the local network
