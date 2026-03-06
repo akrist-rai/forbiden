@@ -5,6 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>FORBINDEN // DUAL IDE</title>
   
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.css" />
+  <script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.js"></script>
+
   <style>
     @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=JetBrains+Mono:wght@400;700;800&display=swap");
     
@@ -14,13 +18,12 @@
       overflow: hidden; 
       width: 100vw; height: 100vh;
       user-select: none; font-size: 10px;
-      background-color: #050505; 
-      margin: 0;
+      margin: 0; background-color: #050505; 
     }
 
     ::-webkit-scrollbar { width: 6px; height: 6px; }
     ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: currentColor; }
+    ::-webkit-scrollbar-thumb { background: currentColor; border-radius: var(--scroll-rad, 0); }
 
     /* =========================================
        BASE WRAPPER & VARIABLES
@@ -31,27 +34,33 @@
       background: var(--bg); color: var(--text);
       border: var(--border-w) solid var(--border);
       border-radius: var(--ui-radius, 0);
-      transition: background-color 0.4s ease, color 0.4s ease, border-color 0.4s ease;
+      transition: background 0.4s ease, color 0.4s ease, border-color 0.4s ease;
     }
 
     /* =========================================
        THEME 1: FORSAKEN (BRUTALIST)
        ========================================= */
     .theme-brutal {
-      --bg: #ffffff; --text: #111111; --border: #111111; --node-bg: #ffffff;
       --border-w: 6px; --edge-w: 4px; --ui-radius: 0px; --inner-w: 4px;
       font-family: 'Inter', sans-serif;
       text-transform: uppercase; font-weight: 900;
-      box-shadow: 20px 20px 0px rgba(17,17,17,1);
+      box-shadow: 20px 20px 0px var(--border);
     }
     
+    /* DEFAULT ZONES */
     .theme-brutal.zone-default { --bg: #ffffff; --text: #111111; --border: #111111; --node-bg: #ffffff; }
+    .theme-brutal.dark-mode.zone-default { --bg: #111111; --text: #ffffff; --border: #ffffff; --node-bg: #111111; }
+
+    /* CUSTOM COLOR ZONES */
     .theme-brutal.zone-1       { --bg: #111111; --text: #ff435a; --border: #ff435a; --node-bg: #111111; }
     .theme-brutal.zone-2       { --bg: #7ca148; --text: #111111; --border: #111111; --node-bg: #ffc410; }
     .theme-brutal.zone-3       { --bg: #1e836d; --text: #111111; --border: #111111; --node-bg: #1e836d; }
     .theme-brutal.zone-4       { --bg: #f3f5f7; --text: #4285f4; --border: #4285f4; --node-bg: #f3f5f7; }
+    .theme-brutal.zone-5       { --bg: #1e836d; --text: #28f1c3; --border: #28f1c3; --node-bg: #1e836d; }
+    .theme-brutal.zone-6       { --bg: linear-gradient(135deg, #7161a4, #332b89); --text: #ff1650; --border: #ff1650; --node-bg: #332b89; }
 
-    .theme-brutal .btn { border: 4px solid var(--text); box-shadow: 4px 4px 0 var(--border); }
+    /* Forsaken Component Stylings */
+    .theme-brutal .btn { border: 4px solid var(--text); box-shadow: 4px 4px 0 var(--border); background: var(--bg); color: var(--text); }
     .theme-brutal .btn:hover { background: var(--text); color: var(--bg); transform: translate(-2px, -2px); box-shadow: 6px 6px 0 var(--border); }
     .theme-brutal .node-circle { background: var(--node-bg); border: 4px solid var(--border); box-shadow: 4px 4px 0px var(--border); }
     .theme-brutal .node-label { background: var(--bg); color: var(--text); border: 4px solid var(--border); box-shadow: 4px 4px 0px var(--border); font-weight: 900; }
@@ -59,6 +68,12 @@
     .theme-brutal .modal-content { border: 6px solid var(--border); box-shadow: 20px 20px 0px var(--border); }
     .theme-brutal .panel { border-right: var(--border-w) solid var(--border); border-top: var(--border-w) solid var(--border); background: var(--bg); }
     .theme-brutal .list-item:hover { background: var(--text); color: var(--bg); }
+    .theme-brutal .editor-tab { border-right: var(--inner-w) solid var(--border); background: transparent; }
+    .theme-brutal .editor-tab.active { background: var(--text); color: var(--bg); }
+    .theme-brutal .breadcrumb { border-bottom: var(--inner-w) solid var(--border); }
+
+    .theme-brutal.zone-6 .code-area { background: #332b89; }
+    .theme-brutal.zone-6 .side-input { background: #1a103c; }
 
     /* =========================================
        THEME 2: OBSIDIAN (CYBERPUNK)
@@ -81,52 +96,54 @@
     .theme-cyber .edge-path { stroke: rgba(255,255,255,0.15); }
     .theme-cyber .panel { border-right: var(--border-w) solid var(--border); border-top: var(--border-w) solid var(--border); background: #050505; }
     .theme-cyber .list-item:hover { background: rgba(255,255,255,0.05); color: #fff; }
+    .theme-cyber .editor-tab { border-right: 1px solid var(--border); border-bottom: 2px solid transparent; background: transparent; }
+    .theme-cyber .editor-tab.active { border-bottom-color: #10b981; color: #ffffff; background: rgba(255,255,255,0.02); }
+    .theme-cyber .breadcrumb { border-bottom: 1px solid var(--border); }
 
     .theme-cyber .obs-node-wrapper.clr-default { --node-color: #ffffff; }
     .theme-cyber .obs-node-wrapper.clr-1 { --node-color: #ff435a; }
     .theme-cyber .obs-node-wrapper.clr-2 { --node-color: #ffc410; }
     .theme-cyber .obs-node-wrapper.clr-3 { --node-color: #1e836d; }
     .theme-cyber .obs-node-wrapper.clr-4 { --node-color: #4285f4; }
+    .theme-cyber .obs-node-wrapper.clr-5 { --node-color: #28f1c3; }
+    .theme-cyber .obs-node-wrapper.clr-6 { --node-color: #ff1650; }
 
     /* =========================================
-       LAYOUT COMPONENTS
+       IDE LAYOUT COMPONENTS
        ========================================= */
     .app-header { 
       height: 56px; display: flex; align-items: center; justify-content: space-between; 
       padding: 0 24px; border-bottom: var(--border-w) solid var(--border); 
       z-index: 50; flex-shrink: 0; background: transparent; 
-      transition: border-color 0.4s ease;
     }
-    .hdr-brand { font-size: 18px; letter-spacing: -0.5px; }
+    .hdr-brand { font-size: 18px; letter-spacing: -0.5px; display: flex; align-items: center; gap: 12px; }
 
     .btn { cursor: pointer; outline: none; padding: 8px 16px; font-size: 11px; transition: all 0.2s ease; }
 
     .app-body { display: flex; flex: 1; min-height: 0; position: relative; }
     
-    /* Icon Strip Sidebar */
     .sidebar { 
       width: 60px; border-right: var(--border-w) solid var(--border); 
       display: flex; flex-direction: column; align-items: center; 
       padding: 24px 0; gap: 24px; z-index: 20; flex-shrink: 0; 
-      background: transparent; transition: border-color 0.4s ease;
+      background: transparent; 
     }
     .strip-icon { 
       width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; 
       cursor: pointer; border: var(--inner-w) solid transparent; transition: all 0.2s; color: var(--text);
-      border-radius: var(--ui-radius);
+      border-radius: var(--ui-radius); position: relative;
     }
     .strip-icon.active { border-color: var(--border); }
+    .badge { position: absolute; top: -4px; right: -4px; background: #ff435a; color: #fff; font-size: 8px; font-weight: bold; width: 14px; height: 14px; display: flex; align-items: center; justify-content: center; border-radius: 50%; }
 
-    /* Extended Panels (Explorer) */
     .explorer-panel {
-      width: 240px; display: flex; flex-direction: column; z-index: 15;
+      width: 260px; display: flex; flex-direction: column; z-index: 15;
       transition: all 0.3s ease; border-right: var(--border-w) solid var(--border);
       background: var(--bg);
     }
-    .panel-hdr { padding: 16px 20px; font-size: 12px; border-bottom: var(--inner-w) solid var(--border); opacity: 0.8; }
+    .panel-hdr { padding: 16px 20px; font-size: 12px; border-bottom: var(--inner-w) solid var(--border); opacity: 0.8; font-weight: bold; display: flex; justify-content: space-between;}
     .list-item { padding: 10px 20px; cursor: pointer; display: flex; align-items: center; gap: 10px; font-size: 11px; transition: background 0.2s; border-bottom: 1px solid rgba(128,128,128,0.1); }
 
-    /* Canvas / Main View */
     .main-view { flex: 1; display: flex; flex-direction: column; position: relative; min-width: 0; }
     
     .canvas-container { flex: 1; position: relative; overflow: hidden; cursor: grab; background: transparent; }
@@ -137,18 +154,12 @@
     .edge-path { fill: none; stroke-width: var(--edge-w); transition: stroke 0.4s; }
     .theme-brutal .edge-path { stroke: var(--text); }
 
-    /* Bottom Terminal Panel */
     .terminal-panel {
       height: 200px; border-top: var(--border-w) solid var(--border);
       display: flex; flex-direction: column; background: var(--bg); z-index: 15;
     }
-    .term-content { flex: 1; padding: 16px 20px; font-family: 'JetBrains Mono', monospace; font-size: 11px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
-    .term-line { opacity: 0.8; }
-    .term-line.info { color: #3b82f6; }
-    .term-line.success { color: #10b981; }
-    .term-line.error { color: #ef4444; }
+    .term-content { flex: 1; padding: 16px 20px; font-family: 'JetBrains Mono', monospace; font-size: 11px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
 
-    /* Nodes */
     .obs-node-wrapper { 
       position: absolute; display: flex; flex-direction: column; align-items: center; justify-content: center; 
       cursor: pointer; z-index: 5; transform: translate(-50%, -50%); 
@@ -160,50 +171,54 @@
     .node-circle.main-node { width: 32px; height: 32px; border-width: calc(var(--inner-w) * 1.5); }
     .node-circle.sub-node { width: 18px; height: 18px; }
     .node-label { margin-top: 10px; font-size: 11px; padding: 4px 10px; pointer-events: none; white-space: nowrap; transition: all 0.2s; }
+    .modified-dot { width: 6px; height: 6px; background: #ffc410; border-radius: 50%; margin-left: 6px; display: inline-block; }
 
-    /* Status Bar */
     .status-bar { 
       height: 32px; border-top: var(--border-w) solid var(--border); 
       display: flex; align-items: center; justify-content: space-between; 
       padding: 0 24px; font-size: 11px; flex-shrink: 0; background: transparent; 
     }
+    .status-group { display: flex; gap: 20px; align-items: center; }
 
     /* =========================================
        89% OVERLAY MODAL (CODE EDITOR)
        ========================================= */
     .modal-overlay {
-      position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 1000;
-      backdrop-filter: blur(8px); display: none; align-items: center; justify-content: center;
-      opacity: 0; transition: opacity 0.3s;
+      position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 1000;
+      backdrop-filter: blur(10px); display: none; align-items: center; justify-content: center;
     }
-    .modal-overlay.open { display: flex; opacity: 1; }
+    .modal-overlay.open { display: flex; }
     
     .modal-content {
       width: 89vw; height: 89vh; 
       background: var(--bg); border-radius: var(--ui-radius);
       display: flex; flex-direction: column; overflow: hidden;
-      transform: translateY(20px); 
-      transition: transform 0.4s ease, background-color 0.4s, color 0.4s;
     }
-    .modal-overlay.open .modal-content { transform: translateY(0); }
     
-    .modal-hdr {
-      height: 60px; border-bottom: var(--border-w) solid var(--border); background: transparent;
-      display: flex; align-items: center; justify-content: space-between; padding: 0 32px; flex-shrink: 0;
+    .tabs-hdr {
+      display: flex; background: rgba(128,128,128,0.05); border-bottom: var(--border-w) solid var(--border);
+      overflow-x: auto; flex-shrink: 0;
     }
-    .modal-hdr-title { font-size: 20px; display: flex; align-items: center; gap: 16px; }
-    .modal-input { background: transparent; border: none; color: inherit; font-family: inherit; font-size: inherit; font-weight: inherit; outline: none; border-bottom: 2px dashed transparent; padding: 4px 0; }
-    .modal-input:focus { border-bottom-color: var(--border); }
+    .editor-tab {
+      padding: 12px 24px; display: flex; align-items: center; gap: 12px; cursor: pointer;
+      font-size: 11px; transition: all 0.2s; min-width: 140px; justify-content: space-between;
+    }
+    .tab-close { cursor: pointer; opacity: 0.5; padding: 2px; }
+    .tab-close:hover { opacity: 1; color: #ff435a; }
+
+    .modal-body { flex: 1; display: flex; min-height: 0; }
     
-    .modal-body { flex: 1; display: flex; }
-    .modal-code-wrap { flex: 1; padding: 32px; display: flex; flex-direction: column; border-right: var(--border-w) solid var(--border); }
+    .editor-main-area { flex: 1; display: flex; flex-direction: column; border-right: var(--border-w) solid var(--border); }
+    .breadcrumb { padding: 10px 24px; font-size: 10px; display: flex; align-items: center; gap: 8px; opacity: 0.7; flex-shrink: 0; }
     
-    /* Code Editor with Line Numbers */
-    .editor-wrap { flex: 1; display: flex; background: var(--bg); overflow: hidden; transition: all 0.4s; }
+    .modal-code-wrap { flex: 1; padding: 24px; display: flex; flex-direction: column; overflow: hidden; }
+    .editor-wrap { flex: 1; display: flex; background: var(--bg); overflow: hidden; }
+    
     .line-numbers { 
-      padding: 24px 10px; background: rgba(128,128,128,0.1); color: var(--text); opacity: 0.5;
+      padding: 24px 10px; background: rgba(128,128,128,0.05); color: var(--text); opacity: 0.5;
       font-family: 'JetBrains Mono', monospace; font-size: 13px; text-align: right; 
       line-height: 1.6; border-right: var(--inner-w) solid var(--border); user-select: none;
+      overflow: hidden; /* Scroll synced via React ref */
     }
     .code-area { 
       flex: 1; font-family: 'JetBrains Mono', monospace; font-size: 13px; 
@@ -211,7 +226,7 @@
       background: transparent; color: var(--text); border: none; white-space: pre;
     }
     
-    .modal-side { width: 320px; display: flex; flex-direction: column; background: transparent; }
+    .modal-side { width: 320px; display: flex; flex-direction: column; background: transparent; overflow-y: auto; }
     .modal-side-sec { padding: 24px; border-bottom: var(--inner-w) solid var(--border); }
     .side-input { width: 100%; border: var(--inner-w) solid var(--text); padding: 10px; background: transparent; color: var(--text); font-family: inherit; font-size: 12px; outline: none; }
     .side-input option { color: #000; }
@@ -230,7 +245,7 @@
     .cmd-input { width: 100%; padding: 16px 20px; background: transparent; border: none; border-bottom: var(--inner-w) solid var(--border); color: var(--text); font-family: inherit; font-size: 16px; outline: none; font-weight: bold; }
     .cmd-list { max-height: 300px; overflow-y: auto; }
     .cmd-item { padding: 12px 20px; cursor: pointer; display: flex; justify-content: space-between; font-size: 11px; border-bottom: 1px solid rgba(128,128,128,0.1); }
-    .cmd-item:hover, .cmd-item.active { background: var(--text); color: var(--bg); }
+    .cmd-item:hover { background: var(--text); color: var(--bg); }
 
     /* Bootloader */
     .boot-menu { position: fixed; inset: 0; display: flex; z-index: 9999; font-family: 'JetBrains Mono', monospace; }
@@ -254,69 +269,81 @@
     const Icons = {
       Files: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>,
       Search: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>,
+      Git: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M6 9v12"/><path d="M18 15v-2a3 3 0 0 0-3-3H9"/></svg>,
       Terminal: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>,
       FileIcon: () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
     };
 
-    const ZONES = ['default', '1', '2', '3', '4'];
-    const ZONE_COLORS = { 'default': '#ffffff', '1': '#ff435a', '2': '#ffc410', '3': '#1e836d', '4': '#4285f4' };
+    const ZONES = ['default', '1', '2', '3', '4', '5', '6'];
+    const ZONE_COLORS = { 'default': '#ffffff', '1': '#ff435a', '2': '#ffc410', '3': '#1e836d', '4': '#4285f4', '5': '#1e836d', '6': 'linear-gradient(135deg, #7161a4, #332b89)' };
+    const OUTSIDE_COLORS = { 'default': '#ffffff', '1': '#ffffff', '2': '#ffffff', '3': '#ffffff', '4': '#ffffff', '5': '#808080', '6': '#1a0b2e' };
 
     const INITIAL_NODES = [
-      { id: 'n1', type: 'entry', label: 'core_sys.py', isMain: true, x: 0, y: 0, vx: 0, vy: 0, themeIdx: 0, code: 'import torch\nimport sys\n\nprint("Central Architecture Booted")\n\ndef init_sequence():\n    # Core logic entry\n    pass' },
-      { id: 'n2', type: 'function', label: 'load_network.py', isMain: false, x: 100, y: -100, vx: 0, vy: 0, themeIdx: 1, code: 'def load_network():\n    return DataLoader()\n\n# Network params defined here' },
-      { id: 'n3', type: 'class', label: 'DataMatrix.py', isMain: false, x: -100, y: 150, vx: 0, vy: 0, themeIdx: 2, code: 'class DataMatrix:\n    def __init__(self):\n        self.active = True\n        self.buffer = []' },
+      { id: 'n1', type: 'entry', label: 'core_sys.py', isMain: true, x: 0, y: 0, vx: 0, vy: 0, themeIdx: 0, code: 'import torch\nimport sys\n\nprint("Central Architecture Booted")\n\ndef init_sequence():\n    # Core logic entry\n    pass', modified: false },
+      { id: 'n2', type: 'function', label: 'load_network.py', isMain: false, x: 100, y: -100, vx: 0, vy: 0, themeIdx: 5, code: 'def load_network():\n    return DataLoader()\n\n# Network params defined here', modified: false },
+      { id: 'n3', type: 'class', label: 'DataMatrix.py', isMain: false, x: -100, y: 150, vx: 0, vy: 0, themeIdx: 6, code: 'class DataMatrix:\n    def __init__(self):\n        self.active = True\n        self.buffer = []', modified: false },
     ];
     const INITIAL_EDGES = [ { id: 'e1', source: 'n1', target: 'n2' }, { id: 'e2', source: 'n1', target: 'n3' } ];
 
     function IDE({ initialTheme }) {
       const [themeMode, setThemeMode] = useState(initialTheme);
+      const [isBrutalDark, setIsBrutalDark] = useState(false);
       
       const nodesRef = useRef(JSON.parse(JSON.stringify(INITIAL_NODES)));
       const edgesRef = useRef(INITIAL_EDGES);
       const [, forceRender] = useState({});
 
-      // View State
       const [transform, setTransform] = useState({ x: window.innerWidth / 2, y: window.innerHeight / 2, scale: 1 });
       const [isDraggingCanvas, setIsDraggingCanvas] = useState(false);
       
-      // Feature Panels State
-      const [explorerOpen, setExplorerOpen] = useState(true);
+      const [sidebarMode, setSidebarMode] = useState('files'); 
       const [terminalOpen, setTerminalOpen] = useState(false);
       const [cmdOpen, setCmdOpen] = useState(false);
       const [cmdSearch, setCmdSearch] = useState('');
       
-      // Node Interactions
+      const [openTabs, setOpenTabs] = useState([]);
+      const [activeTabId, setActiveTabId] = useState(null);
+      const [cursorPos, setCursorPos] = useState({ ln: 1, col: 1 });
+      
       const draggingNodeRef = useRef(null);
       const [hoveredNodeId, setHoveredNodeId] = useState(null);
-      const [modalNodeId, setModalNodeId] = useState(null);
-
       const lastMousePos = useRef({ x: 0, y: 0 });
 
-      const activeNodeId = modalNodeId || hoveredNodeId;
-      const activeNode = nodesRef.current.find(n => n.id === activeNodeId);
+      // Sync Line Numbers Scroll
+      const lineNumRef = useRef(null);
+      const handleEditorScroll = (e) => {
+        if (lineNumRef.current) lineNumRef.current.scrollTop = e.target.scrollTop;
+      };
+
+      const currentActiveId = activeTabId || hoveredNodeId;
+      const activeNode = nodesRef.current.find(n => n.id === currentActiveId);
+      const activeZoneKey = activeNode ? ZONES[activeNode.themeIdx % ZONES.length] : 'default';
       
-      let wrapperClass = `app-wrapper theme-${themeMode}`;
-      if (themeMode === 'brutal') {
-        wrapperClass += activeNode ? ` zone-${ZONES[activeNode.themeIdx % ZONES.length]}` : ' zone-default';
+      let wrapperClass = `app-wrapper theme-${themeMode} zone-${activeZoneKey}`;
+      if (themeMode === 'brutal' && isBrutalDark && activeZoneKey === 'default') {
+        wrapperClass += ' dark-mode';
       }
 
-      // --- Keybindings ---
+      const outerBg = themeMode === 'brutal' 
+        ? (isBrutalDark && activeZoneKey === 'default' ? '#111111' : OUTSIDE_COLORS[activeZoneKey]) 
+        : '#050505';
+
+      const modifiedNodes = nodesRef.current.filter(n => n.modified);
+      const activeTabNode = nodesRef.current.find(n => n.id === activeTabId);
+
       useEffect(() => {
         const handleKeyDown = (e) => {
           if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-            e.preventDefault();
-            setCmdOpen(prev => !prev);
+            e.preventDefault(); setCmdOpen(prev => !prev);
           }
           if (e.key === 'Escape') {
-            setCmdOpen(false);
-            setModalNodeId(null);
+            setCmdOpen(false); setActiveTabId(null);
           }
         };
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
       }, []);
 
-      // --- Force Physics ---
       useEffect(() => {
         let rafId;
         const tick = () => {
@@ -326,37 +353,27 @@
 
           for (let i = 0; i < nodes.length; i++) {
             for (let j = i + 1; j < nodes.length; j++) {
-              const dx = nodes[j].x - nodes[i].x;
-              const dy = nodes[j].y - nodes[i].y;
-              const distSq = dx*dx + dy*dy || 1;
-              const dist = Math.sqrt(distSq);
+              const dx = nodes[j].x - nodes[i].x; const dy = nodes[j].y - nodes[i].y;
+              const distSq = dx*dx + dy*dy || 1; const dist = Math.sqrt(distSq);
               const force = 4000 / distSq; 
-              const fx = (dx / dist) * force;
-              const fy = (dy / dist) * force;
-              nodes[i].vx -= fx; nodes[i].vy -= fy;
-              nodes[j].vx += fx; nodes[j].vy += fy;
+              nodes[i].vx -= (dx / dist) * force; nodes[i].vy -= (dy / dist) * force;
+              nodes[j].vx += (dx / dist) * force; nodes[j].vy += (dy / dist) * force;
             }
           }
 
           edges.forEach(edge => {
-            const src = nodes.find(n => n.id === edge.source);
-            const tgt = nodes.find(n => n.id === edge.target);
+            const src = nodes.find(n => n.id === edge.source); const tgt = nodes.find(n => n.id === edge.target);
             if (src && tgt) {
-              const dx = tgt.x - src.x;
-              const dy = tgt.y - src.y;
-              const dist = Math.sqrt(dx*dx + dy*dy) || 1;
-              const force = (dist - 140) * 0.05; 
-              const fx = (dx / dist) * force;
-              const fy = (dy / dist) * force;
-              src.vx += fx; src.vy += fy;
-              tgt.vx -= fx; tgt.vy -= fy;
+              const dx = tgt.x - src.x; const dy = tgt.y - src.y;
+              const dist = Math.sqrt(dx*dx + dy*dy) || 1; const force = (dist - 140) * 0.05; 
+              src.vx += (dx / dist) * force; src.vy += (dy / dist) * force;
+              tgt.vx -= (dx / dist) * force; tgt.vy -= (dy / dist) * force;
             }
           });
 
           nodes.forEach(n => {
             const pullStrength = n.isMain ? 0.2 : 0.005;
-            n.vx += (0 - n.x) * pullStrength;
-            n.vy += (0 - n.y) * pullStrength;
+            n.vx += (0 - n.x) * pullStrength; n.vy += (0 - n.y) * pullStrength;
             n.vx *= 0.8; n.vy *= 0.8;
             n.x += n.vx; n.y += n.vy;
             if (Math.abs(n.vx) > 0.05 || Math.abs(n.vy) > 0.05) updated = true;
@@ -364,10 +381,7 @@
 
           if (draggingNodeRef.current) {
             const d = nodes.find(n => n.id === draggingNodeRef.current.id);
-            if (d) {
-              d.x = draggingNodeRef.current.x; d.y = draggingNodeRef.current.y;
-              d.vx = 0; d.vy = 0; updated = true;
-            }
+            if (d) { d.x = draggingNodeRef.current.x; d.y = draggingNodeRef.current.y; d.vx = 0; d.vy = 0; updated = true; }
           }
 
           if (updated) forceRender({});
@@ -377,23 +391,18 @@
         return () => cancelAnimationFrame(rafId);
       }, []);
 
-      // --- Canvas Handlers ---
       const handleCanvasPointerDown = (e) => {
         if (e.target.closest('.obs-node-wrapper') || e.target.closest('.modal-overlay')) return;
-        setIsDraggingCanvas(true);
-        lastMousePos.current = { x: e.clientX, y: e.clientY };
+        setIsDraggingCanvas(true); lastMousePos.current = { x: e.clientX, y: e.clientY };
       };
       const handleCanvasPointerMove = (e) => {
         if (isDraggingCanvas) {
-          const dx = e.clientX - lastMousePos.current.x;
-          const dy = e.clientY - lastMousePos.current.y;
+          const dx = e.clientX - lastMousePos.current.x; const dy = e.clientY - lastMousePos.current.y;
           setTransform(prev => ({ ...prev, x: prev.x + dx, y: prev.y + dy }));
           lastMousePos.current = { x: e.clientX, y: e.clientY };
         } else if (draggingNodeRef.current) {
-          const dx = (e.clientX - lastMousePos.current.x) / transform.scale;
-          const dy = (e.clientY - lastMousePos.current.y) / transform.scale;
-          draggingNodeRef.current.x += dx;
-          draggingNodeRef.current.y += dy;
+          const dx = (e.clientX - lastMousePos.current.x) / transform.scale; const dy = (e.clientY - lastMousePos.current.y) / transform.scale;
+          draggingNodeRef.current.x += dx; draggingNodeRef.current.y += dy;
           lastMousePos.current = { x: e.clientX, y: e.clientY };
         }
       };
@@ -410,81 +419,144 @@
         draggingNodeRef.current = { id, x: node.x, y: node.y };
         lastMousePos.current = { x: e.clientX, y: e.clientY };
       };
+      
+      const openNodeInEditor = (id) => {
+        if (!openTabs.includes(id)) setOpenTabs([...openTabs, id]);
+        setActiveTabId(id);
+      };
+
       const handleNodePointerUp = (e, id) => {
-        setModalNodeId(id); // Simple click to open for this iteration
+        openNodeInEditor(id);
         draggingNodeRef.current = null;
       };
 
-      // --- Actions ---
-      const updateNode = (id, field, value) => {
+      const closeTab = (e, id) => {
+        e.stopPropagation();
+        const newTabs = openTabs.filter(t => t !== id);
+        setOpenTabs(newTabs);
+        if (activeTabId === id) setActiveTabId(newTabs.length > 0 ? newTabs[newTabs.length - 1] : null);
+      };
+
+      const updateNodeCode = (id, newCode) => {
         const node = nodesRef.current.find(n => n.id === id);
-        if (node) { node[field] = value; forceRender({}); }
+        if (node) { node.code = newCode; node.modified = true; forceRender({}); }
+      };
+
+      const updateCursorPos = (e) => {
+        const text = e.target.value; const pos = e.target.selectionStart;
+        const lines = text.substring(0, pos).split('\n');
+        setCursorPos({ ln: lines.length, col: lines[lines.length - 1].length + 1 });
+      };
+
+      const getLanguage = (label) => {
+        if (label.endsWith('.py')) return 'Python';
+        if (label.endsWith('.js') || label.endsWith('.ts')) return 'JavaScript';
+        if (label.endsWith('.json')) return 'JSON';
+        return 'Plain Text';
       };
 
       const addBlock = () => {
         const id = 'node_' + Date.now();
         const x = (0 - transform.x) / transform.scale + (Math.random() * 100 - 50);
         const y = (0 - transform.y) / transform.scale + (Math.random() * 100 - 50);
-        const themeIdx = Math.floor(Math.random() * 4) + 1;
-        nodesRef.current.push({ id, type: 'function', label: 'new_file.py', isMain: false, x, y, vx: 0, vy: 0, themeIdx, code: '' });
+        const themeIdx = Math.floor(Math.random() * 6) + 1;
+        nodesRef.current.push({ id, type: 'function', label: 'new_file.py', isMain: false, x, y, vx: 0, vy: 0, themeIdx, code: '', modified: true });
         edgesRef.current.push({ id: 'e_' + Date.now(), source: 'n1', target: id });
-        forceRender({});
-        setCmdOpen(false);
+        forceRender({}); setCmdOpen(false);
       };
 
       const drawLine = (sx, sy, tx, ty) => `M ${sx} ${sy} L ${tx} ${ty}`;
-      const modalNodeObj = nodesRef.current.find(n => n.id === modalNodeId);
 
-      // Commands
       const commands = [
         { name: "Create New Node", action: addBlock },
         { name: "Toggle Theme (Forsaken / Obsidian)", action: () => { setThemeMode(themeMode==='cyber'?'brutal':'cyber'); setCmdOpen(false); } },
         { name: "Toggle Terminal", action: () => { setTerminalOpen(!terminalOpen); setCmdOpen(false); } },
-        { name: "Toggle Explorer", action: () => { setExplorerOpen(!explorerOpen); setCmdOpen(false); } }
+        { name: "Toggle Explorer", action: () => { setSidebarMode(sidebarMode === 'files' ? null : 'files'); setCmdOpen(false); } }
       ].filter(c => c.name.toLowerCase().includes(cmdSearch.toLowerCase()));
 
       return (
         <div style={{
-          width: '100vw', height: '100vh',
-          padding: themeMode === 'brutal' ? '40px' : '0px',
-          backgroundColor: themeMode === 'brutal' ? '#FFFFFF' : '#050505',
-          transition: 'all 0.4s ease', boxSizing: 'border-box'
+          width: '100vw', height: '100vh', padding: themeMode === 'brutal' ? '40px' : '0px',
+          backgroundColor: outerBg, transition: 'all 0.4s ease', boxSizing: 'border-box'
         }}>
           <div className={wrapperClass}>
             
             <div className="app-header">
-              <div className="hdr-brand">FORBINDEN // {themeMode.toUpperCase()}</div>
+              <div className="hdr-brand">
+                <Icons.Search /> FORBINDEN // {themeMode.toUpperCase()} IDE
+              </div>
               <div style={{ display: 'flex', gap: '16px' }}>
-                <button className="btn" onClick={() => setCmdOpen(true)}>⌘K COMMANDS</button>
+                <button className="btn" onClick={addBlock}>+ ADD NODE</button>
+                {themeMode === 'brutal' && (
+                  <button className="btn" onClick={() => setIsBrutalDark(!isBrutalDark)}>
+                    {isBrutalDark ? 'LIGHT MODE' : 'DARK MODE'}
+                  </button>
+                )}
                 <button className="btn" onClick={() => setThemeMode(themeMode === 'cyber' ? 'brutal' : 'cyber')}>
-                  SWITCH TO {themeMode === 'cyber' ? 'FORSAKEN' : 'OBSIDIAN'}
+                  SWAP ENGINE
                 </button>
               </div>
             </div>
 
             <div className="app-body">
-              {/* SIDEBAR STRIP */}
               <div className="sidebar">
-                <div className={`strip-icon ${explorerOpen ? 'active' : ''}`} onClick={() => setExplorerOpen(!explorerOpen)}><Icons.Files /></div>
-                <div className="strip-icon" onClick={() => setCmdOpen(true)}><Icons.Search /></div>
-                <div className={`strip-icon ${terminalOpen ? 'active' : ''}`} onClick={() => setTerminalOpen(!terminalOpen)}><Icons.Terminal /></div>
+                <div className={`strip-icon ${sidebarMode === 'files' ? 'active' : ''}`} onClick={() => setSidebarMode(sidebarMode === 'files' ? null : 'files')}>
+                  <Icons.Files />
+                </div>
+                <div className={`strip-icon ${sidebarMode === 'search' ? 'active' : ''}`} onClick={() => setSidebarMode(sidebarMode === 'search' ? null : 'search')}>
+                  <Icons.Search />
+                </div>
+                <div className={`strip-icon ${sidebarMode === 'git' ? 'active' : ''}`} onClick={() => setSidebarMode(sidebarMode === 'git' ? null : 'git')}>
+                  <Icons.Git />
+                  {modifiedNodes.length > 0 && <div className="badge">{modifiedNodes.length}</div>}
+                </div>
+                <div style={{flex: 1}}></div>
+                <div className={`strip-icon ${terminalOpen ? 'active' : ''}`} onClick={() => setTerminalOpen(!terminalOpen)}>
+                  <Icons.Terminal />
+                </div>
               </div>
 
-              {/* EXPLORER PANEL */}
-              {explorerOpen && (
+              {sidebarMode === 'files' && (
                 <div className="explorer-panel">
-                  <div className="panel-hdr">PROJECT EXPLORER</div>
-                  <div style={{ flex: 1, overflowY: 'auto' }}>
+                  <div className="panel-hdr">EXPLORER</div>
+                  <div style={{ flex: 1, overflowY: 'auto', paddingTop: '8px' }}>
+                    <div style={{ padding: '0 20px', marginBottom: '8px', fontSize: '9px', opacity: 0.6, fontWeight: 'bold' }}>OPEN EDITORS</div>
+                    {openTabs.map(id => {
+                      const n = nodesRef.current.find(x => x.id === id);
+                      return n && (
+                        <div key={'open_'+n.id} className="list-item" onClick={() => setActiveTabId(id)}>
+                          <span style={{opacity: activeTabId === id ? 1 : 0.5}}>▸ {n.label} {n.modified ? '●' : ''}</span>
+                        </div>
+                      )
+                    })}
+                    <div style={{ padding: '16px 20px 8px', fontSize: '9px', opacity: 0.6, fontWeight: 'bold' }}>GRAPH WORKSPACE</div>
                     {nodesRef.current.map(n => (
-                      <div key={'expl_'+n.id} className="list-item" onClick={() => setModalNodeId(n.id)}>
-                        <Icons.FileIcon /> {n.label}
+                      <div key={'expl_'+n.id} className="list-item" onClick={() => openNodeInEditor(n.id)}>
+                        <Icons.FileIcon /> <span style={{color: n.modified ? '#ffc410' : 'inherit'}}>{n.label}</span>
                       </div>
                     ))}
                   </div>
                 </div>
               )}
 
-              {/* MAIN CANVAS AREA */}
+              {sidebarMode === 'git' && (
+                <div className="explorer-panel">
+                  <div className="panel-hdr">SOURCE CONTROL</div>
+                  <div style={{ flex: 1, overflowY: 'auto', paddingTop: '8px' }}>
+                    <div style={{ padding: '0 20px', marginBottom: '8px', fontSize: '9px', opacity: 0.6, fontWeight: 'bold' }}>CHANGES ({modifiedNodes.length})</div>
+                    {modifiedNodes.length === 0 ? 
+                      <div style={{padding: '20px', opacity: 0.5, fontSize: '11px'}}>No uncommitted changes.</div> :
+                      modifiedNodes.map(n => (
+                        <div key={'git_'+n.id} className="list-item" onClick={() => openNodeInEditor(n.id)}>
+                          <Icons.FileIcon /> <span style={{color: '#ffc410'}}>{n.label}</span> <span style={{marginLeft: 'auto', opacity: 0.5}}>M</span>
+                        </div>
+                      ))
+                    }
+                    {modifiedNodes.length > 0 && <div style={{padding: '20px'}}><button className="btn" style={{width:'100%'}} onClick={() => {nodesRef.current.forEach(n=>n.modified=false); forceRender({})}}>COMMIT CHANGES</button></div>}
+                  </div>
+                </div>
+              )}
+
               <div className="main-view">
                 <div 
                   className="canvas-container"
@@ -507,31 +579,33 @@
                       <div 
                         key={node.id} 
                         className={`obs-node-wrapper clr-${ZONES[node.themeIdx % ZONES.length]}`}
-                        style={{ left: node.x, top: node.y, opacity: hoveredNodeId && hoveredNodeId !== node.id && !modalNodeId ? 0.3 : 1 }}
-                        onPointerEnter={() => !modalNodeId && !isDraggingCanvas && setHoveredNodeId(node.id)}
-                        onPointerLeave={() => !modalNodeId && setHoveredNodeId(null)}
+                        style={{ left: node.x + 'px', top: node.y + 'px', opacity: hoveredNodeId && hoveredNodeId !== node.id && !activeTabId ? 0.3 : 1 }}
+                        onPointerEnter={() => !activeTabId && !isDraggingCanvas && setHoveredNodeId(node.id)}
+                        onPointerLeave={() => !activeTabId && setHoveredNodeId(null)}
                         onPointerDown={(e) => handleNodePointerDown(e, node.id)}
                         onPointerUp={(e) => handleNodePointerUp(e, node.id)}
                       >
                         <div className={`node-circle ${node.isMain ? 'main-node' : 'sub-node'}`}></div>
-                        <div className="node-label">{node.label}</div>
+                        <div className="node-label">
+                          {node.label}
+                          {node.modified && <span className="modified-dot"></span>}
+                        </div>
                       </div>
                     ))}
                   </div>
                 </div>
 
-                {/* TERMINAL PANEL */}
                 {terminalOpen && (
                   <div className="terminal-panel">
                     <div className="panel-hdr" style={{display:'flex', justifyContent:'space-between'}}>
-                      <span>HOST TERMINAL</span>
+                      <span>TERMINAL</span>
                       <span style={{cursor:'pointer'}} onClick={() => setTerminalOpen(false)}>✕</span>
                     </div>
                     <div className="term-content">
-                      <div className="term-line info">[SYS] Terminal Initialized...</div>
-                      <div className="term-line">Attaching to graph protocol...</div>
-                      <div className="term-line success">Nodes synced: {nodesRef.current.length}</div>
-                      <div className="term-line">Awaiting user input.</div>
+                      <div className="term-line info">root@forbinden ~/workspace $ ./core_sys.py</div>
+                      <div className="term-line">Compiling computational graph...</div>
+                      <div className="term-line success">Build success. 0 errors, 0 warnings.</div>
+                      <div className="term-line">Watching for file changes...</div>
                     </div>
                   </div>
                 )}
@@ -539,11 +613,19 @@
             </div>
 
             <div className="status-bar">
-              <span>{themeMode.toUpperCase()} | {nodesRef.current.length} NODES | UTF-8</span>
-              <span>ZOOM: {Math.round(transform.scale * 100)}%</span>
+              <div className="status-group">
+                <span>{themeMode.toUpperCase()} ENGINE</span>
+                <span><Icons.Git /> main*</span>
+                {modifiedNodes.length > 0 && <span style={{color: '#ffc410'}}>{modifiedNodes.length} modified</span>}
+              </div>
+              <div className="status-group">
+                {activeTabNode && <span>Ln {cursorPos.ln}, Col {cursorPos.col}</span>}
+                <span>UTF-8</span>
+                {activeTabNode && <span>{getLanguage(activeTabNode.label)}</span>}
+                <span>Prettier</span>
+              </div>
             </div>
 
-            {/* COMMAND PALETTE OVERLAY */}
             <div className={`cmd-overlay ${cmdOpen ? 'open' : ''}`}>
               <input 
                 autoFocus={cmdOpen} className="cmd-input" placeholder="Type a command..." 
@@ -561,61 +643,105 @@
             </div>
 
             {/* 89% EDITOR MODAL */}
-            <div className={`modal-overlay ${modalNodeId ? 'open' : ''}`} onPointerDown={() => setModalNodeId(null)}>
-              {modalNodeObj && (
+            <div className={`modal-overlay ${activeTabId ? 'open' : ''}`} onPointerDown={() => setActiveTabId(null)}>
+              {activeTabNode && (
                 <div className="modal-content" onPointerDown={e => e.stopPropagation()}>
-                  <div className="modal-hdr">
-                    <div className="modal-hdr-title">
-                      <Icons.FileIcon />
-                      <input className="modal-input" value={modalNodeObj.label} onChange={e => updateNode(modalNodeObj.id, 'label', e.target.value)} spellCheck="false" />
-                    </div>
-                    <button className="btn" onClick={() => setModalNodeId(null)}>CLOSE EDITOR</button>
+                  
+                  <div className="tabs-hdr">
+                    {openTabs.map(id => {
+                      const n = nodesRef.current.find(x => x.id === id);
+                      if (!n) return null;
+                      return (
+                        <div key={id} className={`editor-tab ${activeTabId === id ? 'active' : ''}`} onClick={() => setActiveTabId(id)}>
+                          <div style={{display:'flex', alignItems:'center', gap:'8px'}}>
+                            <Icons.FileIcon /> 
+                            <span style={{color: n.modified ? '#ffc410' : 'inherit'}}>{n.label}</span>
+                          </div>
+                          <div className="tab-close" onClick={(e) => closeTab(e, id)}>✕</div>
+                        </div>
+                      )
+                    })}
+                    <div style={{flex: 1, borderBottom: '1px solid var(--border)'}}></div>
                   </div>
                   
                   <div className="modal-body">
-                    <div className="modal-code-wrap">
-                      <div className="editor-wrap">
-                        <div className="line-numbers">
-                          {(modalNodeObj.code || ' ').split('\n').map((_, i) => <div key={i}>{i + 1}</div>)}
+                    <div className="editor-main-area">
+                      <div className="breadcrumb">
+                        <span>workspace</span> <span>{themeMode==='cyber'?'>':'/'}</span> 
+                        <span>{activeTabNode.type}s</span> <span>{themeMode==='cyber'?'>':'/'}</span> 
+                        <span style={{fontWeight: 'bold', color: 'var(--text)'}}>{activeTabNode.label}</span>
+                      </div>
+                      
+                      <div className="modal-code-wrap">
+                        <div className="editor-wrap">
+                          <div className="line-numbers" ref={lineNumRef}>
+                            {(activeTabNode.code || ' ').split('\n').map((_, i) => <div key={i}>{i + 1}</div>)}
+                          </div>
+                          <textarea 
+                            className="code-area" 
+                            value={activeTabNode.code}
+                            onChange={e => updateNodeCode(activeTabNode.id, e.target.value)}
+                            onKeyUp={updateCursorPos}
+                            onClick={updateCursorPos}
+                            onScroll={handleEditorScroll}
+                            spellCheck="false"
+                            placeholder="// Write implementation here..."
+                          />
                         </div>
-                        <textarea 
-                          className="code-area" 
-                          value={modalNodeObj.code}
-                          onChange={e => updateNode(modalNodeObj.id, 'code', e.target.value)}
-                          spellCheck="false"
-                          placeholder="// Write implementation here..."
-                        />
                       </div>
                     </div>
                     
                     <div className="modal-side panel">
                       <div className="modal-side-sec">
-                        <div className="modal-side-label">FILE TYPE</div>
-                        <select className="side-input" value={modalNodeObj.type} onChange={e => updateNode(modalNodeObj.id, 'type', e.target.value)}>
-                          <option value="entry">ENTRY POINT</option>
-                          <option value="function">FUNCTION</option>
-                          <option value="class">CLASS DEFINITION</option>
+                        <div style={{marginBottom:'12px', fontSize:'12px', fontWeight:'bold'}}>FILE PROPS</div>
+                        <input 
+                          className="side-input" 
+                          value={activeTabNode.label} 
+                          onChange={e => {
+                            const node = nodesRef.current.find(n => n.id === activeTabNode.id);
+                            if(node) { node.label = e.target.value; forceRender({}); }
+                          }} 
+                          style={{marginBottom: '8px'}}
+                        />
+                        <select 
+                          className="side-input" 
+                          value={activeTabNode.type} 
+                          onChange={e => {
+                            const node = nodesRef.current.find(n => n.id === activeTabNode.id);
+                            if(node) { node.type = e.target.value; forceRender({}); }
+                          }}
+                        >
+                          <option value="entry">Entry Point</option>
+                          <option value="function">Function</option>
+                          <option value="class">Class</option>
                         </select>
                       </div>
                       <div className="modal-side-sec">
-                        <div className="modal-side-label">AI ASSISTANT</div>
+                        <div style={{marginBottom:'12px', fontSize:'12px', fontWeight:'bold'}}>AI ASSISTANT</div>
                         <textarea className="side-input" style={{ height: '120px', resize: 'none' }} placeholder="QUERY LOGIC..." spellCheck="false" />
                         <button className="btn" style={{ width: '100%', marginTop: '16px' }}>ANALYZE</button>
                       </div>
                       <div className="modal-side-sec" style={{ borderBottom: 'none', marginTop: 'auto' }}>
-                        <div className="modal-side-label">ASSIGN ZONE COLOR</div>
+                        <div style={{marginBottom:'12px', fontSize:'12px', fontWeight:'bold'}}>ASSIGN COLOR ZONE</div>
                         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                          {ZONES.map((zone, idx) => (
-                            <div 
-                              key={idx} onClick={() => updateNode(modalNodeObj.id, 'themeIdx', idx)}
-                              style={{ 
-                                width: '24px', height: '24px', cursor: 'pointer', borderRadius: themeMode === 'cyber' ? '50%' : '0',
-                                background: ZONE_COLORS[zone],
-                                border: `2px solid ${modalNodeObj.themeIdx === idx ? 'var(--text)' : 'transparent'}`,
-                                boxShadow: themeMode==='brutal' ? '2px 2px 0px rgba(0,0,0,1)' : 'none'
-                              }} 
-                            />
-                          ))}
+                          {ZONES.map((zone, idx) => {
+                            const isZoneDark = isBrutalDark && zone === 'default';
+                            const displayColor = isZoneDark ? '#111111' : ZONE_COLORS[zone];
+                            return (
+                              <div 
+                                key={idx} onClick={() => {
+                                  const node = nodesRef.current.find(n => n.id === activeTabNode.id);
+                                  if(node) { node.themeIdx = idx; forceRender({}); }
+                                }}
+                                style={{ 
+                                  width: '24px', height: '24px', cursor: 'pointer', borderRadius: themeMode === 'cyber' ? '50%' : '0',
+                                  background: displayColor,
+                                  border: `2px solid ${activeTabNode.themeIdx === idx ? 'var(--text)' : 'transparent'}`,
+                                  boxShadow: themeMode==='brutal' ? '2px 2px 0px rgba(0,0,0,1)' : 'none'
+                                }} 
+                              />
+                            );
+                          })}
                         </div>
                       </div>
                     </div>
