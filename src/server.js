@@ -25,6 +25,22 @@ const server = http.createServer(app.callback());
 app.use(cors({ origin: '*' }));
 app.use(require('koa-bodyparser')()); // To parse JSON requests
 
+// Serve static assets from project root (e.g. avatars.jpg).
+app.use(async (ctx, next) => {
+  if (ctx.method !== 'GET') return next();
+  if (ctx.path === '/' || ctx.path === '/index.html') return next();
+
+  const rel = ctx.path.replace(/^\/+/, '');
+  const filePath = path.resolve(__dirname, '..', rel);
+  const rootDir = path.resolve(__dirname, '..');
+
+  if (!filePath.startsWith(rootDir)) return next();
+  if (!fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) return next();
+
+  ctx.type = path.extname(filePath);
+  ctx.body = fs.createReadStream(filePath);
+});
+
 // Serve the frontend entry file when opening the backend URL in browser.
 app.use(async (ctx, next) => {
   if (ctx.method === 'GET' && (ctx.path === '/' || ctx.path === '/index.html')) {

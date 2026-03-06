@@ -111,11 +111,9 @@
     .panel-hdr:active { opacity: 1; }
     .panel-content-wrap { flex: 1; display: flex; flex-direction: column; overflow: hidden; position: relative; }
     
-    /* ENHANCED RESIZER */
     .panel-resizer { 
       position: absolute; bottom: 0; right: 0; width: 22px; height: 22px; 
-      cursor: nwse-resize; 
-      background: linear-gradient(135deg, transparent 50%, var(--text) 50%); 
+      cursor: nwse-resize; background: linear-gradient(135deg, transparent 50%, var(--text) 50%); 
       opacity: 0.2; transition: opacity 0.2s, transform 0.2s; 
     }
     .panel-resizer:hover { opacity: 1; transform: scale(1.1); }
@@ -205,6 +203,10 @@
     .theme-btn.cyber:hover:not(:disabled) { box-shadow: 0 0 20px rgba(16,185,129,0.3); background: rgba(16,185,129,0.05); }
     .theme-btn.brutal { background: #fff; border: 4px solid #fff; color: #000; font-family: 'Inter', sans-serif; font-weight: 900; text-transform: uppercase; }
     .theme-btn.brutal:hover:not(:disabled) { box-shadow: 8px 8px 0px rgba(255,255,255,0.5); transform: translate(-2px, -2px); }
+
+    /* FACTION LOGO SVG HOVERS */
+    .faction-logo-wrap { transition: all 0.2s; display: flex; align-items: center; justify-content: center; }
+    .faction-logo-wrap:hover { transform: scale(1.1); }
   </style>
 </head>
 <body>
@@ -229,6 +231,61 @@
       FileIcon: () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
     };
 
+    // PURE SVG RECREATIONS OF THE FACTION LOGOS
+    const FactionLogos = [
+      // 01: LUMEX (Pentagon with diamonds)
+      () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"><path d="M12 2 L20 8 V20 H4 V8 Z"/><path d="M12 7 L16 11 L12 15 L8 11 Z"/><path d="M12 10 L14 12 L12 14 L10 12 Z"/></svg>,
+      // 02: THERMAL (Segmented circle)
+      () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 3 A 9 9 0 0 1 20.6 15"/><path d="M19 18 A 9 9 0 0 1 5 18"/><path d="M3.4 15 A 9 9 0 0 1 12 3"/><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="1" fill="currentColor"/></svg>,
+      // 03: A-GRADE (X Cross)
+      () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"><path d="M6 6 L9 6 L12 9 L15 6 L18 6 L18 9 L15 12 L18 15 L18 18 L15 18 L12 15 L9 18 L6 18 L6 15 L9 12 L6 9 Z"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/></svg>,
+      // 04: VIREON (Arrowhead ship)
+      () => <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2 L20 18 C16 16 8 16 4 18 Z"/><circle cx="12" cy="10" r="2" fill="var(--bg)"/></svg>,
+      // 05: IXHERA (Diamond X)
+      () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"><rect x="4" y="4" width="16" height="16" transform="rotate(45 12 12)"/><path d="M9 9 L15 15 M15 9 L9 15" strokeWidth="2.5"/><circle cx="12" cy="6" r="0.5" fill="currentColor"/></svg>,
+      // 06: DT (Capsule cut)
+      () => <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 6 H18 C20 6 22 8 22 12 C22 16 20 18 18 18 H6 C4 18 2 16 2 12 C2 8 4 6 6 6 Z"/><path d="M12 8 C14 12 14 16 12 20 C10 16 10 12 12 8 Z" fill="var(--bg)"/></svg>,
+      // 07: VORTEX (Stylized V)
+      () => <svg viewBox="0 0 24 24" fill="currentColor"><path d="M2 4 L9 18 H15 L10 10 L14 10 L19 4 Z"/></svg>,
+      // 08: QREACTOR (Satellite Circle)
+      () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="12" cy="12" r="10" strokeDasharray="4 2"/><circle cx="12" cy="12" r="6"/><line x1="6" y1="6" x2="18" y2="18" strokeWidth="2"/><line x1="18" y1="6" x2="6" y2="18" strokeWidth="2"/><circle cx="12" cy="12" r="2" fill="currentColor"/></svg>,
+      // 09: QUANTARA (Crest/Torch)
+      () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"><path d="M5 3 H19 V12 C19 18 12 22 12 22 C12 22 5 18 5 12 Z"/><path d="M9 10 L12 15 L15 10"/><circle cx="12" cy="7" r="1" fill="currentColor"/></svg>,
+      // 10: VLTR (Concentric Triangles)
+      () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"><circle cx="12" cy="12" r="11"/><polygon points="12,5 19,17 5,17"/><polygon points="12,9 15,14 9,14"/></svg>,
+      // 11: POLARIS (Heatsink U)
+      () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="square"><path d="M6 4 V16 A2 2 0 0 0 10 16 V10 M14 10 V16 A2 2 0 0 0 18 16 V4" /></svg>,
+      // 12: SYNTEX (Rings & Arrow)
+      () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="12" cy="10" r="8"/><circle cx="12" cy="10" r="4"/><path d="M12 10 L12 22 M9 19 L12 16 L15 19" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+    ];
+
+    // PURE CSS OPERATOR BADGE COMPONENT
+    const OperatorBadge = ({ index, size = 48, selected = false, onClick, style = {} }) => {
+      const Logo = FactionLogos[index % FactionLogos.length];
+      return (
+        <div
+          className="faction-logo-wrap"
+          onClick={onClick}
+          style={{
+            width: size, height: size,
+            borderRadius: '50%',
+            cursor: onClick ? 'pointer' : 'default',
+            border: selected ? '2px solid var(--text)' : '2px solid transparent',
+            boxShadow: selected ? '0 0 15px var(--text)' : 'none',
+            background: 'rgba(128,128,128,0.1)',
+            color: 'var(--text)',
+            padding: size * 0.2, // scales internal SVG icon padding
+            flexShrink: 0,
+            ...style
+          }}
+        >
+          <div style={{ width: '100%', height: '100%' }}>
+            <Logo />
+          </div>
+        </div>
+      );
+    };
+
     const ZONES = ['default', '1', '2', '3', '4', '5', '6'];
     const ZONE_COLORS = { 'default': '#ffffff', '1': '#ff435a', '2': '#ffc410', '3': '#1e836d', '4': '#4285f4', '5': '#1e836d', '6': 'linear-gradient(135deg, #7161a4, #332b89)' };
     const OUTSIDE_COLORS = { 'default': '#ffffff', '1': '#ffffff', '2': '#ffffff', '3': '#ffffff', '4': '#ffffff', '5': '#808080', '6': '#1a0b2e' };
@@ -239,39 +296,6 @@
       { id: 'n3', type: 'class', label: 'DataMatrix.py', isMain: false, x: -100, y: 150, vx: 0, vy: 0, themeIdx: 6, code: 'class DataMatrix:\n    def __init__(self):\n        self.active = True\n        self.buffer = []', modified: false },
     ];
     const INITIAL_EDGES = [ { id: 'e1', source: 'n1', target: 'n2' }, { id: 'e2', source: 'n1', target: 'n3' } ];
-
-    // REUSABLE OPERATOR BADGE (CSS SPRITE LOGIC)
-    const OperatorBadge = ({ index, size = 48, selected = false, onClick, style = {} }) => {
-      const col = index % 3;
-      const row = Math.floor(index / 3);
-      return (
-        <div
-          onClick={onClick}
-          style={{
-            width: size, height: size,
-            borderRadius: '50%', overflow: 'hidden',
-            cursor: onClick ? 'pointer' : 'default',
-            border: selected ? '2px solid #ff435a' : '2px solid transparent',
-            boxShadow: selected ? '0 0 20px rgba(255, 67, 90, 0.6)' : 'none',
-            background: '#dce8eb', // fallback color matching the image background
-            flexShrink: 0,
-            position: 'relative',
-            ...style
-          }}
-        >
-          {/* We use scale(1.8) to crop out the numbers and lines from the image */}
-          <div style={{
-            width: '100%', height: '100%',
-            transform: 'scale(1.8)',
-            backgroundImage: `url('./avatars.jpg')`,
-            backgroundSize: '300% 400%',
-            backgroundPosition: `${col * 50}% ${row * 33.3333}%`,
-            backgroundRepeat: 'no-repeat',
-            transition: 'transform 0.2s ease',
-          }} />
-        </div>
-      );
-    };
 
     const FloatingPanel = ({ title, isOpen, onClose, defaultX, defaultY, defaultW, defaultH, children }) => {
       const [pos, setPos] = useState({ x: defaultX, y: defaultY });
@@ -469,22 +493,15 @@
         } else if (draggingNodeRef.current) {
           const dx = (e.clientX - lastMousePos.current.x) / transform.scale; 
           const dy = (e.clientY - lastMousePos.current.y) / transform.scale;
-          
           if (Math.abs(dx) > 1 || Math.abs(dy) > 1) {
              draggingNodeRef.current.hasDragged = true;
           }
-          
           draggingNodeRef.current.x += dx; 
           draggingNodeRef.current.y += dy;
           lastMousePos.current = { x: e.clientX, y: e.clientY };
         }
       };
-      
-      const handleCanvasPointerUp = () => { 
-        setIsDraggingCanvas(false); 
-        draggingNodeRef.current = null; 
-      };
-      
+      const handleCanvasPointerUp = () => { setIsDraggingCanvas(false); draggingNodeRef.current = null; };
       const handleWheel = (e) => {
         if (e.target.closest(".code-area") || e.target.closest(".floating-panel") || e.target.closest(".nle-wrap")) return;
         e.preventDefault();
@@ -499,11 +516,11 @@
             
             <div className="app-header">
               <div className="hdr-brand">
-                <Icons.Search /> FORBINDEN // {themeMode.toUpperCase()} IDE
+                <OperatorBadge index={avatarIndex} size={24} style={{background: 'transparent', padding: 0}} /> FORBINDEN // {themeMode.toUpperCase()}
               </div>
               <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
                 <button className="btn" onClick={() => setThemeMode(themeMode === 'cyber' ? 'brutal' : 'cyber')}>
-                  SWITCH THEME
+                  SWITCH ENGINE
                 </button>
               </div>
             </div>
@@ -525,7 +542,7 @@
                 <div className={`strip-icon ${bottomPanelTab === 'timeline' ? 'active' : ''}`} onClick={() => setBottomPanelTab(bottomPanelTab === 'timeline' ? null : 'timeline')}><Icons.Timeline /></div>
                 <div className={`strip-icon ${bottomPanelTab === 'terminal' ? 'active' : ''}`} onClick={() => setBottomPanelTab(bottomPanelTab === 'terminal' ? null : 'terminal')}><Icons.Terminal /></div>
                 
-                {/* DYNAMIC AVATAR ICON in Sidebar */}
+                {/* DYNAMIC SVG AVATAR ICON in Sidebar */}
                 <div 
                   className={`strip-icon ${sidebarMode === 'settings' ? 'active' : ''}`} 
                   onClick={() => setSidebarMode(sidebarMode === 'settings' ? null : 'settings')}
@@ -612,7 +629,7 @@
               <FloatingPanel title="COMMUNICATIONS" isOpen={sidebarMode === 'chat'} onClose={() => setSidebarMode(null)} defaultX={380} defaultY={80} defaultW={300} defaultH={400}>
                 <div className="chat-wrap">
                   <div className="chat-messages">
-                    <div className="chat-msg" style={{ display: 'flex', gap: '8px' }}>
+                    <div className="chat-msg" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                       <OperatorBadge index={avatarIndex} size={20} style={{boxShadow: 'none', border: 'none'}} />
                       <div><strong>You:</strong> Architecture booted. Testing WebSockets.</div>
                     </div>
@@ -680,11 +697,11 @@
                         </div>
                         <div className="nle-track-header">
                           <span>YOU</span>
-                          <OperatorBadge index={avatarIndex} size={16} style={{boxShadow: 'none', border: 'none'}} />
+                          <OperatorBadge index={avatarIndex} size={20} style={{boxShadow: 'none', border: 'none'}} />
                         </div>
                         <div className="nle-track-header">
                           <span>OPERATOR 2</span>
-                          <div style={{width: '8px', height: '8px', background: '#4285f4', borderRadius: '50%'}}></div>
+                          <OperatorBadge index={(avatarIndex + 1) % 12} size={20} style={{boxShadow: 'none', border: 'none'}} />
                         </div>
                       </div>
                       
@@ -846,7 +863,6 @@
       const [theme, setTheme] = useState(null);
       const [avatar, setAvatar] = useState(null);
 
-      // If both are selected, launch the IDE
       if (theme && avatar !== null) {
         return <IDE initialTheme={theme} initialAvatar={avatar} />;
       }
@@ -855,7 +871,7 @@
         <div className="login-container">
           <div className="login-box">
             <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-              <h1 style={{ fontSize: '32px', fontWeight: 'bold', letterSpacing: '4px', marginBottom: '10px' }}>FORBINDEN</h1>
+              <h1 style={{ fontSize: '32px', fontWeight: 'bold', letterSpacing: '4px', marginBottom: '10px', fontFamily: 'Inter, sans-serif' }}>FORBINDEN</h1>
               <div style={{ opacity: 0.5, letterSpacing: '2px' }}>SYSTEM BOOT SEQUENCE</div>
             </div>
 
