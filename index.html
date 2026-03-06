@@ -12,58 +12,197 @@
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 
     <style>
-      @import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700;800&display=swap");
+      @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@300;400;500;700;800&display=swap");
       
       * { margin: 0; padding: 0; box-sizing: border-box; }
-      body { margin: 0; padding: 0; overflow: hidden; background: #000; font-family: "JetBrains Mono", monospace; }
+      body { 
+        margin: 0; padding: 0; overflow: hidden; 
+        background: #2b2d31; 
+        font-family: "Inter", sans-serif;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+      }
       
       ::-webkit-scrollbar { width: 4px; height: 4px; }
       ::-webkit-scrollbar-track { background: transparent; }
-      ::-webkit-scrollbar-thumb { background: var(--border); }
-      
-      /* THEME: SYNQ MINIMAL */
-      .theme-synq {
-        --bg: #030305; --panel: #0a0a0c; --border: #1f1f2e; 
-        --accent: #10b981; --accent-dim: rgba(16, 185, 129, 0.2);
-        --text-muted: #52525b; --text-main: #a1a1aa; --text-bright: #f4f4f5;
-        background-color: var(--bg); color: var(--text-main); font-size: 13px;
-      }
-      .theme-synq .tab.active { color: var(--accent); border-bottom: 1px solid var(--accent); background: var(--bg); }
-      
-      /* THEME: FORBIDDEN AEROSPACE */
-      .theme-forbidden {
-        --bg: #06080a; --panel: #0a0d12; --accent: #e5ff00; 
-        --text-pale: #b0c4cf; --text-bright: #ffffff; --border: #1e2832; 
-        --border-bright: #b0c4cf;
-        background-color: #030405; 
-        background-image: radial-gradient(circle at 50% 50%, rgba(176, 196, 207, 0.15) 1px, transparent 1px);
-        background-size: 24px 24px; color: var(--text-pale); font-size: 11px; text-transform: uppercase;
-      }
-      .theme-forbidden .tab.active { background: var(--accent); color: var(--bg); font-weight: bold; border-color: var(--accent); }
-      
-      /* MARATHON REMOTE CURSOR HIGHLIGHT */
-      .marathon-bar-forbidden { background-color: rgba(229, 255, 0, 0.15) !important; border-left: 4px solid #e5ff00 !important; }
-      .marathon-bar-synq { background-color: rgba(16, 185, 129, 0.15) !important; border-left: 4px solid #10b981 !important; }
+      ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
 
-      .boot-menu { width: 100vw; height: 100vh; background: #000; color: #10b981; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 14px; }
+      .app-frame {
+        width: 100vw;
+        height: 100vh;
+        background-color: var(--bg);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        color: var(--text-main);
+        font-size: 13px;
+        transition: all 0.3s ease;
+      }
+
+      body.app-loaded .app-frame {
+        width: calc(100vw - 48px);
+        height: calc(100vh - 48px);
+        border-radius: 16px;
+        box-shadow: 0 32px 80px rgba(0,0,0,0.6);
+        border: 1px solid rgba(255,255,255,0.05);
+      }
+
+      .theme-synq {
+        --bg: #131418; --panel: #1a1b20; --border: #2c2e36; 
+        --accent: #10b981; --accent-dim: rgba(16, 185, 129, 0.2);
+        --text-muted: #6b7280; --text-main: #9ca3af; --text-bright: #f3f4f6;
+        --canvas-dots: rgba(255, 255, 255, 0.07);
+        background-color: var(--bg); color: var(--text-main);
+      }
+      
+      .theme-forbidden {
+        --bg: #090a0f; --panel: #11141c; --border: #1e2832; 
+        --accent: #e5ff00; --accent-dim: rgba(229, 255, 0, 0.15);
+        --text-pale: #b0c4cf; --text-bright: #ffffff; 
+        --border-bright: #b0c4cf;
+        --text-main: var(--text-pale);
+        --text-muted: #5e7382;
+        --canvas-dots: rgba(176, 196, 207, 0.15);
+        font-family: "JetBrains Mono", monospace;
+        text-transform: uppercase;
+        background-color: var(--bg); color: var(--text-pale);
+      }
+
+      .boot-menu { width: 100vw; height: 100vh; background: #000; color: #10b981; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 14px; font-family: "JetBrains Mono", monospace; }
       .boot-input { background: #000; border: 1px solid #10b981; color: #10b981; padding: 8px 16px; font-family: inherit; margin-bottom: 16px; width: 400px; outline: none; }
       .boot-btn { background: transparent; border: 1px solid #10b981; color: #10b981; padding: 16px 32px; font-family: inherit; font-size: 14px; cursor: pointer; transition: all 0.2s; text-align: left; width: 400px; margin-bottom: 16px; display: flex; justify-content: space-between; }
       .boot-btn:hover { background: #10b981; color: #000; }
       .boot-btn.forbidden-btn { border-color: #e5ff00; color: #e5ff00; }
       .boot-btn.forbidden-btn:hover { background: #e5ff00; color: #000; }
       
-      .btn-run { background: var(--accent); color: var(--bg); border: none; padding: 4px 16px; font-weight: bold; cursor: pointer; font-family: inherit; }
+      .btn-run { background: var(--accent); color: #000; border: none; padding: 6px 16px; border-radius: 4px; font-weight: bold; cursor: pointer; font-family: inherit; font-size: 11px; }
       .btn-run:hover { opacity: 0.8; }
-      .btn-ghost { background: transparent; color: var(--text-main); border: 1px solid var(--border); padding: 4px 10px; cursor: pointer; font-family: inherit; font-size: 11px; }
-      .btn-ghost:hover { color: var(--text-bright); border-color: var(--accent); }
-      .status-bar { height: 28px; border-top: 1px solid var(--border); background: var(--panel); display: flex; align-items: center; justify-content: space-between; padding: 0 10px; font-size: 10px; color: var(--text-main); }
-      .status-pill { padding: 2px 8px; border: 1px solid var(--border); }
+      .btn-ghost { background: transparent; color: var(--text-main); border: 1px solid transparent; border-radius: 4px; padding: 4px 10px; cursor: pointer; font-family: inherit; font-size: 11px; transition: all 0.2s; }
+      .btn-ghost:hover { color: var(--text-bright); background: rgba(255,255,255,0.05); }
+
+      .app-header {
+        height: 44px; display: flex; align-items: center; justify-content: space-between;
+        padding: 0 16px; background: var(--bg); border-bottom: 1px solid var(--border);
+        font-size: 12px; font-weight: 500; z-index: 50;
+      }
+      .app-header-nav { display: flex; gap: 16px; color: var(--text-muted); }
+      .app-header-nav span { cursor: pointer; transition: color 0.2s; }
+      .app-header-nav span:hover { color: var(--text-bright); }
+      .app-header-title { color: var(--text-bright); font-weight: 600; letter-spacing: 0.5px; position: absolute; left: 50%; transform: translateX(-50%); }
+      .app-header-actions { display: flex; gap: 12px; align-items: center; }
+
+      .app-body { display: flex; flex: 1; overflow: hidden; background: var(--bg); }
+      
+      .icon-strip {
+        width: 54px; background: var(--bg); border-right: 1px solid var(--border);
+        display: flex; flex-direction: column; align-items: center; padding: 12px 0; gap: 20px;
+        flex-shrink: 0; z-index: 10;
+      }
+      .strip-icon { width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; color: var(--text-muted); cursor: pointer; border-radius: 8px; transition: all 0.2s; }
+      .strip-icon:hover { color: var(--text-bright); background: rgba(255,255,255,0.05); }
+      .strip-icon.active { color: var(--accent); position: relative; }
+      .strip-icon.active::after { content: ''; position: absolute; left: -14px; top: 2px; bottom: 2px; width: 3px; background: var(--accent); border-radius: 0 4px 4px 0; }
+
+      /* OBSIDIAN-LIKE VISUAL GRAPH CANVAS */
+      .canvas-container {
+        flex: 1; position: relative; overflow: hidden;
+        background-color: var(--bg);
+        background-image: radial-gradient(circle at 1px 1px, var(--canvas-dots) 1px, transparent 0);
+        background-size: 24px 24px;
+        cursor: grab;
+      }
+      .canvas-container:active { cursor: grabbing; }
+      
+      .graph-layer {
+        position: absolute; top: 0; left: 0; width: 100%; height: 100%; transform-origin: 0 0;
+        pointer-events: none; /* Let clicks pass to canvas unless on a node */
+      }
+      
+      .svg-edges { position: absolute; top: 0; left: 0; width: 100%; height: 100%; overflow: visible; }
+      .edge-path { fill: none; stroke: var(--border); stroke-width: 2px; transition: stroke 0.3s; }
+      .edge-path:hover { stroke: var(--accent); stroke-width: 3px; }
+
+      /* NODE BLOCKS */
+      .node-block {
+        position: absolute; width: 280px; background: var(--panel);
+        border: 1px solid var(--border); border-radius: 8px;
+        box-shadow: 0 16px 40px rgba(0,0,0,0.5); display: flex; flex-direction: column;
+        pointer-events: auto; cursor: default;
+        transition: box-shadow 0.2s, border-color 0.2s;
+      }
+      .node-block:hover { border-color: rgba(255,255,255,0.2); }
+      .node-block.selected { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), 0 16px 40px rgba(0,0,0,0.5); }
+      
+      .node-header {
+        background: rgba(255,255,255,0.03); border-bottom: 1px solid var(--border);
+        padding: 8px 12px; display: flex; justify-content: space-between; align-items: center;
+        font-family: "JetBrains Mono", monospace; font-size: 11px; color: var(--text-bright);
+        border-radius: 8px 8px 0 0; cursor: grab;
+      }
+      .node-header:active { cursor: grabbing; }
+      
+      .node-author { font-size: 9px; padding: 2px 6px; border-radius: 4px; background: rgba(255,255,255,0.1); color: var(--text-muted); }
+      .node-author.me { background: var(--accent-dim); color: var(--accent); }
+
+      .node-body {
+        padding: 0; display: flex; flex-direction: column; position: relative;
+      }
+      
+      .node-textarea {
+        width: 100%; height: 100px; background: transparent; border: none;
+        color: var(--text-main); font-family: "JetBrains Mono", monospace; font-size: 11px;
+        padding: 10px 12px; resize: none; outline: none; line-height: 1.5;
+      }
+      
+      /* PORTS */
+      .node-port {
+        position: absolute; width: 12px; height: 12px; border-radius: 50%;
+        background: var(--bg); border: 2px solid var(--border);
+        top: 50%; transform: translateY(-50%); z-index: 10;
+      }
+      .node-port.input { left: -6px; }
+      .node-port.output { right: -6px; }
+      .node-block.selected .node-port { border-color: var(--accent); }
+
+      /* CLASS THREAD BINDING */
+      .class-hull {
+        position: absolute; border: 2px dashed var(--border); border-radius: 16px;
+        background: rgba(255,255,255,0.01); pointer-events: none;
+        transition: all 0.2s; z-index: 0;
+      }
+      .class-hull-label {
+        position: absolute; top: -24px; left: 16px; font-family: "JetBrains Mono", monospace;
+        font-size: 11px; color: var(--text-muted); font-weight: bold; padding: 2px 8px;
+        background: var(--bg); border: 1px solid var(--border); border-radius: 4px;
+      }
+
+      .floating-tabs-container {
+        position: absolute; top: 16px; left: 16px; z-index: 50;
+        display: flex; gap: 8px; align-items: center; pointer-events: auto;
+      }
+
+      .right-panel {
+        width: 320px; background: var(--panel); border-left: 1px solid var(--border);
+        display: flex; flex-direction: column; flex-shrink: 0; z-index: 10;
+      }
+      .right-panel-tabs {
+        display: flex; padding: 16px 20px 0; gap: 24px; font-size: 12px; color: var(--text-muted);
+        border-bottom: 1px solid var(--border); margin-bottom: 16px;
+      }
+      .right-panel-tab { padding-bottom: 12px; cursor: pointer; position: relative; }
+      .right-panel-tab.active { color: var(--text-bright); }
+      .right-panel-tab.active::after { content:''; position: absolute; bottom: -1px; left: 0; right: 0; height: 2px; background: var(--accent); }
+
+      .status-bar { 
+        height: 32px; border-top: 1px solid var(--border); background: var(--bg); 
+        display: flex; align-items: center; justify-content: space-between; 
+        padding: 0 16px; font-size: 11px; color: var(--text-muted); flex-shrink: 0; z-index: 10;
+        font-family: "JetBrains Mono", monospace;
+      }
+      .status-pill { padding: 2px 8px; border: 1px solid var(--border); border-radius: 12px; }
       .status-pill.ok { border-color: var(--accent); color: var(--accent); }
-      .command-palette-backdrop { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.45); display: flex; align-items: flex-start; justify-content: center; padding-top: 80px; z-index: 30; }
-      .command-palette { width: min(640px, 90vw); background: var(--panel); border: 1px solid var(--border); box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5); }
-      .command-input { width: 100%; background: transparent; border: none; border-bottom: 1px solid var(--border); color: var(--text-bright); padding: 12px; outline: none; font-family: inherit; font-size: 12px; }
-      .command-item { padding: 10px 12px; border-top: 1px solid var(--border); cursor: pointer; display: flex; justify-content: space-between; font-size: 11px; }
-      .command-item:hover { background: var(--accent-dim); color: var(--text-bright); }
     </style>
   </head>
   <body>
@@ -72,12 +211,11 @@
     <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs/loader.min.js"></script>
 
     <script type="text/babel">
-      const { useState, useEffect, useRef, useMemo } = React;
+      const { useState, useEffect, useRef, useMemo, useCallback } = React;
 
+      // ─── Helpers ────────────────────────────────────────────────────────────────
       function normalizeServerBase(input) {
         const raw = (input || "").trim();
         if (!raw) return "";
@@ -105,603 +243,364 @@
         return "";
       }
 
-      const WORKSPACE_KEY = "forbiden_workspace_v1";
-
-      // Personalized default workspace
-      const DEFAULT_FILES = {
-        "main.cpp": `#include <iostream>\n#include <vector>\n\nusing namespace std;\n\nint main() {\n    cout << "Initializing ST-Mamba Data Pipeline..." << endl;\n    // Load traffic node data here\n    return 0;\n}`,
-        "commute_st.py": `import torch\nimport torch.nn as nn\n\nclass SpatioTemporalMamba(nn.Module):\n    def __init__(self):\n        super().__init__()\n        self.gat = nn.Linear(64, 128) # Placeholder for GAT\n        print("Commute traffic predictor initialized.")\n\n    def forward(self, x):\n        return self.gat(x)`,
+      const Icons = {
+        Logo: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>,
+        Files: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>,
+        Search: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>,
+        Branch: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="6" y1="3" x2="6" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></svg>,
+        Play: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>,
+        Terminal: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>,
+        Network: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/><line x1="6" y1="10" x2="6" y2="14"/></svg>,
+        Settings: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>,
+        Link: () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3"/></svg>
       };
 
-      function loadWorkspaceFiles() {
-        try {
-          const raw = localStorage.getItem(WORKSPACE_KEY);
-          if (!raw) return DEFAULT_FILES;
-          const parsed = JSON.parse(raw);
-          if (!parsed || typeof parsed !== "object") return DEFAULT_FILES;
-          const keys = Object.keys(parsed);
-          if (!keys.length) return DEFAULT_FILES;
-          return parsed;
-        } catch (_) {
-          return DEFAULT_FILES;
-        }
-      }
+      // ─── Initial Graph Data ──────────────────────────────────────────────────
+      const INITIAL_NODES = [
+        { id: 'main', type: 'entry', label: 'train.py', code: 'import torch\nfrom model import ST_Mamba\nfrom data import load_traffic_data\n\ndata = load_traffic_data()\nmodel = ST_Mamba()\nprint("Training Commute traffic model...")', x: 100, y: 250, author: 'system', classGroup: null },
+        { id: 'data', type: 'function', label: 'load_traffic_data', code: 'def load_traffic_data(city="Gandhinagar"):\n    # Loading local traffic datasets\n    return TrafficDataset(city)', x: 500, y: 80, author: 'akrist', classGroup: null },
+        { id: 'mamba_init', type: 'method', label: '__init__', code: 'def __init__(self):\n    super().__init__()\n    # Using GAT layer before Mamba core\n    self.gat = GATConv(64, 128)\n    self.mamba = MambaBlock()', x: 550, y: 300, author: 'akrist', classGroup: 'SpatioTemporalMamba' },
+        { id: 'mamba_fwd', type: 'method', label: 'forward', code: 'def forward(self, x):\n    x = self.gat(x)\n    return self.mamba(x)', x: 550, y: 480, author: 'akrist', classGroup: 'SpatioTemporalMamba' },
+        { id: 'helper', type: 'function', label: 'calculate_loss', code: 'def calculate_loss(pred, target):\n    return torch.nn.MSELoss()(pred, target)', x: 900, y: 390, author: 'collaborator', classGroup: null }
+      ];
 
-      function inferLanguage(fileName) {
-        if (fileName.endsWith(".py")) return "python";
-        if (fileName.endsWith(".js")) return "javascript";
-        if (fileName.endsWith(".ts")) return "typescript";
-        if (fileName.endsWith(".json")) return "json";
-        if (fileName.endsWith(".md")) return "markdown";
-        if (fileName.endsWith(".html")) return "html";
-        if (fileName.endsWith(".css")) return "css";
-        if (fileName.endsWith(".cpp") || fileName.endsWith(".cc") || fileName.endsWith(".cxx")) return "cpp";
-        if (fileName.endsWith(".c")) return "c";
-        return "plaintext";
-      }
+      const INITIAL_EDGES = [
+        { id: 'e1', source: 'main', target: 'data' },
+        { id: 'e2', source: 'main', target: 'mamba_init' },
+        { id: 'e3', source: 'mamba_init', target: 'mamba_fwd' }, // Internal class thread
+        { id: 'e4', source: 'mamba_fwd', target: 'helper' }
+      ];
 
-      // --- MAIN IDE COMPONENT ---
+      // ─── Main IDE Component ──────────────────────────────────────────────────
       function IDE({ theme, username, serverIP }) {
-        const [files, setFiles] = useState(loadWorkspaceFiles);
-        const [activeFile, setActiveFile] = useState(() => Object.keys(loadWorkspaceFiles())[0] || "main.cpp");
-        const [onlineUsers, setOnlineUsers] = useState([]);
-        const [socket, setSocket] = useState(null);
-        const serverBaseUrl = useMemo(() => normalizeServerBase(serverIP), [serverIP]);
-        const [cursor, setCursor] = useState({ line: 1, col: 1 });
-        const [connectionState, setConnectionState] = useState("connecting");
-        const [showMinimap, setShowMinimap] = useState(false);
-        const [wordWrap, setWordWrap] = useState(false);
-        const [commandOpen, setCommandOpen] = useState(false);
-        const [commandQuery, setCommandQuery] = useState("");
-        const [savedAt, setSavedAt] = useState(null);
+        const [nodes, setNodes] = useState(INITIAL_NODES);
+        const [edges, setEdges] = useState(INITIAL_EDGES);
+        const [selectedNodeId, setSelectedNodeId] = useState('main');
         
-        // AI State
+        // Canvas transform state
+        const [transform, setTransform] = useState({ x: 0, y: 0, scale: 1 });
+        const [isDraggingCanvas, setIsDraggingCanvas] = useState(false);
+        const lastMousePos = useRef({ x: 0, y: 0 });
+
+        // Node drag state
+        const [draggingNodeId, setDraggingNodeId] = useState(null);
+
+        const [activeStrip, setActiveStrip] = useState("branch"); // Default to branch/network view
+        const [rightPanelTab, setRightPanelTab] = useState("Component View");
         const [aiPrompt, setAiPrompt] = useState("");
         const [aiResponse, setAiResponse] = useState("");
-
-        const editorRef = useRef(null);
-        const monacoRef = useRef(null);
+        const [terminalVisible, setTerminalVisible] = useState(false);
         const terminalRef = useRef(null);
-        const xtermRef = useRef(null);
-        const decorationsCollectionRef = useRef(null); // Holds the Marathon bar
-        const socketRef = useRef(null);
-        const activeFileRef = useRef(activeFile);
-        const applyingRemoteUpdateRef = useRef(false);
-        const remoteCursorTimeoutRef = useRef(null);
-        const filesRef = useRef(files);
+        
+        useEffect(() => { document.body.classList.add("app-loaded"); }, []);
 
-        useEffect(() => {
-          filesRef.current = files;
-        }, [files]);
+        // --- Canvas Panning & Zooming ---
+        const handleCanvasPointerDown = (e) => {
+          if (e.target.closest('.node-block') || e.target.closest('.floating-tabs-container')) return;
+          setIsDraggingCanvas(true);
+          lastMousePos.current = { x: e.clientX, y: e.clientY };
+          setSelectedNodeId(null);
+        };
 
-        useEffect(() => {
-          try {
-            localStorage.setItem(WORKSPACE_KEY, JSON.stringify(files));
-            setSavedAt(new Date());
-          } catch (_) {}
-        }, [files]);
+        const handleCanvasPointerMove = (e) => {
+          if (isDraggingCanvas) {
+            const dx = e.clientX - lastMousePos.current.x;
+            const dy = e.clientY - lastMousePos.current.y;
+            setTransform(prev => ({ ...prev, x: prev.x + dx, y: prev.y + dy }));
+            lastMousePos.current = { x: e.clientX, y: e.clientY };
+          } else if (draggingNodeId) {
+            const dx = (e.clientX - lastMousePos.current.x) / transform.scale;
+            const dy = (e.clientY - lastMousePos.current.y) / transform.scale;
+            setNodes(nodes.map(n => n.id === draggingNodeId ? { ...n, x: n.x + dx, y: n.y + dy } : n));
+            lastMousePos.current = { x: e.clientX, y: e.clientY };
+          }
+        };
 
-        useEffect(() => {
-          activeFileRef.current = activeFile;
-        }, [activeFile]);
+        const handleCanvasPointerUp = () => {
+          setIsDraggingCanvas(false);
+          setDraggingNodeId(null);
+        };
 
-        // 1. Initialize WebSockets & Xterm
-        useEffect(() => {
-          if (!serverBaseUrl) return;
+        const handleWheel = (e) => {
+          if (e.target.closest('.node-textarea')) return; // Allow scrolling text
+          e.preventDefault();
+          const zoomSensitivity = 0.001;
+          const delta = -e.deltaY * zoomSensitivity;
+          setTransform(prev => {
+            const newScale = Math.min(Math.max(0.3, prev.scale + delta), 2);
+            return { ...prev, scale: newScale };
+          });
+        };
 
-          // Connect to Koa Backend
-          const newSocket = io(serverBaseUrl);
-          setSocket(newSocket);
-          socketRef.current = newSocket;
-          setConnectionState("connecting");
+        // --- Node Operations ---
+        const handleNodePointerDown = (e, id) => {
+          e.stopPropagation();
+          setDraggingNodeId(id);
+          setSelectedNodeId(id);
+          lastMousePos.current = { x: e.clientX, y: e.clientY };
+        };
 
-          newSocket.on("connect", () => setConnectionState("connected"));
-          newSocket.on("disconnect", () => setConnectionState("disconnected"));
-          newSocket.on("connect_error", () => setConnectionState("error"));
+        const updateNodeCode = (id, newCode) => {
+          setNodes(nodes.map(n => n.id === id ? { ...n, code: newCode } : n));
+        };
 
-          newSocket.emit('editor:join', username);
-          newSocket.on('system:users_update', setOnlineUsers);
+        const addNewNode = () => {
+          const id = 'node_' + Date.now();
+          const viewportCenterX = (-transform.x + window.innerWidth / 2) / transform.scale;
+          const viewportCenterY = (-transform.y + window.innerHeight / 2) / transform.scale;
+          
+          setNodes([...nodes, { 
+            id, type: 'function', label: 'new_function', code: '# Write code here', 
+            x: viewportCenterX - 140, y: viewportCenterY - 75, author: username, classGroup: null 
+          }]);
+          setSelectedNodeId(id);
+        };
 
-          // Initialize Xterm.js
-          const term = new Terminal({
-            theme: {
-              background: theme === 'forbidden' ? '#0a0d12' : '#0a0a0c',
-              foreground: theme === 'forbidden' ? '#b0c4cf' : '#a1a1aa',
-              cursor: theme === 'forbidden' ? '#e5ff00' : '#10b981'
-            },
-            fontFamily: '"JetBrains Mono", monospace',
-            fontSize: 12
+        // --- Calculation for Class Hulls ---
+        const classGroups = useMemo(() => {
+          const groups = {};
+          nodes.forEach(n => {
+            if (n.classGroup) {
+              if (!groups[n.classGroup]) groups[n.classGroup] = [];
+              groups[n.classGroup].push(n);
+            }
           });
           
-          const fitAddon = new FitAddon.FitAddon();
-          term.loadAddon(fitAddon);
-          term.open(terminalRef.current);
-          fitAddon.fit();
-          xtermRef.current = term;
-
-          // Route keystrokes to Node-PTY backend
-          term.onData(data => newSocket.emit('terminal:input', data));
-          
-          // Route output from Node-PTY backend to Xterm
-          newSocket.on('terminal:output', data => term.write(data));
-
-          // Handle remote sync
-          newSocket.on('editor:sync_code', (data) => {
-            setFiles(p => ({ ...p, [data.file]: data.code }));
-
-            if (
-              data.file === activeFileRef.current &&
-              editorRef.current &&
-              editorRef.current.getValue() !== data.code
-            ) {
-              // Avoid rebroadcast loops while applying remote content.
-              applyingRemoteUpdateRef.current = true;
-              const currentPosition = editorRef.current.getPosition();
-              editorRef.current.setValue(data.code);
-              if (currentPosition) editorRef.current.setPosition(currentPosition);
-              applyingRemoteUpdateRef.current = false;
-            }
-          });
-
-          // Handle the Marathon Green Bar
-          newSocket.on('editor:remote_cursor', (data) => {
-            if (data.file === activeFileRef.current && decorationsCollectionRef.current) {
-              const barClass = theme === 'forbidden' ? 'marathon-bar-forbidden' : 'marathon-bar-synq';
-              decorationsCollectionRef.current.set([{
-                range: new monacoRef.current.Range(data.line, 1, data.line, 1),
-                options: { isWholeLine: true, className: barClass, hoverMessage: { value: `Editing: ${data.username}` } }
-              }]);
-              
-              // Clear highlight after 2 seconds of inactivity
-              clearTimeout(remoteCursorTimeoutRef.current);
-              remoteCursorTimeoutRef.current = setTimeout(() => {
-                if (decorationsCollectionRef.current) decorationsCollectionRef.current.set([]);
-              }, 2000);
-            }
-          });
-
-          return () => {
-            clearTimeout(remoteCursorTimeoutRef.current);
-            socketRef.current = null;
-            newSocket.disconnect();
-            term.dispose();
-          };
-        }, [serverBaseUrl, username, theme]);
-
-        // 2. Initialize Monaco Editor
-        useEffect(() => {
-          require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs' }});
-          require(['vs/editor/editor.main'], function () {
-            monacoRef.current = monaco;
-
-            const editorPalette = theme === 'forbidden'
-              ? {
-                  fg: 'B0C4CF',
-                  muted: '6F8A9A',
-                  accent: 'E5FF00',
-                  keyword: 'E5FF00',
-                  string: 'B9D7E6',
-                  number: 'D7FF6B',
-                  type: 'DCE9F0',
-                  fn: 'EAF6FF',
-                  variable: 'C9DAE3',
-                  comment: '6E8796',
-                  selection: '#E5FF0033',
-                  line: '#E5FF0018',
-                  bracket: '#E5FF0033'
-                }
-              : {
-                  fg: 'A1A1AA',
-                  muted: '5A5A68',
-                  accent: '10B981',
-                  keyword: '10B981',
-                  string: '9CD8C1',
-                  number: '6EE7B7',
-                  type: 'D1FAE5',
-                  fn: 'CFFAFE',
-                  variable: 'A7F3D0',
-                  comment: '5F7A72',
-                  selection: '#10B98133',
-                  line: '#10B98118',
-                  bracket: '#10B98133'
-                };
-            
-            // Custom Theme to match our UI
-            monaco.editor.defineTheme('custom-dark', {
-              base: 'vs-dark',
-              inherit: true,
-              rules: [
-                { token: 'comment', foreground: editorPalette.comment, fontStyle: 'italic' },
-                { token: 'keyword', foreground: editorPalette.keyword },
-                { token: 'operator', foreground: 'D4D4D4' },
-                { token: 'number', foreground: editorPalette.number },
-                { token: 'string', foreground: editorPalette.string },
-                { token: 'string.escape', foreground: 'D7BA7D' },
-                { token: 'type', foreground: editorPalette.type },
-                { token: 'class', foreground: editorPalette.type },
-                { token: 'interface', foreground: editorPalette.type },
-                { token: 'function', foreground: editorPalette.fn },
-                { token: 'function.call', foreground: editorPalette.fn },
-                { token: 'variable', foreground: editorPalette.variable },
-                { token: 'constant', foreground: editorPalette.accent },
-                { token: 'delimiter', foreground: 'D4D4D4' }
-              ],
-              colors: {
-                'editor.background': '#00000000',
-                'editor.foreground': `#${editorPalette.fg}`,
-                'editorLineNumber.foreground': `#${editorPalette.muted}`,
-                'editorLineNumber.activeForeground': `#${editorPalette.fg}`,
-                'editorCursor.foreground': `#${editorPalette.accent}`,
-                'editor.selectionBackground': editorPalette.selection,
-                'editor.inactiveSelectionBackground': '#3A3D41',
-                'editor.lineHighlightBackground': editorPalette.line,
-                'editorBracketMatch.background': editorPalette.bracket,
-                'editorBracketMatch.border': editorPalette.bracket,
-                'editorIndentGuide.background1': '#40404066',
-                'editorIndentGuide.activeBackground1': '#70707088',
-                'editorWhitespace.foreground': '#3B3B3B'
-              } // Transparent so UI background shows
+          const hulls = [];
+          for (const [name, nodesInGroup] of Object.entries(groups)) {
+            let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+            nodesInGroup.forEach(n => {
+              if (n.x < minX) minX = n.x;
+              if (n.y < minY) minY = n.y;
+              if (n.x > maxX) maxX = n.x;
+              if (n.y > maxY) maxY = n.y;
             });
-
-            const editor = monaco.editor.create(document.getElementById('monaco-container'), {
-              value: files[activeFile],
-              language: inferLanguage(activeFile),
-              theme: 'custom-dark',
-              minimap: { enabled: false },
-              automaticLayout: true,
-              fontFamily: '"JetBrains Mono", monospace',
-              fontSize: 13,
-              fontLigatures: true,
-              smoothScrolling: true,
-              renderLineHighlight: 'all',
-              cursorBlinking: 'phase',
-              cursorSmoothCaretAnimation: 'on',
-              bracketPairColorization: { enabled: true },
-              guides: {
-                bracketPairs: true,
-                indentation: true
-              }
+            // Padding around nodes
+            hulls.push({
+              name,
+              x: minX - 30, y: minY - 50,
+              width: (maxX - minX) + 280 + 60, // 280 is node width
+              height: (maxY - minY) + 150 + 80 // 150 is approx node height
             });
-            
-            editorRef.current = editor;
-            decorationsCollectionRef.current = editor.createDecorationsCollection([]);
-
-            // Listen for changes
-            editor.onDidChangeModelContent(() => {
-              if (applyingRemoteUpdateRef.current) return;
-              const code = editor.getValue();
-              const currentFile = activeFileRef.current;
-              setFiles(p => ({ ...p, [currentFile]: code }));
-              if (socketRef.current) socketRef.current.emit('editor:code_change', { file: currentFile, code });
-            });
-
-            // Listen for cursor movement to broadcast
-            editor.onDidChangeCursorPosition((e) => {
-              const currentFile = activeFileRef.current;
-              setCursor({ line: e.position.lineNumber, col: e.position.column });
-              if (socketRef.current) {
-                socketRef.current.emit('editor:cursor_move', { file: currentFile, line: e.position.lineNumber });
-              }
-            });
-          });
-
-          return () => editorRef.current?.dispose();
-        }, []);
-
-        // 3. Handle File Switching
-        useEffect(() => {
-          if (editorRef.current && monacoRef.current) {
-            const currentCode = editorRef.current.getValue();
-            if (currentCode !== files[activeFile]) {
-              editorRef.current.setValue(files[activeFile]);
-              monaco.editor.setModelLanguage(editorRef.current.getModel(), inferLanguage(activeFile));
-            }
           }
-        }, [activeFile]);
+          return hulls;
+        }, [nodes]);
 
-        useEffect(() => {
-          if (!editorRef.current) return;
-          editorRef.current.updateOptions({
-            minimap: { enabled: showMinimap },
-            wordWrap: wordWrap ? "on" : "off"
-          });
-        }, [showMinimap, wordWrap]);
+        // --- Calculation for Edges ---
+        const drawBezier = (sourceId, targetId) => {
+          const sourceNode = nodes.find(n => n.id === sourceId);
+          const targetNode = nodes.find(n => n.id === targetId);
+          if (!sourceNode || !targetNode) return "";
 
-        const saveWorkspace = () => {
-          try {
-            localStorage.setItem(WORKSPACE_KEY, JSON.stringify(filesRef.current));
-            setSavedAt(new Date());
-            xtermRef.current?.write(`\r\n\x1b[32m[SYSTEM] Workspace saved.\x1b[0m\r\n`);
-          } catch (e) {
-            xtermRef.current?.write(`\r\n\x1b[31m[ERROR] Save failed.\x1b[0m\r\n`);
-          }
+          // Output port is right side, Input port is left side
+          const sx = sourceNode.x + 280;
+          const sy = sourceNode.y + 75; // Approx half height
+          const tx = targetNode.x;
+          const ty = targetNode.y + 75;
+
+          const dx = Math.abs(tx - sx) * 0.5;
+          return `M ${sx} ${sy} C ${sx + dx} ${sy}, ${tx - dx} ${ty}, ${tx} ${ty}`;
         };
 
-        const newFile = () => {
-          const fileName = prompt("New file name (example: app.js)");
-          if (!fileName) return;
-          if (filesRef.current[fileName]) return alert("File already exists.");
-          setFiles((prev) => ({ ...prev, [fileName]: "" }));
-          setActiveFile(fileName);
+        // --- Actions ---
+        const runCode = () => {
+          setTerminalVisible(true);
+          // Mocking execution based on the "Commute" context
+          setTimeout(() => {
+            if (terminalRef.current) {
+              terminalRef.current.innerHTML += `<div style="color:var(--accent)">[SYSTEM] Compiling computational graph...</div>`;
+              terminalRef.current.innerHTML += `<div style="color:var(--text-bright)">Starting execution on node [train.py]</div>`;
+              terminalRef.current.innerHTML += `<div style="color:var(--text-bright)">Loading local traffic datasets for Gandhinagar... OK</div>`;
+              terminalRef.current.innerHTML += `<div style="color:var(--text-bright)">Initializing SpatioTemporalMamba -> GATConv -> MambaBlock</div>`;
+              terminalRef.current.innerHTML += `<div style="color:var(--accent)">Training Commute traffic model...</div>`;
+              terminalRef.current.innerHTML += `<div style="color:var(--text-muted)">Epoch 1/10 | Loss: 0.842 | Time: 1.2s</div>`;
+            }
+          }, 300);
         };
 
-        const renameFile = () => {
-          const nextName = prompt("Rename file to:", activeFile);
-          if (!nextName || nextName === activeFile) return;
-          if (filesRef.current[nextName]) return alert("A file with that name already exists.");
-          setFiles((prev) => {
-            const clone = { ...prev, [nextName]: prev[activeFile] };
-            delete clone[activeFile];
-            return clone;
-          });
-          setActiveFile(nextName);
+        const askAI = () => {
+          if (!aiPrompt.trim()) return;
+          setAiResponse("Analyzing node graph uplink...");
+          setTimeout(() => {
+            const contextNode = nodes.find(n => n.id === selectedNodeId);
+            setAiResponse(`Regarding your architecture:\nThe graph links your entry point to the Commute dataset and the SpatioTemporalMamba model. \n\nCurrently observing node [${contextNode ? contextNode.label : 'Global'}]. PyTorch GAT + Mamba is an excellent choice for spatial-temporal flow prediction. Need help writing the backprop thread?`);
+          }, 1000);
         };
-
-        const deleteFile = () => {
-          const keys = Object.keys(filesRef.current);
-          if (keys.length <= 1) return alert("At least one file must remain.");
-          if (!confirm(`Delete ${activeFile}?`)) return;
-          setFiles((prev) => {
-            const clone = { ...prev };
-            delete clone[activeFile];
-            return clone;
-          });
-          const remaining = keys.filter((k) => k !== activeFile);
-          setActiveFile(remaining[0]);
-        };
-
-        const downloadActiveFile = () => {
-          const content = filesRef.current[activeFile] || "";
-          const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
-          const link = document.createElement("a");
-          link.href = URL.createObjectURL(blob);
-          link.download = activeFile;
-          link.click();
-          URL.revokeObjectURL(link.href);
-        };
-
-        const openFind = () => editorRef.current?.getAction("actions.find")?.run();
-        const openReplace = () => editorRef.current?.getAction("editor.action.startFindReplaceAction")?.run();
-        const formatDocument = () => editorRef.current?.getAction("editor.action.formatDocument")?.run();
-
-        const commandItems = [
-          { id: "save", label: "Save Workspace", hint: "Ctrl/Cmd+S", run: saveWorkspace },
-          { id: "new", label: "New File", hint: "Ctrl/Cmd+N", run: newFile },
-          { id: "rename", label: "Rename Active File", hint: "F2", run: renameFile },
-          { id: "delete", label: "Delete Active File", hint: "Del", run: deleteFile },
-          { id: "find", label: "Find", hint: "Ctrl/Cmd+F", run: openFind },
-          { id: "replace", label: "Replace", hint: "Ctrl/Cmd+H", run: openReplace },
-          { id: "format", label: "Format Document", hint: "Shift+Alt+F", run: formatDocument },
-          { id: "run", label: "Run Active File", hint: "Ctrl/Cmd+Enter", run: () => runCode() },
-          { id: "download", label: "Download Active File", hint: "-", run: downloadActiveFile },
-          { id: "wrap", label: `Toggle Word Wrap (${wordWrap ? "On" : "Off"})`, hint: "Alt+Z", run: () => setWordWrap((p) => !p) },
-          { id: "minimap", label: `Toggle Minimap (${showMinimap ? "On" : "Off"})`, hint: "-", run: () => setShowMinimap((p) => !p) }
-        ];
-
-        const visibleCommands = commandItems.filter((cmd) =>
-          cmd.label.toLowerCase().includes(commandQuery.trim().toLowerCase())
-        );
-
-        useEffect(() => {
-          const onKeyDown = (e) => {
-            const meta = e.ctrlKey || e.metaKey;
-            if (meta && e.shiftKey && e.key.toLowerCase() === "s") {
-              e.preventDefault();
-              downloadActiveFile();
-              return;
-            }
-            if (meta && e.key.toLowerCase() === "s") {
-              e.preventDefault();
-              saveWorkspace();
-              return;
-            }
-            if (meta && e.key.toLowerCase() === "n") {
-              e.preventDefault();
-              newFile();
-              return;
-            }
-            if (meta && e.key.toLowerCase() === "f") {
-              e.preventDefault();
-              openFind();
-              return;
-            }
-            if (meta && e.key.toLowerCase() === "h") {
-              e.preventDefault();
-              openReplace();
-              return;
-            }
-            if (meta && e.key.toLowerCase() === "p") {
-              e.preventDefault();
-              setCommandOpen(true);
-              return;
-            }
-            if (meta && e.key === "Enter") {
-              e.preventDefault();
-              runCode();
-              return;
-            }
-            if (e.key === "F2") {
-              e.preventDefault();
-              renameFile();
-              return;
-            }
-            if (e.altKey && e.key.toLowerCase() === "z") {
-              e.preventDefault();
-              setWordWrap((p) => !p);
-              return;
-            }
-            if (commandOpen && e.key === "Escape") {
-              e.preventDefault();
-              setCommandOpen(false);
-              setCommandQuery("");
-              return;
-            }
-            if (commandOpen && e.key === "Enter" && visibleCommands[0]) {
-              e.preventDefault();
-              visibleCommands[0].run();
-              setCommandOpen(false);
-              setCommandQuery("");
-            }
-          };
-
-          window.addEventListener("keydown", onKeyDown);
-          return () => window.removeEventListener("keydown", onKeyDown);
-        }, [commandOpen, visibleCommands, wordWrap, showMinimap, activeFile]);
-
-        // 4. API Actions (Run Code & AI)
-        async function runCode() {
-          xtermRef.current.write(`\r\n\x1b[33m[SYSTEM] Compiling & Executing ${activeFile}...\x1b[0m\r\n`);
-          try {
-            const res = await fetch(`${serverBaseUrl}/api/run`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ code: files[activeFile], language: activeFile.endsWith('.py') ? 'python' : 'cpp' })
-            });
-            const data = await res.json();
-            xtermRef.current.write(`\r\n${data.output.replace(/\n/g, '\r\n')}\r\n`);
-          } catch (e) {
-            xtermRef.current.write(`\r\n\x1b[31m[ERROR] Backend connection failed.\x1b[0m\r\n`);
-          }
-        }
-
-        async function askAI() {
-          setAiResponse("Uplink in progress...");
-          try {
-            const res = await fetch(`${serverBaseUrl}/api/ai/chat`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ prompt: aiPrompt, currentContext: files[activeFile] })
-            });
-            const data = await res.json();
-            setAiResponse(data.response || data.error || "No response from AI.");
-          } catch (e) {
-            setAiResponse("AI Core offline. Check server.");
-          }
-        }
 
         return (
-          <div className={`theme-${theme}`} style={{ display: "flex", flexDirection: "column", height: "100vh", width: "100vw", padding: theme === 'forbidden' ? "48px" : "0" }}>
-            <div style={{ display: "flex", flexDirection: "column", flex: 1, border: theme === 'forbidden' ? "2px solid var(--accent)" : "none", background: "var(--bg)", boxShadow: theme === 'forbidden' ? "0 32px 80px rgba(0,0,0,0.9)" : "none" }}>
+          <div className={`app-frame theme-${theme}`}>
+            
+            {/* TOP NAVIGATION BAR */}
+            <div className="app-header">
+              <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
+                <div style={{ color: "var(--accent)", padding: "4px 6px", borderRadius: 4, background: "rgba(255,255,255,0.05)" }}>
+                  <Icons.Logo />
+                </div>
+                <div className="app-header-nav">
+                  <span>Graph</span><span>Nodes</span><span>Selection</span><span>View</span>
+                  <span onClick={runCode}>Run Flow</span><span onClick={() => setTerminalVisible(!terminalVisible)}>Terminal</span>
+                </div>
+              </div>
               
-              {/* HEADER */}
-              <div style={{ display: "flex", height: 50, borderBottom: "1px solid var(--border)", background: "var(--panel)", alignItems: "center", padding: "0 24px" }}>
-                <div style={{ fontWeight: 800, color: "var(--text-bright)", flex: 1 }}>{theme === 'forbidden' ? 'FORBIDDEN // ROOT' : '✦ SYNQ IDE'}</div>
-                <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
-                  <span style={{color: "var(--text-pale)"}}>NODE: {username}</span>
-                  <button className="btn-ghost" onClick={saveWorkspace}>SAVE</button>
-                  <button className="btn-ghost" onClick={downloadActiveFile}>DOWNLOAD</button>
-                  <button className="btn-ghost" onClick={() => setCommandOpen(true)}>COMMANDS</button>
-                  <button className="btn-run" onClick={runCode}>[ RUN EXEC ]</button>
-                </div>
-              </div>
-
-              <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
-                
-                {/* SIDEBAR */}
-                <div style={{ width: 220, borderRight: "1px solid var(--border)", display: "flex", flexDirection: "column", padding: "16px 0" }}>
-                  <div style={{ padding: "0 16px", marginBottom: 8, color: "var(--text-muted)" }}>DIRECTORY //</div>
-                  <div style={{ display: "flex", gap: 6, padding: "0 16px", marginBottom: 12 }}>
-                    <button className="btn-ghost" onClick={newFile}>NEW</button>
-                    <button className="btn-ghost" onClick={renameFile}>RENAME</button>
-                    <button className="btn-ghost" onClick={deleteFile}>DEL</button>
-                  </div>
-                  {Object.keys(files).map(f => (
-                    <div key={f} onClick={() => setActiveFile(f)} style={{ padding: "8px 16px", cursor: "pointer", background: activeFile === f ? "var(--panel)" : "transparent", color: activeFile === f ? "var(--accent)" : "inherit", borderLeft: activeFile === f ? "2px solid var(--accent)" : "2px solid transparent" }}>
-                      {f}
-                    </div>
-                  ))}
-
-                  <div style={{ marginTop: "auto", padding: "16px", borderTop: "1px dashed var(--border)" }}>
-                    <div style={{ color: "var(--text-muted)", marginBottom: 8 }}>NETWORK PRESENCE //</div>
-                    {onlineUsers.map(u => (
-                      <div key={u.username} style={{ color: u.username === username ? "var(--accent)" : "var(--text-bright)", fontSize: 10, display: "flex", justifyContent: "space-between" }}>
-                        <span>{u.username}</span> <span>{u.currentLine ? `Ln ${u.currentLine}` : 'IDLE'}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* EDITOR PANE */}
-                <div style={{ flex: 1, display: "flex", flexDirection: "column", position: "relative" }}>
-                  <div style={{ display: "flex", borderBottom: "1px solid var(--border)", background: "var(--panel)" }}>
-                    {Object.keys(files).map(f => (
-                      <div key={f} className={`tab ${activeFile === f ? 'active' : ''}`} onClick={() => setActiveFile(f)} style={{ padding: "12px 24px", cursor: "pointer" }}>{f}</div>
-                    ))}
-                    <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 6, paddingRight: 10 }}>
-                      <button className="btn-ghost" onClick={openFind}>FIND</button>
-                      <button className="btn-ghost" onClick={openReplace}>REPLACE</button>
-                      <button className="btn-ghost" onClick={formatDocument}>FORMAT</button>
-                      <button className="btn-ghost" onClick={() => setWordWrap((p) => !p)}>{wordWrap ? "WRAP ON" : "WRAP OFF"}</button>
-                      <button className="btn-ghost" onClick={() => setShowMinimap((p) => !p)}>{showMinimap ? "MAP ON" : "MAP OFF"}</button>
-                    </div>
-                  </div>
-                  
-                  {/* MONACO MOUNT POINT */}
-                  <div id="monaco-container" style={{ flex: 1, width: '100%' }}></div>
-                  
-                  {/* TERMINAL PANE */}
-                  <div style={{ height: 250, borderTop: "1px solid var(--border)", background: "var(--panel)", display: "flex", flexDirection: "column" }}>
-                    <div style={{ padding: "4px 16px", fontSize: 10, background: "var(--accent)", color: "#000", fontWeight: "bold" }}>HOST TERMINAL //</div>
-                    <div ref={terminalRef} style={{ flex: 1, padding: "8px", overflow: "hidden" }}></div>
-                  </div>
-                </div>
-
-                {/* AI ASSISTANT PANEL */}
-                <div style={{ width: 300, borderLeft: "1px solid var(--border)", display: "flex", flexDirection: "column", background: "var(--panel)" }}>
-                  <div style={{ padding: "16px", borderBottom: "1px solid var(--border)", fontWeight: "bold", color: "var(--accent)" }}>AI UPLINK //</div>
-                  <div style={{ flex: 1, padding: "16px", overflowY: "auto", whiteSpace: "pre-wrap", color: "var(--text-bright)" }}>
-                    {aiResponse || "Awaiting query..."}
-                  </div>
-                  <div style={{ padding: "16px", borderTop: "1px solid var(--border)", display: "flex", gap: 8 }}>
-                    <input value={aiPrompt} onChange={e => setAiPrompt(e.target.value)} onKeyDown={e => e.key === 'Enter' && askAI()} placeholder="Query AI..." style={{ flex: 1, background: "transparent", border: "1px solid var(--border)", color: "inherit", padding: "8px", outline: "none", fontFamily: "inherit" }} />
-                    <button onClick={askAI} className="btn-run">SEND</button>
-                  </div>
-                </div>
-              </div>
-              <div className="status-bar">
-                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                  <span className={`status-pill ${connectionState === "connected" ? "ok" : ""}`}>{connectionState.toUpperCase()}</span>
-                  <span>{activeFile}</span>
-                  <span>{inferLanguage(activeFile).toUpperCase()}</span>
-                </div>
-                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                  <span>Ln {cursor.line}, Col {cursor.col}</span>
-                  <span>{savedAt ? `Saved ${savedAt.toLocaleTimeString()}` : "Unsaved"}</span>
+              <div className="app-header-title">{theme === 'forbidden' ? 'FORBIDDEN // ARCHITECTURE' : 'Commute_Project.graph'}</div>
+              
+              <div className="app-header-actions">
+                <Icons.Search />
+                <Icons.Network />
+                <div style={{ width: 24, height: 24, borderRadius: 12, background: "var(--accent)", display: "flex", alignItems: "center", color: "#000", fontSize: 10, fontWeight: "bold", marginLeft: 8 }}>
+                  <span style={{margin:"auto"}}>{username.substring(0,1).toUpperCase() || 'S'}</span>
                 </div>
               </div>
             </div>
-            {commandOpen && (
-              <div className="command-palette-backdrop" onClick={() => { setCommandOpen(false); setCommandQuery(""); }}>
-                <div className="command-palette" onClick={(e) => e.stopPropagation()}>
-                  <input
-                    className="command-input"
-                    autoFocus
-                    value={commandQuery}
-                    onChange={(e) => setCommandQuery(e.target.value)}
-                    placeholder="Type a command..."
-                  />
-                  {(visibleCommands.length ? visibleCommands : commandItems).slice(0, 10).map((cmd) => (
-                    <div
-                      key={cmd.id}
-                      className="command-item"
-                      onClick={() => {
-                        cmd.run();
-                        setCommandOpen(false);
-                        setCommandQuery("");
-                      }}
+
+            <div className="app-body">
+              {/* LEFT ICON STRIP */}
+              <div className="icon-strip">
+                <div className={`strip-icon ${activeStrip === "files" ? "active" : ""}`} onClick={() => setActiveStrip("files")}><Icons.Files /></div>
+                <div className={`strip-icon ${activeStrip === "search" ? "active" : ""}`} onClick={() => setActiveStrip("search")}><Icons.Search /></div>
+                <div className={`strip-icon ${activeStrip === "branch" ? "active" : ""}`} onClick={() => setActiveStrip("branch")}><Icons.Branch /></div>
+                <div className="strip-icon" onClick={runCode}><Icons.Play /></div>
+                <div className={`strip-icon ${terminalVisible ? "active" : ""}`} onClick={() => setTerminalVisible(!terminalVisible)}><Icons.Terminal /></div>
+              </div>
+
+              {/* MIDDLE GRAPH CANVAS */}
+              <div 
+                className="canvas-container" 
+                onPointerDown={handleCanvasPointerDown}
+                onPointerMove={handleCanvasPointerMove}
+                onPointerUp={handleCanvasPointerUp}
+                onPointerLeave={handleCanvasPointerUp}
+                onWheel={handleWheel}
+              >
+                
+                {/* Floating Add Node Button */}
+                <div className="floating-tabs-container">
+                  <div className="btn-ghost" style={{ background: 'var(--panel)', padding: '6px 16px', display: 'flex', gap: 8, alignItems: 'center' }} onClick={addNewNode}>
+                    <span style={{ color: 'var(--accent)', fontWeight: 'bold' }}>+</span> ADD FUNCTION BLOCK
+                  </div>
+                </div>
+
+                {/* GRAPH TRANSFORM LAYER */}
+                <div className="graph-layer" style={{ transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.scale})` }}>
+                  
+                  {/* Edges SVG */}
+                  <svg className="svg-edges">
+                    {edges.map(edge => (
+                      <path key={edge.id} className="edge-path" d={drawBezier(edge.source, edge.target)} />
+                    ))}
+                  </svg>
+
+                  {/* Class Hulls (Thread binding) */}
+                  {classGroups.map(hull => (
+                    <div key={hull.name} className="class-hull" style={{ left: hull.x, top: hull.y, width: hull.width, height: hull.height }}>
+                      <div className="class-hull-label">class {hull.name}</div>
+                    </div>
+                  ))}
+
+                  {/* Nodes */}
+                  {nodes.map(node => (
+                    <div 
+                      key={node.id} 
+                      className={`node-block ${selectedNodeId === node.id ? 'selected' : ''}`}
+                      style={{ left: node.x, top: node.y }}
+                      onPointerDown={(e) => handleNodePointerDown(e, node.id)}
                     >
-                      <span>{cmd.label}</span>
-                      <span style={{ opacity: 0.7 }}>{cmd.hint}</span>
+                      <div className="node-port input" />
+                      <div className="node-port output" />
+                      
+                      <div className="node-header">
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <span style={{ color: node.type === 'entry' ? 'var(--accent)' : '#3b82f6' }}>{node.type === 'entry' ? '◆' : 'ƒ'}</span>
+                          <span>{node.label}</span>
+                        </div>
+                        <span className={`node-author ${node.author === username ? 'me' : ''}`}>{node.author}</span>
+                      </div>
+                      
+                      <div className="node-body">
+                        <textarea 
+                          className="node-textarea" 
+                          value={node.code}
+                          onChange={(e) => updateNodeCode(node.id, e.target.value)}
+                          onPointerDown={(e) => e.stopPropagation()} // Allow selecting text without dragging
+                        />
+                      </div>
                     </div>
                   ))}
                 </div>
+
+                {/* Floating Terminal */}
+                {terminalVisible && (
+                  <div style={{
+                    position: "absolute", bottom: "40px", left: "5%", right: "5%", height: "220px",
+                    background: "var(--panel)", border: "1px solid var(--border)", borderRadius: 12,
+                    boxShadow: "0 10px 40px rgba(0,0,0,0.6)", display: "flex", flexDirection: "column", zIndex: 100
+                  }}>
+                    <div style={{ padding: "8px 16px", borderBottom: "1px solid var(--border)", display: "flex", justifyContent: "space-between", fontSize: 11, color: "var(--text-muted)", fontWeight: "bold" }}>
+                      <span>HOST TERMINAL // EXECUTION TRACE</span>
+                      <span style={{ cursor: "pointer", fontSize: 14 }} onClick={() => setTerminalVisible(false)}>×</span>
+                    </div>
+                    <div ref={terminalRef} style={{ flex: 1, padding: "12px", overflowY: "auto", fontFamily: '"JetBrains Mono", monospace', fontSize: 11, display: "flex", flexDirection: "column", gap: 4 }}>
+                      <div style={{ color: 'var(--text-muted)' }}>Console initialized. Awaiting flow execution...</div>
+                    </div>
+                  </div>
+                )}
               </div>
-            )}
+
+              {/* RIGHT SIDEBAR - AI Component View */}
+              <div className="right-panel">
+                <div className="right-panel-tabs">
+                  <div className={`right-panel-tab ${rightPanelTab === "Component View" ? "active" : ""}`} onClick={() => setRightPanelTab("Component View")}>Node Props</div>
+                  <div className={`right-panel-tab ${rightPanelTab === "Code View" ? "active" : ""}`} onClick={() => setRightPanelTab("Code View")}>AI Uplink</div>
+                </div>
+
+                <div style={{ flex: 1, padding: "0 20px", overflowY: "auto", display: "flex", flexDirection: "column", gap: 16 }}>
+                  {rightPanelTab === "Node Props" && selectedNodeId ? (
+                    <div>
+                      <div style={{ fontSize: 11, fontWeight: "bold", color: "var(--text-muted)", marginBottom: 8 }}>Selected Node</div>
+                      <div style={{ color: 'var(--text-bright)', fontSize: 12 }}>{nodes.find(n => n.id === selectedNodeId)?.label}</div>
+                    </div>
+                  ) : (
+                    <>
+                      <div style={{ fontSize: 11, fontWeight: "bold", color: "var(--text-muted)", textTransform: "uppercase" }}>AI Assistant</div>
+                      <div style={{ background: "rgba(255,255,255,0.03)", padding: "14px", borderRadius: "8px", border: "1px solid var(--border)", fontSize: 12, lineHeight: 1.6, color: "var(--text-bright)", whiteSpace: "pre-wrap" }}>
+                        {aiResponse || "Select a node block or ask a question regarding the graph architecture."}
+                      </div>
+                    </>
+                  )}
+                </div>
+                
+                <div style={{ padding: "16px", borderTop: "1px solid var(--border)", marginTop: "auto" }}>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <input 
+                      value={aiPrompt} onChange={(e) => setAiPrompt(e.target.value)} 
+                      onKeyDown={(e) => e.key === "Enter" && askAI()}
+                      placeholder="Message AI..." 
+                      style={{ flex: 1, background: "rgba(255,255,255,0.05)", border: "1px solid var(--border)", borderRadius: 6, color: "var(--text-bright)", padding: "10px 12px", outline: "none", fontSize: 12 }} 
+                    />
+                    <button onClick={askAI} className="btn-run" style={{ padding: "0 12px" }}>ASK</button>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+            {/* BOTTOM STATUS BAR */}
+            <div className="status-bar">
+              <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
+                <span className="status-pill ok">NETWORK SYNCED</span>
+                <span>NODES: {nodes.length}</span>
+                <span>EDGES: {edges.length}</span>
+              </div>
+              <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
+                <span>{selectedNodeId ? `Selected: ${nodes.find(n => n.id === selectedNodeId)?.label}` : 'Canvas Mode'}</span>
+                <span>Zoom: {Math.round(transform.scale * 100)}%</span>
+              </div>
+            </div>
           </div>
         );
       }
 
-      // --- BOOTLOADER ---
+      // ─── Bootloader ──────────────────────────────────────────────────────────
       function App() {
         const savedUsername = getCookie("forbiden_username");
         const savedServer = getCookie("forbiden_server");
@@ -710,20 +609,12 @@
 
         const [step, setStep] = useState(savedUsername ? 1 : 0);
         const [serverIP, setServerIP] = useState(savedServer || detectDefaultServer);
-        const [username, setUsername] = useState(savedUsername || "");
+        const [username, setUsername] = useState(savedUsername || "akrist");
         const [theme, setTheme] = useState(validSavedTheme);
 
-        useEffect(() => {
-          if (serverIP) setCookie("forbiden_server", serverIP);
-        }, [serverIP]);
-
-        useEffect(() => {
-          if (username) setCookie("forbiden_username", username);
-        }, [username]);
-
-        useEffect(() => {
-          if (theme) setCookie("forbiden_theme", theme);
-        }, [theme]);
+        useEffect(() => { if (serverIP) setCookie("forbiden_server", serverIP); }, [serverIP]);
+        useEffect(() => { if (username) setCookie("forbiden_username", username); }, [username]);
+        useEffect(() => { if (theme) setCookie("forbiden_theme", theme); }, [theme]);
 
         const handleConnect = () => {
           const normalized = username.trim();
