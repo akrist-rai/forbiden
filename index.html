@@ -1,660 +1,613 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>SYSTEM // BOOT</title>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FORBINDEN // DUAL CORE GRAPH</title>
+  
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.css" />
+  <script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.js"></script>
+
+  <style>
+    @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=JetBrains+Mono:wght@400;700;800&display=swap");
     
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.css" />
-    <script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.js"></script>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
     
-    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    body { 
+      overflow: hidden; 
+      width: 100vw; height: 100vh;
+      user-select: none; font-size: 10px;
+      background-color: #050505; /* Default background */
+      margin: 0;
+    }
 
-    <style>
-      @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@300;400;500;700;800&display=swap");
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: currentColor; }
+
+    /* =========================================
+       BASE WRAPPER & VARIABLES
+       ========================================= */
+    .app-wrapper {
+      width: 100%; height: 100%; 
+      display: flex; flex-direction: column; overflow: hidden;
+      background: var(--bg);
+      color: var(--text);
+      border: var(--border-w) solid var(--border);
+      border-radius: var(--ui-radius, 0);
+      transition: background-color 0.4s ease, color 0.4s ease, border-color 0.4s ease;
+    }
+
+    /* =========================================
+       THEME 1: NOEINOI (BRUTALIST)
+       ========================================= */
+    .theme-brutal {
+      --bg: #FFFFFF; --text: #000000; --border: #000000;
+      --border-w: 6px; --edge-w: 4px; --ui-radius: 0px;
+      font-family: 'Inter', sans-serif;
+      text-transform: uppercase; font-weight: 900;
+      box-shadow: 20px 20px 0px rgba(0,0,0,1);
+    }
+    
+    .theme-brutal.zone-white  { --bg: #FFFFFF; --text: #000000; --border: #000000; }
+    .theme-brutal.zone-yellow { --bg: #FFE500; --text: #000000; --border: #000000; }
+    .theme-brutal.zone-blue   { --bg: #0033FF; --text: #FFFFFF; --border: #FFFFFF; }
+    .theme-brutal.zone-red    { --bg: #FF0033; --text: #FFFFFF; --border: #FFFFFF; }
+    .theme-brutal.zone-green  { --bg: #00FF66; --text: #000000; --border: #000000; }
+
+    .theme-brutal .btn { border: 4px solid var(--text); box-shadow: 4px 4px 0 var(--border); }
+    .theme-brutal .btn:hover { background: var(--text); color: var(--bg); transform: translate(-2px, -2px); box-shadow: 6px 6px 0 var(--border); }
+    .theme-brutal .node-circle { background: #FFFFFF; border: 4px solid #000000; box-shadow: 4px 4px 0px rgba(0,0,0,1); }
+    .theme-brutal .node-label { background: #FFFFFF; color: #000000; border: 4px solid #000000; box-shadow: 4px 4px 0px rgba(0,0,0,1); font-weight: 900; }
+    .theme-brutal .code-area { background: #FFFFFF; border: 6px solid #000000; color: #000000; box-shadow: 8px 8px 0px #000000; font-weight: 700; }
+    .theme-brutal .modal-content { border: 6px solid #000000; box-shadow: 20px 20px 0px rgba(0,0,0,1); }
+
+    /* =========================================
+       THEME 2: OBSIDIAN (CYBERPUNK)
+       ========================================= */
+    .theme-cyber {
+      --bg: #0a0a0c; --text: #a1a1b8; --border: #1f1f2e;
+      --border-w: 1px; --edge-w: 2px; --ui-radius: 12px;
+      font-family: 'JetBrains Mono', monospace;
+      text-transform: none; font-weight: 400;
+      box-shadow: 0 0 60px rgba(0,0,0,0.8);
+    }
+
+    .theme-cyber .canvas-bg { background-image: radial-gradient(circle, rgba(255,255,255,0.05) 1px, transparent 1px); background-size: 24px 24px; }
+    .theme-cyber .btn { border: 1px solid var(--border); border-radius: 4px; background: transparent; color: var(--text); font-weight: 700; }
+    .theme-cyber .btn:hover { border-color: #10b981; color: #10b981; box-shadow: 0 0 10px rgba(16,185,129,0.2); }
+    .theme-cyber .node-circle { border-radius: 50%; background: #0a0a0c; border: 2px solid var(--node-color, #10b981); box-shadow: 0 0 10px var(--node-color, #10b981); }
+    .theme-cyber .node-label { background: #0a0a0c; color: #ffffff; border: 1px solid var(--border); border-radius: 4px; }
+    .theme-cyber .code-area { background: #050505; border: 1px solid var(--border); color: #f0f0f5; border-radius: 8px; font-weight: 400; }
+    .theme-cyber .modal-content { border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 20px 80px rgba(0,0,0,0.9); }
+    .theme-cyber .edge-path { stroke: rgba(255,255,255,0.15); }
+    
+    .theme-cyber .obs-node-wrapper.clr-white { --node-color: #ffffff; }
+    .theme-cyber .obs-node-wrapper.clr-yellow { --node-color: #f59e0b; }
+    .theme-cyber .obs-node-wrapper.clr-blue { --node-color: #3b82f6; }
+    .theme-cyber .obs-node-wrapper.clr-red { --node-color: #ef4444; }
+    .theme-cyber .obs-node-wrapper.clr-green { --node-color: #10b981; }
+
+    /* =========================================
+       LAYOUT COMPONENTS (Shared)
+       ========================================= */
+    .app-header { 
+      height: 56px; display: flex; align-items: center; justify-content: space-between; 
+      padding: 0 24px; border-bottom: var(--border-w) solid var(--border); 
+      z-index: 50; flex-shrink: 0; background: transparent; 
+      transition: border-color 0.4s ease;
+    }
+    .hdr-brand { font-size: 18px; letter-spacing: -0.5px; }
+
+    .btn { 
+      cursor: pointer; outline: none; padding: 8px 16px; font-size: 11px;
+      transition: all 0.2s ease;
+    }
+
+    .app-body { display: flex; flex: 1; min-height: 0; position: relative; }
+    
+    .sidebar { 
+      width: 60px; border-right: var(--border-w) solid var(--border); 
+      display: flex; flex-direction: column; align-items: center; 
+      padding: 24px 0; gap: 24px; z-index: 10; flex-shrink: 0; 
+      background: transparent; transition: border-color 0.4s ease;
+    }
+    .strip-icon { 
+      width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; 
+      cursor: pointer; border: var(--border-w) solid transparent; transition: all 0.2s; color: var(--text);
+      border-radius: var(--ui-radius);
+    }
+
+    .canvas-container { flex: 1; position: relative; overflow: hidden; cursor: grab; background: transparent; }
+    .canvas-container:active { cursor: grabbing; }
+    .canvas-bg { position: absolute; inset: 0; pointer-events: none; z-index: 0; }
+    
+    .graph-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; transform-origin: 0 0; z-index: 1; }
+    .svg-edges { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+    
+    .edge-path { fill: none; stroke-width: var(--edge-w); transition: stroke 0.4s; }
+    .theme-brutal .edge-path { stroke: var(--text); }
+    .edge-path.active-conn { stroke-dasharray: 8 8; }
+
+    .obs-node-wrapper { 
+      position: absolute; display: flex; flex-direction: column; align-items: center; justify-content: center; 
+      cursor: pointer; z-index: 5; transform: translate(-50%, -50%); 
+      transition: opacity 0.2s ease;
+    }
+    .obs-node-wrapper:hover { z-index: 10; }
+    .obs-node-wrapper:hover .node-circle { transform: scale(1.2); }
+    
+    .node-circle { display: flex; align-items: center; justify-content: center; transition: all 0.2s cubic-bezier(0.25, 1, 0.5, 1); }
+    .node-circle.main-node { width: 32px; height: 32px; border-width: calc(var(--border-w) * 1.5); }
+    .node-circle.sub-node { width: 18px; height: 18px; }
+
+    .node-label { margin-top: 10px; font-size: 11px; padding: 4px 10px; pointer-events: none; white-space: nowrap; transition: all 0.2s; }
+
+    .status-bar { 
+      height: 32px; border-top: var(--border-w) solid var(--border); 
+      display: flex; align-items: center; justify-content: space-between; 
+      padding: 0 24px; font-size: 11px; flex-shrink: 0; background: transparent; 
+      transition: border-color 0.4s;
+    }
+
+    /* =========================================
+       89% OVERLAY MODAL
+       ========================================= */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 1000;
+      backdrop-filter: blur(8px); display: none; align-items: center; justify-content: center;
+      opacity: 0; transition: opacity 0.3s;
+    }
+    .modal-overlay.open { display: flex; opacity: 1; }
+    
+    .modal-content {
+      width: 89vw; height: 89vh; 
+      background: var(--bg); border-radius: var(--ui-radius);
+      display: flex; flex-direction: column; overflow: hidden;
+      transform: translateY(20px); 
+      transition: transform 0.4s ease, background-color 0.4s, color 0.4s;
+    }
+    .modal-overlay.open .modal-content { transform: translateY(0); }
+    
+    .modal-hdr {
+      height: 60px; border-bottom: var(--border-w) solid var(--border); background: transparent;
+      display: flex; align-items: center; justify-content: space-between; padding: 0 32px; flex-shrink: 0;
+      transition: border-color 0.4s;
+    }
+    .modal-hdr-title { font-size: 20px; display: flex; align-items: center; gap: 16px; }
+    
+    .modal-input { 
+      background: transparent; border: none; color: inherit; font-family: inherit; 
+      font-size: inherit; font-weight: inherit; outline: none; 
+      border-bottom: 2px dashed transparent; padding: 4px 0;
+    }
+    .modal-input:focus { border-bottom-color: var(--border); }
+    
+    .modal-body { flex: 1; display: flex; }
+    .modal-code-wrap { 
+      flex: 1; padding: 32px; display: flex; flex-direction: column; 
+      border-right: var(--border-w) solid var(--border); transition: border-color 0.4s; 
+    }
+    
+    .code-area { 
+      flex: 1; font-family: 'JetBrains Mono', monospace; font-size: 13px; 
+      padding: 24px; resize: none; outline: none; line-height: 1.6;
+      transition: background 0.4s, color 0.4s, border-color 0.4s;
+    }
+    
+    .modal-side { width: 320px; display: flex; flex-direction: column; background: transparent; }
+    .modal-side-sec { padding: 24px; border-bottom: var(--border-w) solid var(--border); transition: border-color 0.4s; }
+    .modal-side-label { font-size: 12px; margin-bottom: 12px; }
+    
+    .side-input { 
+      width: 100%; border: var(--border-w) solid var(--text); padding: 10px; background: transparent; 
+      color: var(--text); font-family: inherit; font-size: 12px; 
+      outline: none; transition: border-color 0.4s, color 0.4s;
+    }
+    .side-input option { color: #000; }
+
+    /* Bootloader */
+    .boot-menu { position: fixed; inset: 0; display: flex; z-index: 9999; font-family: 'JetBrains Mono', monospace; }
+    .boot-half { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: all 0.3s; }
+    .boot-half.cyber { background: #050505; color: #10b981; border-right: 1px solid #1f1f2e; }
+    .boot-half.cyber:hover { background: #0a0a0c; box-shadow: inset 0 0 80px rgba(16,185,129,0.15); }
+    .boot-half.brutal { background: #FFFFFF; color: #000; font-family: 'Inter', sans-serif; text-transform: uppercase; font-weight: 900; }
+    .boot-half.brutal:hover { background: #FFE500; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <script type="text/babel">
+    const { useState, useEffect, useRef } = React;
+
+    const Icons = {
+      Files: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>,
+      Search: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>,
+      Terminal: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>,
+    };
+
+    const ZONES = ['white', 'yellow', 'blue', 'red', 'green'];
+
+    // Initial Physics Nodes
+    const INITIAL_NODES = [
+      { id: 'n1', type: 'entry', label: 'core_sys.py', isMain: true, x: 0, y: 0, vx: 0, vy: 0, themeIdx: 1, code: 'import torch\nprint("Central Architecture Booted")' },
+      { id: 'n2', type: 'function', label: 'load_network', isMain: false, x: 100, y: -100, vx: 0, vy: 0, themeIdx: 2, code: 'def load_network():\n    return DataLoader()' },
+      { id: 'n3', type: 'class', label: 'DataMatrix', isMain: false, x: -100, y: 150, vx: 0, vy: 0, themeIdx: 3, code: 'class DataMatrix:\n    def __init__(self):\n        self.active = True' },
+      { id: 'n4', type: 'function', label: 'compile_node', isMain: false, x: 150, y: 100, vx: 0, vy: 0, themeIdx: 4, code: 'def compile_node():\n    pass' },
+    ];
+
+    const INITIAL_EDGES = [
+      { id: 'e1', source: 'n1', target: 'n2' },
+      { id: 'e2', source: 'n1', target: 'n3' },
+      { id: 'e3', source: 'n2', target: 'n4' },
+      { id: 'e4', source: 'n1', target: 'n4' }
+    ];
+
+    function IDE({ initialTheme }) {
+      const [themeMode, setThemeMode] = useState(initialTheme);
       
-      * { margin: 0; padding: 0; box-sizing: border-box; }
-      body { 
-        margin: 0; padding: 0; overflow: hidden; 
-        background: #2b2d31; 
-        font-family: "Inter", sans-serif;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        height: 100vh;
-      }
+      // Physics Refs
+      const nodesRef = useRef(JSON.parse(JSON.stringify(INITIAL_NODES)));
+      const edgesRef = useRef(INITIAL_EDGES);
+      const [, forceRender] = useState({});
+
+      const [transform, setTransform] = useState({ x: window.innerWidth / 2, y: window.innerHeight / 2, scale: 1 });
+      const [isDraggingCanvas, setIsDraggingCanvas] = useState(false);
+      const [connectingFrom, setConnectingFrom] = useState(null);
+      const [tempMouse, setTempMouse] = useState({x: 0, y: 0});
       
-      ::-webkit-scrollbar { width: 4px; height: 4px; }
-      ::-webkit-scrollbar-track { background: transparent; }
-      ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+      const draggingNodeRef = useRef(null);
+      const [hoveredNodeId, setHoveredNodeId] = useState(null);
+      const [modalNodeId, setModalNodeId] = useState(null);
 
-      .app-frame {
-        width: 100vw;
-        height: 100vh;
-        background-color: var(--bg);
-        display: flex;
-        flex-direction: column;
-        overflow: hidden;
-        color: var(--text-main);
-        font-size: 13px;
-        transition: all 0.3s ease;
-      }
+      const lastMousePos = useRef({ x: 0, y: 0 });
+      const dragStartPos = useRef({ x: 0, y: 0 });
 
-      body.app-loaded .app-frame {
-        width: calc(100vw - 48px);
-        height: calc(100vh - 48px);
-        border-radius: 16px;
-        box-shadow: 0 32px 80px rgba(0,0,0,0.6);
-        border: 1px solid rgba(255,255,255,0.05);
-      }
-
-      .theme-synq {
-        --bg: #131418; --panel: #1a1b20; --border: #2c2e36; 
-        --accent: #10b981; --accent-dim: rgba(16, 185, 129, 0.2);
-        --text-muted: #6b7280; --text-main: #9ca3af; --text-bright: #f3f4f6;
-        --canvas-dots: rgba(255, 255, 255, 0.07);
-        background-color: var(--bg); color: var(--text-main);
-      }
+      // Calculate active styling based on theme and hover
+      const activeNodeId = modalNodeId || hoveredNodeId;
+      const activeNode = nodesRef.current.find(n => n.id === activeNodeId);
       
-      .theme-forbidden {
-        --bg: #090a0f; --panel: #11141c; --border: #1e2832; 
-        --accent: #e5ff00; --accent-dim: rgba(229, 255, 0, 0.15);
-        --text-pale: #b0c4cf; --text-bright: #ffffff; 
-        --border-bright: #b0c4cf;
-        --text-main: var(--text-pale);
-        --text-muted: #5e7382;
-        --canvas-dots: rgba(176, 196, 207, 0.15);
-        font-family: "JetBrains Mono", monospace;
-        text-transform: uppercase;
-        background-color: var(--bg); color: var(--text-pale);
+      let wrapperClass = `app-wrapper theme-${themeMode}`;
+      if (themeMode === 'brutal') {
+        wrapperClass += activeNode ? ` zone-${ZONES[activeNode.themeIdx % ZONES.length]}` : ' zone-white';
       }
 
-      .boot-menu { width: 100vw; height: 100vh; background: #000; color: #10b981; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 14px; font-family: "JetBrains Mono", monospace; }
-      .boot-input { background: #000; border: 1px solid #10b981; color: #10b981; padding: 8px 16px; font-family: inherit; margin-bottom: 16px; width: 400px; outline: none; }
-      .boot-btn { background: transparent; border: 1px solid #10b981; color: #10b981; padding: 16px 32px; font-family: inherit; font-size: 14px; cursor: pointer; transition: all 0.2s; text-align: left; width: 400px; margin-bottom: 16px; display: flex; justify-content: space-between; }
-      .boot-btn:hover { background: #10b981; color: #000; }
-      .boot-btn.forbidden-btn { border-color: #e5ff00; color: #e5ff00; }
-      .boot-btn.forbidden-btn:hover { background: #e5ff00; color: #000; }
-      
-      .btn-run { background: var(--accent); color: #000; border: none; padding: 6px 16px; border-radius: 4px; font-weight: bold; cursor: pointer; font-family: inherit; font-size: 11px; }
-      .btn-run:hover { opacity: 0.8; }
-      .btn-ghost { background: transparent; color: var(--text-main); border: 1px solid transparent; border-radius: 4px; padding: 4px 10px; cursor: pointer; font-family: inherit; font-size: 11px; transition: all 0.2s; }
-      .btn-ghost:hover { color: var(--text-bright); background: rgba(255,255,255,0.05); }
+      // --- Force Directed Graph Physics ---
+      useEffect(() => {
+        let rafId;
+        const tick = () => {
+          let updated = false;
+          const nodes = nodesRef.current;
+          const edges = edgesRef.current;
 
-      .app-header {
-        height: 44px; display: flex; align-items: center; justify-content: space-between;
-        padding: 0 16px; background: var(--bg); border-bottom: 1px solid var(--border);
-        font-size: 12px; font-weight: 500; z-index: 50;
-      }
-      .app-header-nav { display: flex; gap: 16px; color: var(--text-muted); }
-      .app-header-nav span { cursor: pointer; transition: color 0.2s; }
-      .app-header-nav span:hover { color: var(--text-bright); }
-      .app-header-title { color: var(--text-bright); font-weight: 600; letter-spacing: 0.5px; position: absolute; left: 50%; transform: translateX(-50%); }
-      .app-header-actions { display: flex; gap: 12px; align-items: center; }
+          // Repulsion
+          for (let i = 0; i < nodes.length; i++) {
+            for (let j = i + 1; j < nodes.length; j++) {
+              const dx = nodes[j].x - nodes[i].x;
+              const dy = nodes[j].y - nodes[i].y;
+              const distSq = dx*dx + dy*dy || 1;
+              const dist = Math.sqrt(distSq);
+              const force = 4000 / distSq; // Repulsion strength
+              const fx = (dx / dist) * force;
+              const fy = (dy / dist) * force;
+              nodes[i].vx -= fx; nodes[i].vy -= fy;
+              nodes[j].vx += fx; nodes[j].vy += fy;
+            }
+          }
 
-      .app-body { display: flex; flex: 1; overflow: hidden; background: var(--bg); }
-      
-      .icon-strip {
-        width: 54px; background: var(--bg); border-right: 1px solid var(--border);
-        display: flex; flex-direction: column; align-items: center; padding: 12px 0; gap: 20px;
-        flex-shrink: 0; z-index: 10;
-      }
-      .strip-icon { width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; color: var(--text-muted); cursor: pointer; border-radius: 8px; transition: all 0.2s; }
-      .strip-icon:hover { color: var(--text-bright); background: rgba(255,255,255,0.05); }
-      .strip-icon.active { color: var(--accent); position: relative; }
-      .strip-icon.active::after { content: ''; position: absolute; left: -14px; top: 2px; bottom: 2px; width: 3px; background: var(--accent); border-radius: 0 4px 4px 0; }
+          // Attraction (Springs)
+          edges.forEach(edge => {
+            const src = nodes.find(n => n.id === edge.source);
+            const tgt = nodes.find(n => n.id === edge.target);
+            if (src && tgt) {
+              const dx = tgt.x - src.x;
+              const dy = tgt.y - src.y;
+              const dist = Math.sqrt(dx*dx + dy*dy) || 1;
+              const force = (dist - 140) * 0.05; // Spring tension
+              const fx = (dx / dist) * force;
+              const fy = (dy / dist) * force;
+              src.vx += fx; src.vy += fy;
+              tgt.vx -= fx; tgt.vy -= fy;
+            }
+          });
 
-      /* OBSIDIAN-LIKE VISUAL GRAPH CANVAS */
-      .canvas-container {
-        flex: 1; position: relative; overflow: hidden;
-        background-color: var(--bg);
-        background-image: radial-gradient(circle at 1px 1px, var(--canvas-dots) 1px, transparent 0);
-        background-size: 24px 24px;
-        cursor: grab;
-      }
-      .canvas-container:active { cursor: grabbing; }
-      
-      .graph-layer {
-        position: absolute; top: 0; left: 0; width: 100%; height: 100%; transform-origin: 0 0;
-        pointer-events: none; /* Let clicks pass to canvas unless on a node */
-      }
-      
-      .svg-edges { position: absolute; top: 0; left: 0; width: 100%; height: 100%; overflow: visible; }
-      .edge-path { fill: none; stroke: var(--border); stroke-width: 2px; transition: stroke 0.3s; }
-      .edge-path:hover { stroke: var(--accent); stroke-width: 3px; }
+          // Center Gravity & Integration
+          nodes.forEach(n => {
+            // Main node stays strongly rooted to origin (0,0)
+            const pullStrength = n.isMain ? 0.2 : 0.005;
+            n.vx += (0 - n.x) * pullStrength;
+            n.vy += (0 - n.y) * pullStrength;
 
-      /* NODE BLOCKS */
-      .node-block {
-        position: absolute; width: 280px; background: var(--panel);
-        border: 1px solid var(--border); border-radius: 8px;
-        box-shadow: 0 16px 40px rgba(0,0,0,0.5); display: flex; flex-direction: column;
-        pointer-events: auto; cursor: default;
-        transition: box-shadow 0.2s, border-color 0.2s;
-      }
-      .node-block:hover { border-color: rgba(255,255,255,0.2); }
-      .node-block.selected { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), 0 16px 40px rgba(0,0,0,0.5); }
-      
-      .node-header {
-        background: rgba(255,255,255,0.03); border-bottom: 1px solid var(--border);
-        padding: 8px 12px; display: flex; justify-content: space-between; align-items: center;
-        font-family: "JetBrains Mono", monospace; font-size: 11px; color: var(--text-bright);
-        border-radius: 8px 8px 0 0; cursor: grab;
-      }
-      .node-header:active { cursor: grabbing; }
-      
-      .node-author { font-size: 9px; padding: 2px 6px; border-radius: 4px; background: rgba(255,255,255,0.1); color: var(--text-muted); }
-      .node-author.me { background: var(--accent-dim); color: var(--accent); }
+            // Friction
+            n.vx *= 0.8;
+            n.vy *= 0.8;
 
-      .node-body {
-        padding: 0; display: flex; flex-direction: column; position: relative;
-      }
-      
-      .node-textarea {
-        width: 100%; height: 100px; background: transparent; border: none;
-        color: var(--text-main); font-family: "JetBrains Mono", monospace; font-size: 11px;
-        padding: 10px 12px; resize: none; outline: none; line-height: 1.5;
-      }
-      
-      /* PORTS */
-      .node-port {
-        position: absolute; width: 12px; height: 12px; border-radius: 50%;
-        background: var(--bg); border: 2px solid var(--border);
-        top: 50%; transform: translateY(-50%); z-index: 10;
-      }
-      .node-port.input { left: -6px; }
-      .node-port.output { right: -6px; }
-      .node-block.selected .node-port { border-color: var(--accent); }
+            n.x += n.vx;
+            n.y += n.vy;
 
-      /* CLASS THREAD BINDING */
-      .class-hull {
-        position: absolute; border: 2px dashed var(--border); border-radius: 16px;
-        background: rgba(255,255,255,0.01); pointer-events: none;
-        transition: all 0.2s; z-index: 0;
-      }
-      .class-hull-label {
-        position: absolute; top: -24px; left: 16px; font-family: "JetBrains Mono", monospace;
-        font-size: 11px; color: var(--text-muted); font-weight: bold; padding: 2px 8px;
-        background: var(--bg); border: 1px solid var(--border); border-radius: 4px;
-      }
+            if (Math.abs(n.vx) > 0.05 || Math.abs(n.vy) > 0.05) updated = true;
+          });
 
-      .floating-tabs-container {
-        position: absolute; top: 16px; left: 16px; z-index: 50;
-        display: flex; gap: 8px; align-items: center; pointer-events: auto;
-      }
+          // Overwrite position if dragging
+          if (draggingNodeRef.current) {
+            const d = nodes.find(n => n.id === draggingNodeRef.current.id);
+            if (d) {
+              d.x = draggingNodeRef.current.x;
+              d.y = draggingNodeRef.current.y;
+              d.vx = 0; d.vy = 0;
+              updated = true;
+            }
+          }
 
-      .right-panel {
-        width: 320px; background: var(--panel); border-left: 1px solid var(--border);
-        display: flex; flex-direction: column; flex-shrink: 0; z-index: 10;
-      }
-      .right-panel-tabs {
-        display: flex; padding: 16px 20px 0; gap: 24px; font-size: 12px; color: var(--text-muted);
-        border-bottom: 1px solid var(--border); margin-bottom: 16px;
-      }
-      .right-panel-tab { padding-bottom: 12px; cursor: pointer; position: relative; }
-      .right-panel-tab.active { color: var(--text-bright); }
-      .right-panel-tab.active::after { content:''; position: absolute; bottom: -1px; left: 0; right: 0; height: 2px; background: var(--accent); }
+          if (updated) forceRender({});
+          rafId = requestAnimationFrame(tick);
+        };
+        rafId = requestAnimationFrame(tick);
+        return () => cancelAnimationFrame(rafId);
+      }, []);
 
-      .status-bar { 
-        height: 32px; border-top: 1px solid var(--border); background: var(--bg); 
-        display: flex; align-items: center; justify-content: space-between; 
-        padding: 0 16px; font-size: 11px; color: var(--text-muted); flex-shrink: 0; z-index: 10;
-        font-family: "JetBrains Mono", monospace;
-      }
-      .status-pill { padding: 2px 8px; border: 1px solid var(--border); border-radius: 12px; }
-      .status-pill.ok { border-color: var(--accent); color: var(--accent); }
-    </style>
-  </head>
-  <body>
-    <div id="root"></div>
-
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-
-    <script type="text/babel">
-      const { useState, useEffect, useRef, useMemo, useCallback } = React;
-
-      // ─── Helpers ────────────────────────────────────────────────────────────────
-      function normalizeServerBase(input) {
-        const raw = (input || "").trim();
-        if (!raw) return "";
-        const withProtocol = /^https?:\/\//i.test(raw) ? raw : `http://${raw}`;
-        return withProtocol.replace(/\/+$/, "");
-      }
-
-      function detectDefaultServer() {
-        const isHttp = window.location.protocol === "http:" || window.location.protocol === "https:";
-        if (isHttp && window.location.host) return window.location.host;
-        return "localhost:3000";
-      }
-
-      function setCookie(name, value, days = 30) {
-        const expires = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toUTCString();
-        document.cookie = `${name}=${encodeURIComponent(value)}; expires=${expires}; path=/; SameSite=Lax`;
-      }
-
-      function getCookie(name) {
-        const key = `${name}=`;
-        const parts = document.cookie.split(";").map((part) => part.trim());
-        for (const part of parts) {
-          if (part.startsWith(key)) return decodeURIComponent(part.slice(key.length));
-        }
-        return "";
-      }
-
-      const Icons = {
-        Logo: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>,
-        Files: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>,
-        Search: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>,
-        Branch: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="6" y1="3" x2="6" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></svg>,
-        Play: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>,
-        Terminal: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>,
-        Network: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/><line x1="6" y1="10" x2="6" y2="14"/></svg>,
-        Settings: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>,
-        Link: () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3"/></svg>
+      // --- Interaction Handlers ---
+      const handleCanvasPointerDown = (e) => {
+        if (e.target.closest('.obs-node-wrapper') || e.target.closest('.modal-overlay') || e.target.closest('.app-header')) return;
+        setIsDraggingCanvas(true);
+        lastMousePos.current = { x: e.clientX, y: e.clientY };
+        setConnectingFrom(null);
       };
 
-      // ─── Initial Graph Data ──────────────────────────────────────────────────
-      const INITIAL_NODES = [
-        { id: 'main', type: 'entry', label: 'train.py', code: 'import torch\nfrom model import ST_Mamba\nfrom data import load_traffic_data\n\ndata = load_traffic_data()\nmodel = ST_Mamba()\nprint("Training Commute traffic model...")', x: 100, y: 250, author: 'system', classGroup: null },
-        { id: 'data', type: 'function', label: 'load_traffic_data', code: 'def load_traffic_data(city="Gandhinagar"):\n    # Loading local traffic datasets\n    return TrafficDataset(city)', x: 500, y: 80, author: 'akrist', classGroup: null },
-        { id: 'mamba_init', type: 'method', label: '__init__', code: 'def __init__(self):\n    super().__init__()\n    # Using GAT layer before Mamba core\n    self.gat = GATConv(64, 128)\n    self.mamba = MambaBlock()', x: 550, y: 300, author: 'akrist', classGroup: 'SpatioTemporalMamba' },
-        { id: 'mamba_fwd', type: 'method', label: 'forward', code: 'def forward(self, x):\n    x = self.gat(x)\n    return self.mamba(x)', x: 550, y: 480, author: 'akrist', classGroup: 'SpatioTemporalMamba' },
-        { id: 'helper', type: 'function', label: 'calculate_loss', code: 'def calculate_loss(pred, target):\n    return torch.nn.MSELoss()(pred, target)', x: 900, y: 390, author: 'collaborator', classGroup: null }
-      ];
-
-      const INITIAL_EDGES = [
-        { id: 'e1', source: 'main', target: 'data' },
-        { id: 'e2', source: 'main', target: 'mamba_init' },
-        { id: 'e3', source: 'mamba_init', target: 'mamba_fwd' }, // Internal class thread
-        { id: 'e4', source: 'mamba_fwd', target: 'helper' }
-      ];
-
-      // ─── Main IDE Component ──────────────────────────────────────────────────
-      function IDE({ theme, username, serverIP }) {
-        const [nodes, setNodes] = useState(INITIAL_NODES);
-        const [edges, setEdges] = useState(INITIAL_EDGES);
-        const [selectedNodeId, setSelectedNodeId] = useState('main');
-        
-        // Canvas transform state
-        const [transform, setTransform] = useState({ x: 0, y: 0, scale: 1 });
-        const [isDraggingCanvas, setIsDraggingCanvas] = useState(false);
-        const lastMousePos = useRef({ x: 0, y: 0 });
-
-        // Node drag state
-        const [draggingNodeId, setDraggingNodeId] = useState(null);
-
-        const [activeStrip, setActiveStrip] = useState("branch"); // Default to branch/network view
-        const [rightPanelTab, setRightPanelTab] = useState("Component View");
-        const [aiPrompt, setAiPrompt] = useState("");
-        const [aiResponse, setAiResponse] = useState("");
-        const [terminalVisible, setTerminalVisible] = useState(false);
-        const terminalRef = useRef(null);
-        
-        useEffect(() => { document.body.classList.add("app-loaded"); }, []);
-
-        // --- Canvas Panning & Zooming ---
-        const handleCanvasPointerDown = (e) => {
-          if (e.target.closest('.node-block') || e.target.closest('.floating-tabs-container')) return;
-          setIsDraggingCanvas(true);
+      const handleCanvasPointerMove = (e) => {
+        if (connectingFrom) {
+          setTempMouse({ x: e.clientX, y: e.clientY });
+        }
+        if (isDraggingCanvas) {
+          const dx = e.clientX - lastMousePos.current.x;
+          const dy = e.clientY - lastMousePos.current.y;
+          setTransform(prev => ({ ...prev, x: prev.x + dx, y: prev.y + dy }));
           lastMousePos.current = { x: e.clientX, y: e.clientY };
-          setSelectedNodeId(null);
-        };
-
-        const handleCanvasPointerMove = (e) => {
-          if (isDraggingCanvas) {
-            const dx = e.clientX - lastMousePos.current.x;
-            const dy = e.clientY - lastMousePos.current.y;
-            setTransform(prev => ({ ...prev, x: prev.x + dx, y: prev.y + dy }));
-            lastMousePos.current = { x: e.clientX, y: e.clientY };
-          } else if (draggingNodeId) {
-            const dx = (e.clientX - lastMousePos.current.x) / transform.scale;
-            const dy = (e.clientY - lastMousePos.current.y) / transform.scale;
-            setNodes(nodes.map(n => n.id === draggingNodeId ? { ...n, x: n.x + dx, y: n.y + dy } : n));
-            lastMousePos.current = { x: e.clientX, y: e.clientY };
-          }
-        };
-
-        const handleCanvasPointerUp = () => {
-          setIsDraggingCanvas(false);
-          setDraggingNodeId(null);
-        };
-
-        const handleWheel = (e) => {
-          if (e.target.closest('.node-textarea')) return; // Allow scrolling text
-          e.preventDefault();
-          const zoomSensitivity = 0.001;
-          const delta = -e.deltaY * zoomSensitivity;
-          setTransform(prev => {
-            const newScale = Math.min(Math.max(0.3, prev.scale + delta), 2);
-            return { ...prev, scale: newScale };
-          });
-        };
-
-        // --- Node Operations ---
-        const handleNodePointerDown = (e, id) => {
-          e.stopPropagation();
-          setDraggingNodeId(id);
-          setSelectedNodeId(id);
+        } else if (draggingNodeRef.current) {
+          const dx = (e.clientX - lastMousePos.current.x) / transform.scale;
+          const dy = (e.clientY - lastMousePos.current.y) / transform.scale;
+          draggingNodeRef.current.x += dx;
+          draggingNodeRef.current.y += dy;
           lastMousePos.current = { x: e.clientX, y: e.clientY };
-        };
+        }
+      };
 
-        const updateNodeCode = (id, newCode) => {
-          setNodes(nodes.map(n => n.id === id ? { ...n, code: newCode } : n));
-        };
+      const handleCanvasPointerUp = () => {
+        setIsDraggingCanvas(false);
+        draggingNodeRef.current = null;
+      };
 
-        const addNewNode = () => {
-          const id = 'node_' + Date.now();
-          const viewportCenterX = (-transform.x + window.innerWidth / 2) / transform.scale;
-          const viewportCenterY = (-transform.y + window.innerHeight / 2) / transform.scale;
-          
-          setNodes([...nodes, { 
-            id, type: 'function', label: 'new_function', code: '# Write code here', 
-            x: viewportCenterX - 140, y: viewportCenterY - 75, author: username, classGroup: null 
-          }]);
-          setSelectedNodeId(id);
-        };
+      const handleWheel = (e) => {
+        if (e.target.closest('.code-area')) return;
+        e.preventDefault();
+        const delta = e.deltaY > 0 ? 0.9 : 1.1;
+        setTransform(prev => ({ ...prev, scale: Math.min(Math.max(0.3, prev.scale * delta), 2.5) }));
+      };
 
-        // --- Calculation for Class Hulls ---
-        const classGroups = useMemo(() => {
-          const groups = {};
-          nodes.forEach(n => {
-            if (n.classGroup) {
-              if (!groups[n.classGroup]) groups[n.classGroup] = [];
-              groups[n.classGroup].push(n);
-            }
-          });
-          
-          const hulls = [];
-          for (const [name, nodesInGroup] of Object.entries(groups)) {
-            let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-            nodesInGroup.forEach(n => {
-              if (n.x < minX) minX = n.x;
-              if (n.y < minY) minY = n.y;
-              if (n.x > maxX) maxX = n.x;
-              if (n.y > maxY) maxY = n.y;
-            });
-            // Padding around nodes
-            hulls.push({
-              name,
-              x: minX - 30, y: minY - 50,
-              width: (maxX - minX) + 280 + 60, // 280 is node width
-              height: (maxY - minY) + 150 + 80 // 150 is approx node height
-            });
+      const handleNodePointerDown = (e, id) => {
+        e.stopPropagation();
+        if (connectingFrom && connectingFrom !== id) {
+          if (!edgesRef.current.find(edge => edge.source === connectingFrom && edge.target === id)) {
+            edgesRef.current = [...edgesRef.current, { id: 'e_' + Date.now(), source: connectingFrom, target: id }];
           }
-          return hulls;
-        }, [nodes]);
+          setConnectingFrom(null);
+          return;
+        }
+        
+        const node = nodesRef.current.find(n => n.id === id);
+        draggingNodeRef.current = { id, x: node.x, y: node.y };
+        lastMousePos.current = { x: e.clientX, y: e.clientY };
+        dragStartPos.current = { x: e.clientX, y: e.clientY };
+      };
 
-        // --- Calculation for Edges ---
-        const drawBezier = (sourceId, targetId) => {
-          const sourceNode = nodes.find(n => n.id === sourceId);
-          const targetNode = nodes.find(n => n.id === targetId);
-          if (!sourceNode || !targetNode) return "";
+      const handleNodePointerUp = (e, id) => {
+        if (draggingNodeRef.current && draggingNodeRef.current.id === id) {
+          const dist = Math.hypot(e.clientX - dragStartPos.current.x, e.clientY - dragStartPos.current.y);
+          if (dist < 5) setModalNodeId(id);
+        }
+        draggingNodeRef.current = null;
+      };
 
-          // Output port is right side, Input port is left side
-          const sx = sourceNode.x + 280;
-          const sy = sourceNode.y + 75; // Approx half height
-          const tx = targetNode.x;
-          const ty = targetNode.y + 75;
+      const handleNodeContextMenu = (e, id) => {
+        e.preventDefault();
+        setConnectingFrom(id);
+        setTempMouse({ x: e.clientX, y: e.clientY });
+      };
 
-          const dx = Math.abs(tx - sx) * 0.5;
-          return `M ${sx} ${sy} C ${sx + dx} ${sy}, ${tx - dx} ${ty}, ${tx} ${ty}`;
-        };
+      const updateNode = (id, field, value) => {
+        const node = nodesRef.current.find(n => n.id === id);
+        if (node) {
+          node[field] = value;
+          forceRender({});
+        }
+      };
 
-        // --- Actions ---
-        const runCode = () => {
-          setTerminalVisible(true);
-          // Mocking execution based on the "Commute" context
-          setTimeout(() => {
-            if (terminalRef.current) {
-              terminalRef.current.innerHTML += `<div style="color:var(--accent)">[SYSTEM] Compiling computational graph...</div>`;
-              terminalRef.current.innerHTML += `<div style="color:var(--text-bright)">Starting execution on node [train.py]</div>`;
-              terminalRef.current.innerHTML += `<div style="color:var(--text-bright)">Loading local traffic datasets for Gandhinagar... OK</div>`;
-              terminalRef.current.innerHTML += `<div style="color:var(--text-bright)">Initializing SpatioTemporalMamba -> GATConv -> MambaBlock</div>`;
-              terminalRef.current.innerHTML += `<div style="color:var(--accent)">Training Commute traffic model...</div>`;
-              terminalRef.current.innerHTML += `<div style="color:var(--text-muted)">Epoch 1/10 | Loss: 0.842 | Time: 1.2s</div>`;
-            }
-          }, 300);
-        };
+      const addBlock = () => {
+        const id = 'node_' + Date.now();
+        const x = (0 - transform.x) / transform.scale + (Math.random() * 100 - 50);
+        const y = (0 - transform.y) / transform.scale + (Math.random() * 100 - 50);
+        const themeIdx = Math.floor(Math.random() * 4) + 1;
+        
+        nodesRef.current.push({ id, type: 'function', label: 'new_block', isMain: false, x, y, vx: 0, vy: 0, themeIdx, code: '' });
+        edgesRef.current.push({ id: 'e_' + Date.now(), source: 'n1', target: id });
+        forceRender({});
+      };
 
-        const askAI = () => {
-          if (!aiPrompt.trim()) return;
-          setAiResponse("Analyzing node graph uplink...");
-          setTimeout(() => {
-            const contextNode = nodes.find(n => n.id === selectedNodeId);
-            setAiResponse(`Regarding your architecture:\nThe graph links your entry point to the Commute dataset and the SpatioTemporalMamba model. \n\nCurrently observing node [${contextNode ? contextNode.label : 'Global'}]. PyTorch GAT + Mamba is an excellent choice for spatial-temporal flow prediction. Need help writing the backprop thread?`);
-          }, 1000);
-        };
+      const drawLine = (sx, sy, tx, ty) => `M ${sx} ${sy} L ${tx} ${ty}`;
 
-        return (
-          <div className={`app-frame theme-${theme}`}>
+      const modalNodeObj = nodesRef.current.find(n => n.id === modalNodeId);
+
+      return (
+        <div style={{
+          width: '100vw', height: '100vh',
+          padding: themeMode === 'brutal' ? '40px' : '0px',
+          backgroundColor: themeMode === 'brutal' ? '#FFFFFF' : '#050505',
+          transition: 'all 0.4s ease',
+          boxSizing: 'border-box'
+        }}>
+          <div className={wrapperClass}>
             
-            {/* TOP NAVIGATION BAR */}
             <div className="app-header">
-              <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
-                <div style={{ color: "var(--accent)", padding: "4px 6px", borderRadius: 4, background: "rgba(255,255,255,0.05)" }}>
-                  <Icons.Logo />
-                </div>
-                <div className="app-header-nav">
-                  <span>Graph</span><span>Nodes</span><span>Selection</span><span>View</span>
-                  <span onClick={runCode}>Run Flow</span><span onClick={() => setTerminalVisible(!terminalVisible)}>Terminal</span>
-                </div>
-              </div>
-              
-              <div className="app-header-title">{theme === 'forbidden' ? 'FORBIDDEN // ARCHITECTURE' : 'Commute_Project.graph'}</div>
-              
-              <div className="app-header-actions">
-                <Icons.Search />
-                <Icons.Network />
-                <div style={{ width: 24, height: 24, borderRadius: 12, background: "var(--accent)", display: "flex", alignItems: "center", color: "#000", fontSize: 10, fontWeight: "bold", marginLeft: 8 }}>
-                  <span style={{margin:"auto"}}>{username.substring(0,1).toUpperCase() || 'S'}</span>
-                </div>
+              <div className="hdr-brand">FORBINDEN // {themeMode.toUpperCase()}</div>
+              <div style={{ display: 'flex', gap: '16px' }}>
+                <button className="btn" onClick={addBlock}>+ ADD NODE</button>
+                <button className="btn" onClick={() => setThemeMode(themeMode === 'cyber' ? 'brutal' : 'cyber')}>
+                  SWITCH TO {themeMode === 'cyber' ? 'NOEINOI' : 'OBSIDIAN'}
+                </button>
               </div>
             </div>
 
             <div className="app-body">
-              {/* LEFT ICON STRIP */}
-              <div className="icon-strip">
-                <div className={`strip-icon ${activeStrip === "files" ? "active" : ""}`} onClick={() => setActiveStrip("files")}><Icons.Files /></div>
-                <div className={`strip-icon ${activeStrip === "search" ? "active" : ""}`} onClick={() => setActiveStrip("search")}><Icons.Search /></div>
-                <div className={`strip-icon ${activeStrip === "branch" ? "active" : ""}`} onClick={() => setActiveStrip("branch")}><Icons.Branch /></div>
-                <div className="strip-icon" onClick={runCode}><Icons.Play /></div>
-                <div className={`strip-icon ${terminalVisible ? "active" : ""}`} onClick={() => setTerminalVisible(!terminalVisible)}><Icons.Terminal /></div>
+              <div className="sidebar">
+                <div className="strip-icon"><Icons.Files /></div>
+                <div className="strip-icon"><Icons.Search /></div>
+                <div className="strip-icon"><Icons.Terminal /></div>
               </div>
 
-              {/* MIDDLE GRAPH CANVAS */}
               <div 
-                className="canvas-container" 
+                className="canvas-container"
                 onPointerDown={handleCanvasPointerDown}
                 onPointerMove={handleCanvasPointerMove}
                 onPointerUp={handleCanvasPointerUp}
                 onPointerLeave={handleCanvasPointerUp}
                 onWheel={handleWheel}
               >
-                
-                {/* Floating Add Node Button */}
-                <div className="floating-tabs-container">
-                  <div className="btn-ghost" style={{ background: 'var(--panel)', padding: '6px 16px', display: 'flex', gap: 8, alignItems: 'center' }} onClick={addNewNode}>
-                    <span style={{ color: 'var(--accent)', fontWeight: 'bold' }}>+</span> ADD FUNCTION BLOCK
-                  </div>
-                </div>
-
-                {/* GRAPH TRANSFORM LAYER */}
+                <div className="canvas-bg"></div>
                 <div className="graph-layer" style={{ transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.scale})` }}>
                   
-                  {/* Edges SVG */}
                   <svg className="svg-edges">
-                    {edges.map(edge => (
-                      <path key={edge.id} className="edge-path" d={drawBezier(edge.source, edge.target)} />
-                    ))}
+                    {edgesRef.current.map(edge => {
+                      const src = nodesRef.current.find(n => n.id === edge.source);
+                      const tgt = nodesRef.current.find(n => n.id === edge.target);
+                      if (!src || !tgt) return null;
+                      return <path key={edge.id} className="edge-path" d={drawLine(src.x, src.y, tgt.x, tgt.y)} />
+                    })}
+                    {connectingFrom && (
+                      <path className="edge-path active-conn" 
+                        d={drawLine(
+                          nodesRef.current.find(n => n.id === connectingFrom)?.x || 0,
+                          nodesRef.current.find(n => n.id === connectingFrom)?.y || 0,
+                          (tempMouse.x - transform.x) / transform.scale,
+                          (tempMouse.y - transform.y) / transform.scale
+                        )} 
+                      />
+                    )}
                   </svg>
 
-                  {/* Class Hulls (Thread binding) */}
-                  {classGroups.map(hull => (
-                    <div key={hull.name} className="class-hull" style={{ left: hull.x, top: hull.y, width: hull.width, height: hull.height }}>
-                      <div className="class-hull-label">class {hull.name}</div>
-                    </div>
-                  ))}
-
-                  {/* Nodes */}
-                  {nodes.map(node => (
+                  {nodesRef.current.map(node => (
                     <div 
                       key={node.id} 
-                      className={`node-block ${selectedNodeId === node.id ? 'selected' : ''}`}
-                      style={{ left: node.x, top: node.y }}
+                      className={`obs-node-wrapper clr-${ZONES[node.themeIdx % ZONES.length]}`}
+                      style={{ left: node.x, top: node.y, opacity: hoveredNodeId && hoveredNodeId !== node.id && !modalNodeId ? 0.3 : 1 }}
+                      onPointerEnter={() => !modalNodeId && !isDraggingCanvas && setHoveredNodeId(node.id)}
+                      onPointerLeave={() => !modalNodeId && setHoveredNodeId(null)}
                       onPointerDown={(e) => handleNodePointerDown(e, node.id)}
+                      onPointerUp={(e) => handleNodePointerUp(e, node.id)}
+                      onContextMenu={(e) => handleNodeContextMenu(e, node.id)}
                     >
-                      <div className="node-port input" />
-                      <div className="node-port output" />
-                      
-                      <div className="node-header">
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <span style={{ color: node.type === 'entry' ? 'var(--accent)' : '#3b82f6' }}>{node.type === 'entry' ? '◆' : 'ƒ'}</span>
-                          <span>{node.label}</span>
-                        </div>
-                        <span className={`node-author ${node.author === username ? 'me' : ''}`}>{node.author}</span>
-                      </div>
-                      
-                      <div className="node-body">
-                        <textarea 
-                          className="node-textarea" 
-                          value={node.code}
-                          onChange={(e) => updateNodeCode(node.id, e.target.value)}
-                          onPointerDown={(e) => e.stopPropagation()} // Allow selecting text without dragging
-                        />
-                      </div>
+                      <div className={`node-circle ${node.isMain ? 'main-node' : 'sub-node'}`}></div>
+                      <div className="node-label">{node.label}</div>
                     </div>
                   ))}
                 </div>
-
-                {/* Floating Terminal */}
-                {terminalVisible && (
-                  <div style={{
-                    position: "absolute", bottom: "40px", left: "5%", right: "5%", height: "220px",
-                    background: "var(--panel)", border: "1px solid var(--border)", borderRadius: 12,
-                    boxShadow: "0 10px 40px rgba(0,0,0,0.6)", display: "flex", flexDirection: "column", zIndex: 100
-                  }}>
-                    <div style={{ padding: "8px 16px", borderBottom: "1px solid var(--border)", display: "flex", justifyContent: "space-between", fontSize: 11, color: "var(--text-muted)", fontWeight: "bold" }}>
-                      <span>HOST TERMINAL // EXECUTION TRACE</span>
-                      <span style={{ cursor: "pointer", fontSize: 14 }} onClick={() => setTerminalVisible(false)}>×</span>
-                    </div>
-                    <div ref={terminalRef} style={{ flex: 1, padding: "12px", overflowY: "auto", fontFamily: '"JetBrains Mono", monospace', fontSize: 11, display: "flex", flexDirection: "column", gap: 4 }}>
-                      <div style={{ color: 'var(--text-muted)' }}>Console initialized. Awaiting flow execution...</div>
-                    </div>
-                  </div>
-                )}
               </div>
-
-              {/* RIGHT SIDEBAR - AI Component View */}
-              <div className="right-panel">
-                <div className="right-panel-tabs">
-                  <div className={`right-panel-tab ${rightPanelTab === "Component View" ? "active" : ""}`} onClick={() => setRightPanelTab("Component View")}>Node Props</div>
-                  <div className={`right-panel-tab ${rightPanelTab === "Code View" ? "active" : ""}`} onClick={() => setRightPanelTab("Code View")}>AI Uplink</div>
-                </div>
-
-                <div style={{ flex: 1, padding: "0 20px", overflowY: "auto", display: "flex", flexDirection: "column", gap: 16 }}>
-                  {rightPanelTab === "Node Props" && selectedNodeId ? (
-                    <div>
-                      <div style={{ fontSize: 11, fontWeight: "bold", color: "var(--text-muted)", marginBottom: 8 }}>Selected Node</div>
-                      <div style={{ color: 'var(--text-bright)', fontSize: 12 }}>{nodes.find(n => n.id === selectedNodeId)?.label}</div>
-                    </div>
-                  ) : (
-                    <>
-                      <div style={{ fontSize: 11, fontWeight: "bold", color: "var(--text-muted)", textTransform: "uppercase" }}>AI Assistant</div>
-                      <div style={{ background: "rgba(255,255,255,0.03)", padding: "14px", borderRadius: "8px", border: "1px solid var(--border)", fontSize: 12, lineHeight: 1.6, color: "var(--text-bright)", whiteSpace: "pre-wrap" }}>
-                        {aiResponse || "Select a node block or ask a question regarding the graph architecture."}
-                      </div>
-                    </>
-                  )}
-                </div>
-                
-                <div style={{ padding: "16px", borderTop: "1px solid var(--border)", marginTop: "auto" }}>
-                  <div style={{ display: "flex", gap: 8 }}>
-                    <input 
-                      value={aiPrompt} onChange={(e) => setAiPrompt(e.target.value)} 
-                      onKeyDown={(e) => e.key === "Enter" && askAI()}
-                      placeholder="Message AI..." 
-                      style={{ flex: 1, background: "rgba(255,255,255,0.05)", border: "1px solid var(--border)", borderRadius: 6, color: "var(--text-bright)", padding: "10px 12px", outline: "none", fontSize: 12 }} 
-                    />
-                    <button onClick={askAI} className="btn-run" style={{ padding: "0 12px" }}>ASK</button>
-                  </div>
-                </div>
-              </div>
-
             </div>
 
-            {/* BOTTOM STATUS BAR */}
             <div className="status-bar">
-              <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
-                <span className="status-pill ok">NETWORK SYNCED</span>
-                <span>NODES: {nodes.length}</span>
-                <span>EDGES: {edges.length}</span>
-              </div>
-              <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
-                <span>{selectedNodeId ? `Selected: ${nodes.find(n => n.id === selectedNodeId)?.label}` : 'Canvas Mode'}</span>
-                <span>Zoom: {Math.round(transform.scale * 100)}%</span>
-              </div>
+              <span>{themeMode.toUpperCase()} ENGINE | {nodesRef.current.length} NODES</span>
+              <span>ZOOM: {Math.round(transform.scale * 100)}%</span>
             </div>
+
+            <div className={`modal-overlay ${modalNodeId ? 'open' : ''}`} onPointerDown={() => setModalNodeId(null)}>
+              {modalNodeObj && (
+                <div className="modal-content" onPointerDown={e => e.stopPropagation()}>
+                  <div className="modal-hdr">
+                    <div className="modal-hdr-title">
+                      <span style={{ fontSize: '18px' }}>■</span>
+                      <input className="modal-input" value={modalNodeObj.label} onChange={e => updateNode(modalNodeObj.id, 'label', e.target.value)} spellCheck="false" />
+                    </div>
+                    <button className="btn" onClick={() => setModalNodeId(null)}>CLOSE</button>
+                  </div>
+                  
+                  <div className="modal-body">
+                    <div className="modal-code-wrap">
+                      <textarea 
+                        className="code-area" 
+                        value={modalNodeObj.code}
+                        onChange={e => updateNode(modalNodeObj.id, 'code', e.target.value)}
+                        spellCheck="false"
+                        placeholder="// INSERT LOGIC..."
+                      />
+                    </div>
+                    
+                    <div className="modal-side">
+                      <div className="modal-side-sec">
+                        <div className="modal-side-label">CLASSIFICATION</div>
+                        <select className="side-input" value={modalNodeObj.type} onChange={e => updateNode(modalNodeObj.id, 'type', e.target.value)}>
+                          <option value="entry">ENTRY POINT</option>
+                          <option value="function">FUNCTION</option>
+                          <option value="class">CLASS DEFINITION</option>
+                        </select>
+                      </div>
+                      <div className="modal-side-sec">
+                        <div className="modal-side-label">AI ASSISTANT</div>
+                        <textarea className="side-input" style={{ height: '120px', resize: 'none' }} placeholder="QUERY LOGIC..." spellCheck="false" />
+                        <button className="btn" style={{ width: '100%', marginTop: '16px' }}>RUN SCAN</button>
+                      </div>
+                      <div className="modal-side-sec" style={{ borderBottom: 'none', marginTop: 'auto' }}>
+                        <div className="modal-side-label">COLOR DESIGNATOR</div>
+                        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                          {ZONES.map((zone, idx) => (
+                            <div 
+                              key={idx} 
+                              onClick={() => updateNode(modalNodeObj.id, 'themeIdx', idx)}
+                              style={{ 
+                                width: '24px', height: '24px', cursor: 'pointer', borderRadius: themeMode === 'cyber' ? '50%' : '0',
+                                background: zone === 'white' ? '#FFFFFF' : zone === 'yellow' ? '#FFE500' : zone === 'blue' ? '#3b82f6' : zone === 'red' ? '#ef4444' : '#10b981',
+                                border: `2px solid ${modalNodeObj.themeIdx === idx ? 'var(--text)' : 'transparent'}`,
+                              }} 
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
           </div>
-        );
-      }
+        </div>
+      );
+    }
 
-      // ─── Bootloader ──────────────────────────────────────────────────────────
-      function App() {
-        const savedUsername = getCookie("forbiden_username");
-        const savedServer = getCookie("forbiden_server");
-        const savedTheme = getCookie("forbiden_theme");
-        const validSavedTheme = savedTheme === "synq" || savedTheme === "forbidden" ? savedTheme : null;
+    function Bootloader() {
+      const [theme, setTheme] = useState(null);
 
-        const [step, setStep] = useState(savedUsername ? 1 : 0);
-        const [serverIP, setServerIP] = useState(savedServer || detectDefaultServer);
-        const [username, setUsername] = useState(savedUsername || "akrist");
-        const [theme, setTheme] = useState(validSavedTheme);
+      if (theme) return <IDE initialTheme={theme} />;
 
-        useEffect(() => { if (serverIP) setCookie("forbiden_server", serverIP); }, [serverIP]);
-        useEffect(() => { if (username) setCookie("forbiden_username", username); }, [username]);
-        useEffect(() => { if (theme) setCookie("forbiden_theme", theme); }, [theme]);
+      return (
+        <div className="boot-menu">
+          <div className="boot-half cyber" onClick={() => setTheme('cyber')}>
+            <div style={{ fontSize: '36px', fontWeight: '700', marginBottom: '8px' }}>OBSIDIAN CORE</div>
+            <div style={{ fontSize: '12px', opacity: 0.6 }}>DARK MODE // EDGE-TO-EDGE // PHYSICS ENGINE</div>
+          </div>
+          <div className="boot-half brutal" onClick={() => setTheme('brutal')}>
+            <div style={{ fontSize: '36px', fontWeight: '900', marginBottom: '8px' }}>NOEINOI CORE</div>
+            <div style={{ fontSize: '12px', opacity: 0.6, fontWeight: '700' }}>BRUTALIST // THICK MARGINS // COLOR FLOOD</div>
+          </div>
+        </div>
+      );
+    }
 
-        const handleConnect = () => {
-          const normalized = username.trim();
-          if (!normalized) return;
-          setUsername(normalized);
-          setCookie("forbiden_username", normalized);
-          setCookie("forbiden_server", serverIP);
-          setStep(1);
-        };
-
-        if (step === 0) {
-          return (
-            <div className="boot-menu">
-              <div style={{ width: 400, marginBottom: 16 }}>ESTABLISHING NETWORK UPLINK...</div>
-              <input className="boot-input" value={serverIP} onChange={e => setServerIP(e.target.value)} placeholder="Server (e.g., localhost:3001)" />
-              <input className="boot-input" value={username} onChange={e => setUsername(e.target.value)} placeholder="Enter Ident (Username)" autoFocus onKeyDown={e => e.key === 'Enter' && handleConnect()} />
-              <button className="boot-btn" onClick={handleConnect} style={{textAlign: "center", justifyContent: "center"}}>CONNECT TO HOST</button>
-            </div>
-          );
-        }
-
-        if (theme === null) {
-          return (
-            <div className="boot-menu">
-              <div style={{ width: 400, marginBottom: 32 }}>NETWORK SECURED. SELECT OPERATING ENVIRONMENT:</div>
-              <button className="boot-btn" onClick={() => setTheme('synq')}>
-                <span>[1] SYNQIDE</span> <span>STANDARD MINIMAL</span>
-              </button>
-              <button className="boot-btn forbidden-btn" onClick={() => setTheme('forbidden')}>
-                <span>[2] FORBIDDEN</span> <span>RESTRICTED TIER</span>
-              </button>
-            </div>
-          );
-        }
-
-        return <IDE theme={theme} username={username} serverIP={serverIP} />;
-      }
-
-      const root = ReactDOM.createRoot(document.getElementById("root"));
-      root.render(<App />);
-    </script>
-  </body>
+    const root = ReactDOM.createRoot(document.getElementById("root"));
+    root.render(<Bootloader />);
+  </script>
+</body>
 </html>
