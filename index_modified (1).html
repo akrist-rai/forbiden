@@ -85,21 +85,6 @@
     .btn { cursor: pointer; outline: none; padding: 7px 14px; font-size: 10px; transition: all 0.18s ease; font-family: inherit; letter-spacing: 0.5px; }
     .app-body { display: flex; flex: 1; min-height: 0; position: relative; overflow: hidden; }
     .sidebar { width: 52px; border-right: var(--border-w) solid var(--border); display: flex; flex-direction: column; align-items: center; padding: 20px 0; gap: 6px; z-index: 200; flex-shrink: 0; background: var(--bg); position: relative; }
-    @media (max-width: 900px) {
-      .app-header { flex-wrap: wrap; gap: 8px; padding: 0 10px; }
-      .hdr-brand { font-size: 11px; }
-      .app-body { flex-direction: column; }
-      .sidebar { width: 100%; height: 52px; flex-direction: row; padding: 8px 6px; border-right: none; border-bottom: var(--border-w) solid var(--border); overflow-x: auto; }
-      .sidebar > div:first-child { flex-direction: row; justify-content: flex-start; }
-      .main-view { flex: 1; }
-      .group-dock { position: fixed; top: 56px; right: 8px; width: min(260px, 90vw); }
-      .status-bar { flex-wrap: wrap; height: auto; row-gap: 6px; padding: 4px 10px; }
-    }
-    @media (max-width: 600px) {
-      .app-header { padding: 0 8px; }
-      .hdr-breadcrumb { display: none; }
-      .group-dock { top: 60px; right: 6px; }
-    }
     .strip-icon { width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; cursor: pointer; border: var(--inner-w) solid transparent; transition: all 0.2s; color: var(--text); border-radius: var(--ui-radius); position: relative; opacity: 0.55; }
     .strip-icon:hover { opacity: 1; }
     .strip-icon.active { border-color: var(--border); background: rgba(128,128,128,0.1); opacity: 1; }
@@ -1858,16 +1843,6 @@ setTimeout(()=>{
 
               {/* RIGHT: actions */}
               <div style={{display:'flex',gap:'6px',alignItems:'center'}}>
-                {/* New node */}
-                <button
-                  className="btn hdr-pill"
-                  style={{display:'flex',alignItems:'center',gap:'6px'}}
-                  onClick={()=>setShowCreateNode(true)}
-                  title="Create file node (N)"
-                >
-                  <span style={{fontSize:'12px'}}>＋</span>
-                  <span>NODE</span>
-                </button>
                 {/* Theme toggle */}
                 <button className="btn hdr-pill" onClick={()=>setThemeMode(t=>t==='cyber'?'brutal':'cyber')}
                   title="Toggle theme">
@@ -2844,6 +2819,75 @@ setTimeout(()=>{
 
     const root = ReactDOM.createRoot(document.getElementById('root'));
     root.render(<Bootloader/>);
-  </script>
+  
+// ===== Added Node + Editor Theme Controls =====
+setTimeout(()=>{
+  const header=document.querySelector('.app-header')
+  if(header){
+    const btn=document.createElement('button')
+    btn.textContent='+ NODE'
+    btn.className='btn'
+    btn.style.marginLeft='10px'
+    header.appendChild(btn)
+
+    btn.onclick=()=>{
+      const node=document.createElement('div')
+      node.className='obs-node-wrapper'
+      node.style.left=Math.random()*window.innerWidth+'px'
+      node.style.top=Math.random()*window.innerHeight+'px'
+      node.innerHTML='<div class="node-circle main-node"></div><div class="node-label">New Node</div>'
+      document.body.appendChild(node)
+
+      node.onclick=(e)=>{
+        e.stopPropagation()
+        const picker=document.createElement('div')
+        picker.className='node-color-picker-popup'
+        const colors=['#ff435a','#ffc410','#10b981','#4285f4','#bb9af7','#ffbd5e']
+        colors.forEach(c=>{
+          const d=document.createElement('div')
+          d.style.width='18px'
+          d.style.height='18px'
+          d.style.borderRadius='50%'
+          d.style.background=c
+          d.style.cursor='pointer'
+          d.onclick=()=>node.querySelector('.node-circle').style.borderColor=c
+          picker.appendChild(d)
+        })
+        node.appendChild(picker)
+      }
+    }
+  }
+
+  const modal=document.querySelector('.grp-editor-chrome')
+  if(modal){
+    const sel=document.createElement('select')
+    sel.style.marginLeft='auto'
+    sel.innerHTML=`
+      <option value="editor-theme-monokai">Monokai</option>
+      <option value="editor-theme-dracula">Dracula</option>
+      <option value="editor-theme-nord">Nord</option>
+      <option value="editor-theme-one-dark">One Dark</option>
+      <option value="editor-theme-github-dark">GitHub Dark</option>
+      <option value="editor-theme-tokyo-night">Tokyo Night</option>
+    `
+    modal.appendChild(sel)
+
+    sel.onchange=e=>{
+      const scope=document.querySelector('.editor-palette-scope')
+      if(!scope) return
+      scope.classList.remove(
+        'editor-theme-monokai',
+        'editor-theme-dracula',
+        'editor-theme-nord',
+        'editor-theme-one-dark',
+        'editor-theme-github-dark',
+        'editor-theme-tokyo-night'
+      )
+      scope.classList.add(e.target.value)
+    }
+  }
+},1000)
+
+</script>
 </body>
 </html>
