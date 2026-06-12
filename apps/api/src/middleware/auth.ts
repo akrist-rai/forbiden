@@ -3,8 +3,13 @@ import type Koa from 'koa';
 import * as jose from 'jose';
 
 const SUPABASE_JWT_SECRET = process.env.SUPABASE_JWT_SECRET;
+const DEV_AUTH_BYPASS = process.env.DEV_AUTH_BYPASS === 'true';
+
 if (!SUPABASE_JWT_SECRET) {
   console.warn('[auth] SUPABASE_JWT_SECRET not set — all routes will be unprotected (dev mode)');
+}
+if (DEV_AUTH_BYPASS) {
+  console.warn('[auth] DEV_AUTH_BYPASS=true — all requests authenticated as dev user');
 }
 
 export interface AuthState {
@@ -14,8 +19,8 @@ export interface AuthState {
 
 /** Attach user to ctx.state.auth. Respond 401 if token missing/invalid. */
 export async function requireAuth(ctx: Koa.Context, next: Koa.Next) {
-  if (!SUPABASE_JWT_SECRET) {
-    // Dev bypass: inject a fake user
+  // Dev bypass takes priority over everything
+  if (DEV_AUTH_BYPASS || !SUPABASE_JWT_SECRET) {
     ctx.state.auth = { userId: 'dev-user-00000000', email: 'dev@forbinden.local' };
     return next();
   }
