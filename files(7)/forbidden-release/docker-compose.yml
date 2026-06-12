@@ -1,0 +1,96 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=development
+      - MONGODB_URI=mongodb://mongo:27017/forbidden
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=${JWT_SECRET}
+      - CLIENT_ORIGIN=http://localhost:3000
+      - API_URL=http://localhost:3001
+      - WORKSPACE_IMAGE=forbidden/runtime:latest
+      # Telemetry — set OTEL_ENABLED=true to send traces to Jaeger
+      - OTEL_ENABLED=${OTEL_ENABLED:-false}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  mongo:
+    image: mongo:7
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # ── Debug profile: docker compose --profile debug up ───────────────────────
+
+  # BullMQ job queue dashboard at http://localhost:3030
+  # Protected by HTTP Basic Auth — set BULLBOARD_USER and BULLBOARD_PASS in .env
+  bullboard:
+    image: ghcr.io/felixmosh/bull-board:latest
+    ports:
+      - "3030:3000"
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      # HTTP Basic Auth credentials (change these before exposing externally)
+      - BULL_BOARD_USERNAME=${BULLBOARD_USER:-forbidden}
+      - BULL_BOARD_PASSWORD=${BULLBOARD_PASS:-changeme}
+    depends_on:
+      - redis
+    profiles: ["debug"]
+
+  # OpenTelemetry collector — receives traces and forwards to Jaeger
+  # Enable with: OTEL_ENABLED=true docker compose --profile tracing up
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:latest
+    volumes:
+      - ./otel-collector-config.yml:/etc/otelcol-contrib/config.yaml
+    ports:
+      - "4318:4318"   # OTLP/HTTP
+      - "4317:4317"   # OTLP/gRPC
+    depends_on:
+      - jaeger
+    profiles: ["tracing"]
+
+  # Jaeger all-in-one — trace visualisation at http://localhost:16686
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    ports:
+      - "16686:16686"   # Jaeger UI
+      - "14268:14268"   # Jaeger HTTP collector
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+    profiles: ["tracing"]
+
+volumes:
+  mongo-data:
+  redis-data:

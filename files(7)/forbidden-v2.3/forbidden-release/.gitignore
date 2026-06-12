@@ -1,0 +1,27 @@
+# Dependencies
+backend/node_modules/
+backend/.bun/
+
+# Build output
+backend/dist/
+
+# Environment
+backend/.env
+.env
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+
+# Logs
+*.log
+npm-debug.log*
+
+# Docker volumes (if mounted locally)
+mongo-data/
+redis-data/
