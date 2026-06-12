@@ -4,11 +4,11 @@
   "private": true,
   "description": "FORBINDEN — Graph-based collaborative code IDE",
   "scripts": {
-    "dev": "concurrently --names \"API,WEB\" --prefix-colors \"cyan,magenta\" \"bun --watch apps/api/src/server.ts\" \"npm run --prefix apps/web dev\"",
-    "build": "npm run --prefix apps/web build",
-    "install:all": "bun install --cwd apps/api && npm install --prefix apps/web --legacy-peer-deps",
-    "db:push": "bun --cwd apps/api run db:push",
-    "db:studio": "bun --cwd apps/api run db:studio"
+    "dev":         "concurrently --names \"API,WEB\" --prefix-colors \"cyan,magenta\" \"bun --dns-result-order=ipv4first --watch apps/api/src/server.ts\" \"sh -c 'cd apps/web && bun x vite'\"",
+    "build":       "bun --cwd apps/web run build",
+    "install:all": "bun install && bun install --cwd apps/api && bun install --cwd apps/web",
+    "db:push":     "bun --cwd apps/api run db:push",
+    "db:studio":   "bun --cwd apps/api run db:studio"
   },
   "devDependencies": {
     "concurrently": "^9.1.2"

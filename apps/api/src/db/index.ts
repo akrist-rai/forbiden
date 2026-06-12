@@ -1,6 +1,8 @@
 // src/db/index.ts — Drizzle client (Supabase Postgres via postgres.js)
-// Lazy init: does NOT throw at module load time if DATABASE_URL is missing.
-// Routes should call requireDb() and handle the null case gracefully.
+// Force IPv4 before any network calls — Supabase resolves to IPv6 on some hosts
+import dns from 'node:dns';
+dns.setDefaultResultOrder('ipv4first');
+
 import { drizzle, type PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import * as schema from './schema.ts';
@@ -12,12 +14,7 @@ let _db: PostgresJsDatabase<Schema> | null = null;
 function initDb(): PostgresJsDatabase<Schema> | null {
   const connectionString = process.env.DATABASE_URL;
   if (!connectionString) return null;
-  const queryClient = postgres(connectionString, {
-    max: 10,
-    ssl: 'require',
-    // Force IPv4 — Supabase resolves to IPv6 on some hosts but only IPv4 is reachable
-    connection: { family: 4 } as any,
-  });
+  const queryClient = postgres(connectionString, { max: 10, ssl: 'require' });
   return drizzle(queryClient, { schema });
 }
 
