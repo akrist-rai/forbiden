@@ -1,0 +1,9 @@
+# FORBINDEN
+node_modules/
+dist/
+.env
+*.log
+repos/
+drizzle/*.sql
+.DS_Store
+*.swp

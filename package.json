@@ -3,13 +3,12 @@
   "version": "1.0.0",
   "private": true,
   "description": "FORBINDEN — Graph-based collaborative code IDE",
-  "workspaces": ["apps/api", "apps/web"],
   "scripts": {
-    "dev": "concurrently --names \"API,WEB\" --prefix-colors \"cyan,magenta\" \"bun run --cwd apps/api dev\" \"npm run --prefix apps/web dev\"",
+    "dev": "concurrently --names \"API,WEB\" --prefix-colors \"cyan,magenta\" \"bun --watch apps/api/src/server.ts\" \"npm run --prefix apps/web dev\"",
     "build": "npm run --prefix apps/web build",
-    "install:all": "bun install --cwd apps/api && npm install --prefix apps/web",
-    "db:push": "bun run --cwd apps/api db:push",
-    "db:studio": "bun run --cwd apps/api db:studio"
+    "install:all": "bun install --cwd apps/api && npm install --prefix apps/web --legacy-peer-deps",
+    "db:push": "bun --cwd apps/api run db:push",
+    "db:studio": "bun --cwd apps/api run db:studio"
   },
   "devDependencies": {
     "concurrently": "^9.1.2"
