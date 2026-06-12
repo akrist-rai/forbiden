@@ -1,100 +1,94 @@
-// src/pages/Login.tsx — Editorial magazine auth
 import { useState } from 'react'
 import { supabase, SUPABASE_CONFIGURED } from '@/lib/supabase'
 import { useNavigate } from 'react-router-dom'
 
 export default function Login() {
-  const [mode,     setMode]     = useState<'login'|'register'>('login')
-  const [email,    setEmail]    = useState('')
-  const [password, setPassword] = useState('')
-  const [error,    setError]    = useState('')
-  const [loading,  setLoading]  = useState(false)
+  const [mode, setMode]     = useState<'login'|'register'>('login')
+  const [email, setEmail]   = useState('')
+  const [pw, setPw]         = useState('')
+  const [err, setErr]       = useState('')
+  const [msg, setMsg]       = useState('')
+  const [busy, setBusy]     = useState(false)
   const nav = useNavigate()
 
   if (!SUPABASE_CONFIGURED) { nav('/'); return null }
 
   async function submit(e: React.FormEvent) {
-    e.preventDefault(); setError(''); setLoading(true)
+    e.preventDefault(); setErr(''); setMsg(''); setBusy(true)
     try {
       if (mode === 'login') {
-        const { error: err } = await supabase.auth.signInWithPassword({ email, password })
-        if (err) throw err; nav('/')
+        const { error } = await supabase.auth.signInWithPassword({ email, password: pw })
+        if (error) throw error
+        nav('/')
       } else {
-        const { error: err } = await supabase.auth.signUp({ email, password })
-        if (err) throw err
-        setMode('login'); setError('Account created — sign in now.')
+        const { error } = await supabase.auth.signUp({ email, password: pw })
+        if (error) throw error
+        setMsg('Account created — sign in now.')
+        setMode('login')
       }
-    } catch (err: any) { setError(err.message ?? 'Auth error') }
-    finally { setLoading(false) }
+    } catch (e: any) { setErr(e.message ?? 'Error') }
+    finally { setBusy(false) }
   }
 
   return (
-    <div className="auth-layout">
-      {/* LEFT — editorial brand */}
-      <div className="auth-brand-col">
-        <div className="auth-brand-grid" />
-        <div className="auth-brand-content">
-          <div className="auth-brand-dateline">
-            FORBINDEN // GRAPH-BASED CODE IDE // OPERATOR TERMINAL
+    <div className="auth-shell">
+      {/* LEFT */}
+      <div className="auth-left">
+        <div className="auth-left-bg" />
+        <div className="auth-left-glow" />
+        <div className="auth-left-content">
+          <div className="auth-eyebrow">GRAPH-BASED CODE IDE // OPERATOR PORTAL</div>
+          <div className="auth-bigtext">
+            FOR<span className="g">BID</span><br/>DEN
           </div>
-          <div className="auth-brand-headline">
-            FOR<span className="r">BIN</span><br/>DEN
-          </div>
-          <div className="auth-brand-tagline">
-            Code in nodes. Link functions.<br/>
-            Push real Git. Collaborate live.
-          </div>
-          <div className="auth-feature-list">
-            {['Node-based code graph', 'Real Git integration', 'Kanban board', 'Live WebSocket sync'].map(f => (
-              <div key={f} className="auth-feature-row">
-                <span className="auth-feature-dot" />
-                <span>{f}</span>
-              </div>
+          <div className="auth-features">
+            {['Node-based code graph', 'Real Git integration', 'Live WebSocket sync', 'Kanban task board'].map(f => (
+              <div key={f} className="auth-feat">{f}</div>
             ))}
           </div>
         </div>
-        <div className="auth-brand-version">
-          <span>v1.0 · ALPHA</span>
-          <span style={{marginLeft:'auto',opacity:0.4}}>GRAPH IDE // 2026</span>
+        <div className="auth-left-foot">
+          FORBINDEN // v1.0 ALPHA // GRAPH IDE 2026
         </div>
       </div>
 
-      {/* RIGHT — form */}
-      <div className="auth-form-col">
+      {/* RIGHT */}
+      <div className="auth-right">
         <div className="auth-form">
           <div>
-            <div className="auth-eyebrow">OPERATOR PORTAL</div>
-            <div className="auth-title">
-              {mode === 'login' ? <>SIGN <span className="accent">IN</span></> : <>JOIN <span className="accent">US</span></>}
+            <div className="auth-form-title">OPERATOR AUTH</div>
+            <div className="auth-form-head">
+              {mode === 'login' ? <>SIGN <span style={{color:'var(--green)'}}>IN</span></> : <>JOIN <span style={{color:'var(--green)'}}>US</span></>}
             </div>
-            <div className="auth-subtitle">FORBINDEN GRAPH IDE · {mode === 'login' ? 'AUTHENTICATE' : 'CREATE ACCOUNT'}</div>
           </div>
 
-          <form onSubmit={submit} style={{display:'flex',flexDirection:'column',gap:14}}>
-            <div className="input-group">
-              <label className="input-label">EMAIL ADDRESS</label>
+          <form onSubmit={submit} style={{display:'flex',flexDirection:'column',gap:12}}>
+            <div>
+              <label className="label">EMAIL</label>
               <input className="input" type="email" placeholder="operator@domain.com"
                 value={email} onChange={e => setEmail(e.target.value)} required />
             </div>
-            <div className="input-group">
-              <label className="input-label">PASSWORD</label>
+            <div>
+              <label className="label">PASSWORD</label>
               <input className="input" type="password" placeholder="••••••••"
-                value={password} onChange={e => setPassword(e.target.value)} required />
+                value={pw} onChange={e => setPw(e.target.value)} required />
             </div>
-            {error && (
-              <div className={`auth-message ${error.includes('created') ? 'success' : 'error'}`}>
-                {error}
-              </div>
-            )}
-            <button className="btn btn-primary" type="submit" disabled={loading}>
-              {loading ? 'AUTHENTICATING...' : mode === 'login' ? 'ENTER SYSTEM' : 'CREATE ACCOUNT'}
+            {err && <div className="auth-msg err">{err}</div>}
+            {msg && <div className="auth-msg ok">{msg}</div>}
+            <button className="btn btn-primary" type="submit" disabled={busy} style={{marginTop:4}}>
+              {busy ? 'AUTHENTICATING...' : mode === 'login' ? 'ENTER SYSTEM' : 'CREATE ACCOUNT'}
             </button>
           </form>
 
-          <button className="btn btn-ghost" style={{fontSize:10}}
-            onClick={() => { setMode(m => m === 'login' ? 'register' : 'login'); setError('') }}>
-            {mode === 'login' ? 'No account? Register →' : '← Back to sign in'}
+          <div className="divider" />
+
+          <button className="btn" style={{fontSize:9}} onClick={() => { setMode(m => m==='login'?'register':'login'); setErr(''); setMsg('') }}>
+            {mode === 'login' ? '→ Create an account' : '← Back to sign in'}
           </button>
+
+          <div style={{fontSize:9,color:'var(--text3)',textAlign:'center'}}>
+            FORBINDEN // GRAPH IDE
+          </div>
         </div>
       </div>
     </div>
