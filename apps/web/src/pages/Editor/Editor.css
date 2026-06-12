@@ -1,0 +1,222 @@
+/* Editor.css — Ephemeral 2.1 specific editor styles */
+
+.editor-status-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 14px;
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.git-tag {
+  font-family: var(--font);
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 3px;
+  border: 1px solid;
+}
+.git-tag.branch {
+  color: var(--gold);
+  border-color: var(--gold);
+  background: var(--gold-d);
+}
+.git-tag.dirty {
+  color: var(--red);
+  border-color: var(--red);
+  background: var(--red-d);
+}
+
+.panel-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.panel-header {
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.code-filename {
+  font-family: var(--font);
+  font-size: 11px;
+  color: var(--gold);
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.code-editor-wrap {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.empty-state {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  text-align: center;
+  padding: 32px;
+}
+
+.empty-state .empty-icon {
+  font-size: 48px;
+  opacity: 0.15;
+  line-height: 1;
+}
+
+.empty-state .empty-title {
+  font-size: 13px;
+  letter-spacing: 3px;
+  color: var(--text3);
+  font-weight: 700;
+}
+
+.empty-state .empty-sub {
+  font-size: 11px;
+  color: var(--text3);
+  font-family: var(--font);
+}
+
+/* Git Panel */
+.git-input-row {
+  padding: 12px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  gap: 8px;
+}
+
+.git-commit {
+  padding: 12px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  gap: 12px;
+}
+
+.commit-hash {
+  font-family: var(--font);
+  font-size: 11px;
+  color: var(--green);
+  font-weight: 700;
+}
+
+.commit-info {
+  flex: 1;
+  overflow: hidden;
+}
+
+.commit-msg {
+  font-size: 11px;
+  color: var(--white);
+  margin-bottom: 4px;
+}
+
+.commit-meta {
+  font-size: 9px;
+  color: var(--text3);
+  letter-spacing: 1px;
+}
+
+/* Board Panel */
+.board-container {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.board-col {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.board-col-header {
+  padding: 10px 14px;
+  background: rgba(0,0,0,0.2);
+  border-bottom: 1px solid var(--border);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.board-col-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.board-col-count {
+  margin-left: auto;
+  color: var(--text3);
+  font-size: 9px;
+}
+
+.board-col-cards {
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.board-card {
+  background: var(--bg);
+  border: 1px solid var(--border2);
+  padding: 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.board-card:hover {
+  border-color: var(--green);
+}
+
+.board-card-title {
+  font-size: 11px;
+  color: var(--text2);
+  margin-bottom: 8px;
+}
+
+.board-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.priority-tag {
+  font-size: 8px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  border: 1px solid;
+  text-transform: uppercase;
+}
+.priority-tag.p-high { color: var(--red); border-color: var(--red); }
+.priority-tag.p-medium { color: var(--gold); border-color: var(--gold); }
+.priority-tag.p-low { color: var(--green); border-color: var(--green); }
+
+.board-tag {
+  font-size: 8px;
+  padding: 2px 6px;
+  background: var(--bg3);
+  color: var(--text3);
+  border-radius: 3px;
+}
