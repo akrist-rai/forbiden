@@ -12,7 +12,12 @@ let _db: PostgresJsDatabase<Schema> | null = null;
 function initDb(): PostgresJsDatabase<Schema> | null {
   const connectionString = process.env.DATABASE_URL;
   if (!connectionString) return null;
-  const queryClient = postgres(connectionString, { max: 10, ssl: 'require' });
+  const queryClient = postgres(connectionString, {
+    max: 10,
+    ssl: 'require',
+    // Force IPv4 — Supabase resolves to IPv6 on some hosts but only IPv4 is reachable
+    connection: { family: 4 } as any,
+  });
   return drizzle(queryClient, { schema });
 }
 

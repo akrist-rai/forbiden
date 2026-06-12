@@ -21,7 +21,7 @@ export interface AuthState {
 export async function requireAuth(ctx: Koa.Context, next: Koa.Next) {
   // Dev bypass takes priority over everything
   if (DEV_AUTH_BYPASS || !SUPABASE_JWT_SECRET) {
-    ctx.state.auth = { userId: 'dev-user-00000000', email: 'dev@forbinden.local' };
+    ctx.state.auth = { userId: '00000000-0000-0000-0000-000000000001', email: 'dev@forbinden.local' };
     return next();
   }
 
