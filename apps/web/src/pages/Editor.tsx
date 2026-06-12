@@ -20,7 +20,7 @@ interface DbEdge { id: string; source: string; target: string }
 interface GitStatus { branch?: string; staged?: string[]; modified?: string[]; untracked?: string[]; clean?: boolean }
 interface Commit { hash: string; short: string; message: string; authorName: string; date: string; lane: number; refs: string[] }
 
-const MANGA_SIDEBAR = ['/assets/killua.jpeg', '/assets/reze.jpeg', '/assets/inumaki.jpeg', '/assets/monster.jpeg']
+
 
 export default function Editor() {
   const { wsId } = useParams<{ wsId: string }>()
@@ -144,7 +144,7 @@ export default function Editor() {
     loadGit()
   }
 
-  const sidebarImg = MANGA_SIDEBAR[Math.floor(Date.now() / 1000) % MANGA_SIDEBAR.length]
+
 
   return (
     <div className="app-layout">
@@ -175,11 +175,9 @@ export default function Editor() {
 
       {/* ── LEFT SIDEBAR ── */}
       <div className="sidebar">
-        {/* Manga image strip */}
-        <div className="manga-splash" style={{height:180}}>
-          <img src={sidebarImg} alt="manga" />
-          <div className="manga-splash-overlay" />
-          <div className="manga-splash-text">GRAPH<br/>IDE</div>
+        <div className="sidebar-brand">
+          <div className="sidebar-brand-logo">FOR<span className="accent">BIN</span>DEN</div>
+          <div className="sidebar-brand-sub">GRAPH IDE</div>
         </div>
 
         <div className="section-label">PANELS</div>
@@ -277,10 +275,13 @@ export default function Editor() {
                 />
               </>
             ) : (
-              <div style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:12}}>
-                <img src="/assets/badges.png" alt="badges" style={{width:180,opacity:0.5,filter:'grayscale(1)'}} />
-                <div style={{fontFamily:'var(--font-title)',fontSize:14,letterSpacing:3,color:'var(--text-3)'}}>
-                  DOUBLE-CLICK A NODE
+              <div style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:16}}>
+                <div style={{fontSize:48,opacity:0.15}}>⬡</div>
+                <div style={{fontFamily:'var(--font-title)',fontSize:13,letterSpacing:3,color:'var(--text-3)'}}>
+                  SELECT A NODE
+                </div>
+                <div style={{fontSize:11,color:'var(--text-3)',fontFamily:'var(--font-mono)'}}>
+                  double-click any node on the canvas
                 </div>
               </div>
             )}

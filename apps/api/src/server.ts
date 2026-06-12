@@ -4,6 +4,7 @@ import cors       from '@koa/cors';
 import bodyParser from 'koa-bodyparser';
 import { createServer }  from 'node:http';
 import { attach }        from './ws/manager.ts';
+import { isDbConfigured } from './db/index.ts';
 import workspacesRouter  from './routes/workspaces.ts';
 import nodesRouter       from './routes/nodes.ts';
 import gitRouter         from './routes/git.ts';
@@ -44,7 +45,7 @@ app.use(bodyParser({ jsonLimit: '5mb', enableTypes: ['json', 'form', 'text'] }))
 // ── Health check ─────────────────────────────────────────────────────────────
 app.use(async (ctx, next) => {
   if (ctx.path === '/api/health') {
-    ctx.body = { status: 'ok', ts: Date.now(), version: '1.0.0' };
+    ctx.body = { status: 'ok', ts: Date.now(), version: '1.0.0', db: isDbConfigured() };
     return;
   }
   await next();

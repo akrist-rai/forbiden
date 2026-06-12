@@ -1,7 +1,7 @@
-// src/App.tsx — Router + auth guard
+// src/App.tsx — Router + auth guard with offline-mode support
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useEffect, useState } from 'react'
-import { supabase } from '@/lib/supabase'
+import { supabase, SUPABASE_CONFIGURED } from '@/lib/supabase'
 import Login from '@/pages/Login'
 import Dashboard from '@/pages/Dashboard'
 import Editor from '@/pages/Editor'
@@ -11,6 +11,12 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
   const [authed,   setAuthed]   = useState(false)
 
   useEffect(() => {
+    if (!SUPABASE_CONFIGURED) {
+      // Offline/demo mode — skip auth
+      setAuthed(true)
+      setChecking(false)
+      return
+    }
     supabase.auth.getSession().then(({ data }) => {
       setAuthed(!!data.session)
       setChecking(false)
@@ -22,11 +28,11 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
   }, [])
 
   if (checking) return (
-    <div style={{height:'100vh',display:'flex',alignItems:'center',justifyContent:'center',flexDirection:'column',gap:16}}>
-      <div style={{fontFamily:'var(--font-title)',fontSize:32,letterSpacing:8,color:'var(--text-2)'}}>
-        FOR<span style={{color:'var(--red)'}}>BIN</span>DEN
+    <div style={{height:'100vh',display:'flex',alignItems:'center',justifyContent:'center',flexDirection:'column',gap:16,background:'#0a0a0f'}}>
+      <div style={{fontFamily:'\'Bebas Neue\', sans-serif',fontSize:32,letterSpacing:8,color:'#e8e8f0'}}>
+        FOR<span style={{color:'#e8003a'}}>BIN</span>DEN
       </div>
-      <div style={{width:40,height:2,background:'var(--red)',animation:'loading 1s ease-in-out infinite alternate'}} />
+      <div style={{width:40,height:2,background:'#e8003a',animation:'loading 1s ease-in-out infinite alternate'}} />
       <style>{`@keyframes loading { from { width:20px } to { width:80px } }`}</style>
     </div>
   )
