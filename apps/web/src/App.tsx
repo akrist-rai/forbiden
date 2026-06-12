@@ -6,20 +6,18 @@ import Login from '@/pages/Login'
 import Dashboard from '@/pages/Dashboard'
 import Editor from '@/pages/Editor'
 
+const DEV_BYPASS = import.meta.env.VITE_DEV_BYPASS_AUTH === 'true'
+
 function AuthGuard({ children }: { children: React.ReactNode }) {
   const [checking, setChecking] = useState(true)
   const [authed,   setAuthed]   = useState(false)
 
   useEffect(() => {
-    if (!SUPABASE_CONFIGURED) {
-      // Offline/demo mode — skip auth
-      setAuthed(true)
-      setChecking(false)
-      return
+    if (DEV_BYPASS || !SUPABASE_CONFIGURED) {
+      setAuthed(true); setChecking(false); return
     }
     supabase.auth.getSession().then(({ data }) => {
-      setAuthed(!!data.session)
-      setChecking(false)
+      setAuthed(!!data.session); setChecking(false)
     })
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
       setAuthed(!!session)

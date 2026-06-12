@@ -1,11 +1,10 @@
-// src/pages/Dashboard.tsx — Workspace picker, graceful API error state
+// src/pages/Dashboard.tsx — Editorial masthead + workspace grid
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '@/lib/api'
 import { supabase, SUPABASE_CONFIGURED } from '@/lib/supabase'
 
 interface Workspace { id: string; name: string; theme: string; createdAt: string; updatedAt: string }
-
 type ApiState = 'loading' | 'offline' | 'no-db' | 'ok' | 'error'
 
 export default function Dashboard() {
@@ -18,24 +17,15 @@ export default function Dashboard() {
 
   useEffect(() => {
     async function boot() {
-      // 1. Check API health
       try {
         const health = await fetch('/api/health').then(r => r.json()).catch(() => null)
         if (!health) { setApiState('offline'); return }
         if (!health.db) { setApiState('no-db'); return }
-      } catch {
-        setApiState('offline'); return
-      }
-
-      // 2. Load workspaces
+      } catch { setApiState('offline'); return }
       try {
         const data = await api.get<Workspace[]>('/api/workspaces')
-        setWorkspaces(data)
-        setApiState('ok')
-      } catch (e: any) {
-        setApiMsg(e.message ?? 'Failed to load workspaces')
-        setApiState('error')
-      }
+        setWorkspaces(data); setApiState('ok')
+      } catch (e: any) { setApiMsg(e.message ?? 'Failed'); setApiState('error') }
     }
     boot()
   }, [])
@@ -47,9 +37,7 @@ export default function Dashboard() {
       setWorkspaces(prev => [ws, ...prev])
       setNewName(''); setCreating(false)
       nav(`/editor/${ws.id}`)
-    } catch (e: any) {
-      setApiMsg(e.message)
-    }
+    } catch (e: any) { setApiMsg(e.message) }
   }
 
   async function signOut() {
@@ -57,108 +45,118 @@ export default function Dashboard() {
     nav('/login')
   }
 
+  const statusDot = apiState === 'ok' ? 'green' : (apiState === 'loading' ? 'yellow' : 'red')
+  const statusText = {
+    loading: 'CONNECTING TO API...',
+    ok:      'SYSTEM ONLINE',
+    offline: 'API OFFLINE — run npm run dev',
+    'no-db': 'DB NOT CONFIGURED — set DATABASE_URL in apps/api/.env',
+    error:   `ERROR: ${apiMsg}`,
+  }[apiState]
+
   return (
     <div className="dashboard-layout">
-      {/* TOP BAR */}
+      {/* Topbar */}
       <div className="topbar">
         <div className="topbar-logo">FOR<span className="accent">BIN</span>DEN</div>
-        <div className="topbar-badge">v1.0</div>
+        <div className="topbar-badge">GRAPH IDE</div>
         <div className="topbar-actions">
           {SUPABASE_CONFIGURED && (
-            <button className="btn btn-ghost" style={{fontSize:10}} onClick={signOut}>SIGN OUT</button>
+            <button className="btn btn-ghost" style={{fontSize:9}} onClick={signOut}>SIGN OUT</button>
           )}
         </div>
       </div>
 
-      {/* HERO */}
-      <div className="dashboard-hero">
-        <div className="hero-grid-bg" />
-        <div className="dashboard-hero-content">
-          <div className="dashboard-hero-eyebrow">GRAPH-BASED CODE IDE</div>
-          <div className="dashboard-hero-title">FOR<span className="accent">BIN</span>DEN</div>
-          <div className="dashboard-hero-subtitle">Code in nodes. Link functions. Push real Git.</div>
+      {/* Masthead — editorial poster style */}
+      <div className="dashboard-masthead">
+        <div className="masthead-left">
+          <div className="masthead-issue">ISSUE №001 // GRAPH IDE // 2026</div>
+          <div className="masthead-title">FOR<span className="accent">BIN</span>DEN</div>
+          <div className="masthead-sub">禁断のグラフIDE · CODE IN NODES · LINK FUNCTIONS · PUSH REAL GIT</div>
         </div>
-        <div className="hero-status-row">
-          <span className={`status-dot ${apiState === 'ok' ? 'green' : apiState === 'offline' || apiState === 'no-db' ? 'red' : 'yellow'}`} />
-          <span className="status-label">
-            {apiState === 'loading' && 'CONNECTING...'}
-            {apiState === 'ok'      && 'API ONLINE'}
-            {apiState === 'offline' && 'API OFFLINE — start the backend'}
-            {apiState === 'no-db'   && 'API UP · DB NOT CONFIGURED — set DATABASE_URL in apps/api/.env'}
-            {apiState === 'error'   && `ERROR: ${apiMsg}`}
-          </span>
+        <div className="masthead-right">
+          <div className="masthead-stat">
+            <div className="masthead-stat-num">{workspaces.length.toString().padStart(2,'0')}</div>
+            <div className="masthead-stat-label">WORKSPACES</div>
+          </div>
         </div>
       </div>
 
-      {/* CONTENT */}
+      {/* Status bar */}
+      <div className="status-bar">
+        <span className={`status-dot ${statusDot}`} />
+        <span className="status-label">{statusText}</span>
+        <span className="status-sep">·</span>
+        <span>API localhost:3001</span>
+        <span className="status-sep">·</span>
+        <span>WS localhost:3001/ws</span>
+      </div>
+
+      {/* Content */}
       <div className="dashboard-content">
-        {/* Setup banner when no DB */}
         {(apiState === 'offline' || apiState === 'no-db') && (
-          <div className="setup-banner">
+          <div className="setup-banner" style={{marginBottom:20}}>
             <div className="setup-banner-icon">{apiState === 'offline' ? '⚡' : '🗄️'}</div>
             <div>
               <div className="setup-banner-title">
-                {apiState === 'offline' ? 'Backend not running' : 'Database not configured'}
+                {apiState === 'offline' ? 'BACKEND NOT RUNNING' : 'DATABASE NOT CONFIGURED'}
               </div>
               <div className="setup-banner-body">
                 {apiState === 'offline'
-                  ? 'Run `npm run dev` from the project root to start both API and web.'
-                  : 'Copy `.env.example` → `apps/api/.env` and fill in your Supabase `DATABASE_URL`, then restart the API.'}
+                  ? 'Run `npm run dev` from project root to start API + web servers.'
+                  : 'Copy `.env.example` → `apps/api/.env`, fill in your Supabase DATABASE_URL, then restart.'}
               </div>
             </div>
           </div>
         )}
 
-        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}}>
-          <div className="section-label" style={{padding:0}}>WORKSPACES</div>
+        <div className="dashboard-section-row">
+          <div className="dashboard-section-title">WORKSPACES</div>
           {apiState === 'ok' && (
-            <button className="btn btn-primary" onClick={() => setCreating(v => !v)}>+ NEW</button>
+            <button className="btn btn-primary" style={{fontSize:10}} onClick={() => setCreating(v => !v)}>
+              + NEW WORKSPACE
+            </button>
           )}
         </div>
 
         {creating && (
           <div style={{display:'flex',gap:8,marginBottom:16}}>
-            <input
-              className="input"
-              placeholder="workspace name"
-              value={newName}
+            <input className="input" placeholder="workspace name" value={newName}
               onChange={e => setNewName(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && createWs()}
-              autoFocus
-              style={{maxWidth:320}}
-            />
+              onKeyDown={e => e.key === 'Enter' && createWs()} autoFocus style={{maxWidth:280}} />
             <button className="btn btn-primary" onClick={createWs}>CREATE</button>
             <button className="btn btn-ghost" onClick={() => setCreating(false)}>✕</button>
           </div>
         )}
 
         <div className="dashboard-grid">
-          {workspaces.map(ws => (
+          {workspaces.map((ws, i) => (
             <div key={ws.id} className="ws-card" onClick={() => nav(`/editor/${ws.id}`)}>
-              <div className="ws-card-accent" />
+              <div className="ws-card-num">{String(i+1).padStart(2,'0')}</div>
               <div className="ws-card-name">{ws.name}</div>
               <div className="ws-card-meta">
-                <span>{ws.id.slice(0, 14)}…</span>
+                <span style={{fontFamily:'var(--font-mono)',fontSize:9}}>{ws.id.slice(0,12)}…</span>
                 <span>{new Date(ws.updatedAt).toLocaleDateString()}</span>
               </div>
               <div className="ws-card-arrow">→</div>
             </div>
           ))}
-
           {apiState === 'ok' && (
             <div className="ws-card-new" onClick={() => setCreating(true)}>
-              <span className="ws-card-new-icon">+</span>
-              <span>NEW WORKSPACE</span>
+              <div className="ws-card-new-icon">+</div>
+              <div>NEW WORKSPACE</div>
             </div>
           )}
         </div>
 
         {apiState === 'ok' && workspaces.length === 0 && (
-          <div className="empty-state">
+          <div className="empty-state" style={{marginTop:32}}>
             <div className="empty-state-icon">⬡</div>
-            <div className="empty-state-title">NO WORKSPACES</div>
+            <div className="empty-state-title">NO WORKSPACES YET</div>
             <div className="empty-state-sub">Create your first workspace to start coding in the graph.</div>
-            <button className="btn btn-primary" style={{marginTop:16}} onClick={() => setCreating(true)}>+ CREATE WORKSPACE</button>
+            <button className="btn btn-primary" style={{marginTop:16}} onClick={() => setCreating(true)}>
+              + CREATE WORKSPACE
+            </button>
           </div>
         )}
       </div>
