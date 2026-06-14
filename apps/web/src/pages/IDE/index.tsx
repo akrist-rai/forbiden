@@ -1040,70 +1040,65 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
         <div style={{width:'100vw',height:'100vh',padding:'0px',backgroundColor:outerBg,transition:'background 0.4s',boxSizing:'border-box'}}>
           <div className={wrapperClass}>
 
-            {/* HEADER */}
-            <div className="app-header">
-              {/* LEFT: brand + breadcrumb */}
-              <div style={{display:'flex',alignItems:'center',gap:'20px'}}>
-                <div className="hdr-brand">
-                  <I.Zap />
-                  FORBINDEN
-                </div>
-                <div style={{width:'1px',height:'18px',background:'rgba(128,128,128,0.2)'}}/>
-                <div className="hdr-breadcrumb">
-                  <span style={{opacity:0.3}}>workspace</span>
-                  <span style={{opacity:0.2}}>/</span>
-                  {activeTabNode
-                    ? <><span style={{color:AVATAR_ACCENTS[activeTabNode.themeIdx%AVATAR_ACCENTS.length],opacity:0.9}}>{activeTabNode.label}</span><span style={{opacity:0.3,fontSize:'9px',marginLeft:'4px'}}>{activeTabNode.type}</span></>
-                    : <span style={{opacity:0.25}}>no file open</span>
-                  }
-                </div>
+            {/* HEADER — Ephemeral-style nav */}
+            <style>{`
+              @keyframes fblink { 50% { opacity:0; } }
+              @keyframes fpulse { 50% { opacity:0.25; } }
+            `}</style>
+            <div style={{
+              display:'flex', alignItems:'center', padding:'0 1.2rem', height:'52px', flexShrink:0,
+              background:'rgba(3,3,8,0.95)', backdropFilter:'blur(16px)',
+              borderBottom:'1px solid rgba(255,42,56,0.2)',
+              boxShadow:'0 2px 20px rgba(0,0,0,0.7)',
+              zIndex:20, fontFamily:"'Share Tech Mono','JetBrains Mono',monospace",
+            }}>
+              {/* LOGO */}
+              <div style={{fontFamily:"'Bebas Neue','Outfit',sans-serif",fontSize:'1.25rem',letterSpacing:'0.22em',color:'#f5f2eb',lineHeight:1,marginRight:'1.2rem',flexShrink:0}}>
+                FOR<span style={{color:'#ff2a38'}}>BID</span>DEN<span style={{color:'#ff2a38',animation:'fblink 1s infinite'}}>_</span>
               </div>
-
-              {/* CENTER: live stats */}
-              <div style={{display:'flex',alignItems:'center',gap:'18px',fontSize:'10px'}}>
-                <span style={{opacity:0.35,display:'flex',gap:'6px',alignItems:'center'}}>
-                  <span style={{width:'5px',height:'5px',borderRadius:'50%',background:'#10b981',display:'inline-block',boxShadow:'0 0 5px #10b981'}}/>
-                  {nodeCount} nodes
+              <div style={{width:'1px',height:'20px',background:'rgba(255,42,56,0.2)',marginRight:'1.2rem'}}/>
+              {/* Breadcrumb */}
+              <div style={{display:'flex',alignItems:'center',gap:'6px',fontSize:'0.5rem',color:'#8a8aaa',letterSpacing:'0.1em',flex:1,minWidth:0,overflow:'hidden'}}>
+                <span style={{color:'rgba(255,255,255,0.18)',flexShrink:0}}>workspace</span>
+                <span style={{color:'rgba(255,42,56,0.3)',flexShrink:0}}>/</span>
+                {activeTabNode
+                  ? <><span style={{color:AVATAR_ACCENTS[activeTabNode.themeIdx%AVATAR_ACCENTS.length],overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{activeTabNode.label}</span><span style={{opacity:0.3,marginLeft:'6px',flexShrink:0}}>{activeTabNode.type}</span></>
+                  : <span style={{opacity:0.18}}>no file open</span>
+                }
+              </div>
+              {/* Center stats */}
+              <div style={{display:'flex',alignItems:'center',gap:'1rem',fontSize:'0.44rem',color:'#8a8aaa',letterSpacing:'0.1em',marginRight:'1.2rem',flexShrink:0}}>
+                <span style={{display:'flex',alignItems:'center',gap:'4px'}}>
+                  <span style={{width:'5px',height:'5px',borderRadius:'50%',background:'#00ff55',display:'inline-block',animation:'fpulse 2s infinite'}}/>
+                  {nodeCount} NODES
                 </span>
-                <span style={{opacity:0.25}}>·</span>
-                <span style={{opacity:0.35}}>{edgesRef.current.length} edges</span>
-                <span style={{opacity:0.25}}>·</span>
-                <span style={{opacity:0.35}}>{groupsRef.current.length} groups</span>
+                <span style={{color:'rgba(255,255,255,0.1)'}}>|</span>
+                <span>{edgesRef.current.length} EDGES</span>
                 {modifiedNodes.length>0 && <>
-                  <span style={{opacity:0.25}}>·</span>
-                  <span style={{color:'#ffc410',opacity:0.8}}>{modifiedNodes.length} unsaved</span>
+                  <span style={{color:'rgba(255,255,255,0.1)'}}>|</span>
+                  <span style={{color:'#ccff00'}}>{modifiedNodes.length} UNSAVED</span>
                 </>}
               </div>
-
-              {/* RIGHT: actions */}
-              <div style={{display:'flex',gap:'6px',alignItems:'center'}}>
-                {/* New node */}
+              {/* Right actions */}
+              <div style={{display:'flex',gap:'0.5rem',alignItems:'center',flexShrink:0}}>
                 <button
-                  className="btn hdr-pill"
-                  style={{display:'flex',alignItems:'center',gap:'6px'}}
                   onClick={()=>setShowCreateNode(true)}
-                  title="Create file node (N)"
+                  style={{background:'transparent',border:'1px solid rgba(255,42,56,0.35)',color:'#ff2a38',padding:'0.22rem 0.65rem',fontFamily:"'Share Tech Mono',monospace",fontSize:'0.44rem',letterSpacing:'0.12em',cursor:'pointer',transition:'all 0.2s',textTransform:'uppercase'}}
+                  onMouseEnter={e=>{e.currentTarget.style.background='rgba(255,42,56,0.08)';}}
+                  onMouseLeave={e=>{e.currentTarget.style.background='transparent';}}
+                >+ NODE</button>
+                <button
+                  onClick={()=>setShowCmd(true)}
+                  style={{background:'transparent',border:'1px solid rgba(255,255,255,0.08)',color:'#8a8aaa',padding:'0.22rem 0.65rem',fontFamily:"'Share Tech Mono',monospace",fontSize:'0.44rem',letterSpacing:'0.12em',cursor:'pointer',transition:'all 0.2s'}}
+                  onMouseEnter={e=>{e.currentTarget.style.color='#f5f2eb';}}
+                  onMouseLeave={e=>{e.currentTarget.style.color='#8a8aaa';}}
+                >⌘P</button>
+                {/* Avatar — real JPEG photo */}
+                <div
+                  onClick={()=>setSidebarMode(s=>s==='settings'?null:'settings')}
+                  style={{cursor:'pointer',width:'30px',height:'30px',border:`1px solid ${sidebarMode==='settings'?'#ff2a38':'rgba(255,255,255,0.1)'}`,overflow:'hidden',transition:'border-color 0.2s',flexShrink:0}}
                 >
-                  <span style={{fontSize:'12px'}}>＋</span>
-                  <span>NODE</span>
-                </button>
-                {/* Theme toggle */}
-                <button className="btn hdr-pill" onClick={()=>setThemeMode(t=>t==='cyber'?'brutal':'cyber')}
-                  title="Toggle theme">
-                  {themeMode==='cyber'
-                    ? <><span style={{opacity:0.5,marginRight:'4px'}}>◐</span>OBSIDIAN</>
-                    : <><span style={{opacity:0.5,marginRight:'4px'}}>◑</span>FORSAKEN</>
-                  }
-                </button>
-                <div style={{width:'1px',height:'18px',background:'rgba(128,128,128,0.15)'}}/>
-                {/* Command palette */}
-                <button className="btn hdr-pill" style={{display:'flex',alignItems:'center',gap:'5px'}} onClick={()=>setShowCmd(true)}>
-                  <I.Cmd />
-                  <span style={{opacity:0.5}}>⌘P</span>
-                </button>
-                {/* Avatar / workspace */}
-                <div style={{cursor:'pointer',display:'flex',alignItems:'center',padding:'2px',border:`1px solid ${sidebarMode==='settings'?'rgba(128,128,128,0.4)':'rgba(128,128,128,0.12)'}`,borderRadius:'50%',transition:'border-color 0.2s'}} onClick={()=>setSidebarMode(s=>s==='settings'?null:'settings')}>
-                  <CyberAvatar index={avatarIndex} size={24}/>
+                  <img src={`/avatars/0xAV0${String((avatarIndex%6)+1).padStart(2,'0')}s.jpeg`} alt="op" style={{width:'100%',height:'100%',objectFit:'cover'}}/>
                 </div>
               </div>
             </div>
@@ -2157,44 +2152,24 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
                 <div style={{fontSize:'0.52rem', color:'#ff2a38', letterSpacing:'0.18em', marginBottom:'0.8rem', fontWeight:700}}>
                   02 // INITIALIZE ENGINE
                 </div>
-                <div style={{display:'flex', gap:'0.8rem'}}>
-                  <button
-                    disabled={avatar === null}
-                    onClick={() => setTheme('cyber')}
-                    style={{
-                      flex:1, padding:'1.1rem 0.8rem',
-                      background:'transparent',
-                      border:'1px solid rgba(255,42,56,0.4)',
-                      color:'#ff2a38', cursor:'pointer',
-                      fontFamily:"'Share Tech Mono',monospace",
-                      letterSpacing:'0.18em', textTransform:'uppercase',
-                      transition:'all 0.2s', display:'flex', flexDirection:'column', alignItems:'center', gap:'0.4rem',
-                    }}
-                    onMouseEnter={e => { e.currentTarget.style.background='rgba(255,42,56,0.06)'; e.currentTarget.style.boxShadow='0 0 30px rgba(255,42,56,0.18)'; }}
-                    onMouseLeave={e => { e.currentTarget.style.background='transparent'; e.currentTarget.style.boxShadow='none'; }}
-                  >
-                    <span style={{fontFamily:"'Bebas Neue',sans-serif", fontSize:'1.6rem', letterSpacing:'0.2em', lineHeight:1}}>FORSAKEN</span>
-                    <span style={{fontSize:'0.46rem', opacity:0.5}}>DARK / CYBERPUNK</span>
-                  </button>
-                  <button
-                    disabled={avatar === null}
-                    onClick={() => setTheme('brutal')}
-                    style={{
-                      flex:1, padding:'1.1rem 0.8rem',
-                      background:'transparent',
-                      border:'1px solid rgba(204,255,0,0.35)',
-                      color:'#ccff00', cursor:'pointer',
-                      fontFamily:"'Share Tech Mono',monospace",
-                      letterSpacing:'0.18em', textTransform:'uppercase',
-                      transition:'all 0.2s', display:'flex', flexDirection:'column', alignItems:'center', gap:'0.4rem',
-                    }}
-                    onMouseEnter={e => { e.currentTarget.style.background='rgba(204,255,0,0.05)'; e.currentTarget.style.boxShadow='0 0 30px rgba(204,255,0,0.12)'; }}
-                    onMouseLeave={e => { e.currentTarget.style.background='transparent'; e.currentTarget.style.boxShadow='none'; }}
-                  >
-                    <span style={{fontFamily:"'Bebas Neue',sans-serif", fontSize:'1.6rem', letterSpacing:'0.2em', lineHeight:1}}>BRUTALIST</span>
-                    <span style={{fontSize:'0.46rem', opacity:0.5}}>LIGHT / RAW</span>
-                  </button>
-                </div>
+                <button
+                  disabled={avatar === null}
+                  onClick={() => setTheme('cyber')}
+                  style={{
+                    width:'100%', padding:'1.2rem',
+                    background:'transparent',
+                    border:'1px solid rgba(255,42,56,0.4)',
+                    color:'#ff2a38', cursor: avatar !== null ? 'pointer' : 'default',
+                    fontFamily:"'Share Tech Mono',monospace",
+                    letterSpacing:'0.18em', textTransform:'uppercase',
+                    transition:'all 0.2s', display:'flex', flexDirection:'column', alignItems:'center', gap:'0.35rem',
+                  }}
+                  onMouseEnter={e => { if(avatar !== null){ e.currentTarget.style.background='rgba(255,42,56,0.06)'; e.currentTarget.style.boxShadow='0 0 40px rgba(255,42,56,0.2)'; e.currentTarget.style.borderColor='#ff2a38'; }}}
+                  onMouseLeave={e => { e.currentTarget.style.background='transparent'; e.currentTarget.style.boxShadow='none'; e.currentTarget.style.borderColor='rgba(255,42,56,0.4)'; }}
+                >
+                  <span style={{fontFamily:"'Bebas Neue',sans-serif", fontSize:'2rem', letterSpacing:'0.25em', lineHeight:1}}>BOOT SYSTEM</span>
+                  <span style={{fontSize:'0.44rem', color:'#8a8aaa', letterSpacing:'0.2em'}}>INITIALIZE FORBINDEN // OPERATOR WORKSTATION</span>
+                </button>
               </div>
 
             </div>
