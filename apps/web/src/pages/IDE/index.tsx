@@ -1161,7 +1161,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
                 {/* Avatar / workspace settings */}
                 <div className={`strip-icon ${sidebarMode==='settings'?'active':''}`} onClick={()=>setSidebarMode(s=>s==='settings'?null:'settings')}
                   style={{borderRadius:'50%',padding:'0',border:sidebarMode==='settings'?'2px solid var(--border)':'2px solid transparent',marginBottom:'6px'}}>
-                  <img src={`/avatars/0xAV00${String((avatarIndex%6)+1).padStart(2,"0")}s.jpeg`} alt="op" style={{width:"26px",height:"26px",objectFit:"cover"}}/><div className="strip-icon-tooltip">WORKSPACE</div>
+                  <img src={`/avatars/0xAV0${String((avatarIndex%6)+1).padStart(2,"0")}s.jpeg`} alt="op" style={{width:"26px",height:"26px",objectFit:"cover"}}/><div className="strip-icon-tooltip">WORKSPACE</div>
                 </div>
               </div>
 
@@ -2139,7 +2139,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
                           background: isSel ? `${acc}08` : 'rgba(255,255,255,0.02)',
                           transition:'all 0.2s',
                         }}>
-                          <img src={`/avatars/0xAV00${String(i+1).padStart(2,'0')}s.jpeg`} alt={BOOT_AVATAR_NAMES[i]} style={{width:'68px',height:'68px',objectFit:'cover',display:'block'}}/>
+                          <img src={`/avatars/0xAV0${String(i+1).padStart(2,'0')}s.jpeg`} alt={BOOT_AVATAR_NAMES[i]} style={{width:'68px',height:'68px',objectFit:'cover',display:'block'}}/>
                           {isSel && <HudCorners color={acc} size={8} thickness={1.2}/>}
                         </div>
                         <div style={{
