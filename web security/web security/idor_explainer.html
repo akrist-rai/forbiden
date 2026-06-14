@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>IDOR Explainer</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,sans-serif;background:#0f0f11;color:#e2e2e6;padding:24px;line-height:1.6;font-size:14px}
+h1{font-size:22px;font-weight:500;margin-bottom:4px}
+.sub{color:#888;font-size:13px;margin-bottom:20px}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px}
+.tab-btn{background:none;border:1px solid #2a2a30;padding:6px 16px;border-radius:8px;cursor:pointer;font-size:13px;color:#aaa;transition:all .15s}
+.tab-btn.active{background:#1e1e26;color:#e2e2e6;border-color:#555;font-weight:500}
+.tab-panel{display:none}.tab-panel.active{display:block}
+.code{background:#13131a;border:1px solid #2a2a30;border-radius:8px;padding:12px;font-family:'Courier New',monospace;font-size:12px;line-height:1.7;color:#aaa;white-space:pre-wrap;margin:8px 0;overflow-x:auto}
+.badge{display:inline-block;font-size:11px;padding:2px 8px;border-radius:6px;font-weight:500}
+.b-red{background:#3a1515;color:#f87171}
+.b-green{background:#0f2a1a;color:#4ade80}
+.b-amber{background:#2a1d0a;color:#fbbf24}
+.b-blue{background:#0d1f3a;color:#60a5fa}
+.result-box{padding:10px 14px;border-radius:8px;font-size:13px;line-height:1.6;margin-top:8px}
+.r-red{background:#2a1010;border:1px solid #5a2020;color:#f87171}
+.r-green{background:#0d2218;border:1px solid #1a4a30;color:#4ade80}
+.r-amber{background:#2a1c08;border:1px solid #5a3a10;color:#fbbf24}
+.fix-card{background:#13131a;border-radius:8px;padding:12px 14px;margin-bottom:10px;border-left:3px solid #4ade80}
+.fix-card.info{border-left-color:#60a5fa}
+.fix-card.warn{border-left-color:#fbbf24}
+.fix-card.danger{border-left-color:#f87171}
+.step-row{display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid #1e1e26}
+.step-row:last-child{border-bottom:none}
+.snum{min-width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0}
+.snum.d{background:#3a1515;color:#f87171}
+.snum.g{background:#0f2a1a;color:#4ade80}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:580px){.grid2{grid-template-columns:1fr}}
+input,select{background:#13131a;border:1px solid #2a2a30;border-radius:8px;padding:7px 12px;color:#e2e2e6;font-size:13px;outline:none;transition:border .15s}
+input:focus,select:focus{border-color:#555}
+.mono-out{background:#13131a;border:1px solid #2a2a30;border-radius:8px;padding:12px;font-family:'Courier New',monospace;font-size:11px;line-height:1.7;min-height:130px;overflow:auto;color:#aaa}
+.id-btn{background:#13131a;border:1px solid #2a2a30;border-radius:8px;padding:5px 12px;cursor:pointer;font-family:'Courier New',monospace;font-size:12px;color:#aaa;transition:all .15s}
+.id-btn.evil{border-color:#5a2020;color:#f87171;background:#1e0c0c}
+.id-btn.mine{border-color:#1a4a30;color:#4ade80;background:#0a1e12}
+.chip{font-size:11px;color:#666;margin-bottom:4px}
+.sc-card{background:#13131a;border-radius:8px;padding:12px 14px;margin-bottom:10px}
+.sc-red{border-left:3px solid #f87171}
+.sc-amber{border-left:3px solid #fbbf24}
+.sc-blue{border-left:3px solid #60a5fa}
+</style>
+</head>
+<body>
+
+<h1>Insecure Direct Object Reference (IDOR)</h1>
+<p class="sub">OWASP Top 10 · Broken Access Control · CWE-639</p>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="showTab('concept',this)">How it works</button>
+  <button class="tab-btn" onclick="showTab('demo',this)">Live demo</button>
+  <button class="tab-btn" onclick="showTab('types',this)">IDOR types</button>
+  <button class="tab-btn" onclick="showTab('hunt',this)">Finding IDORs</button>
+  <button class="tab-btn" onclick="showTab('fix',this)">Fixes</button>
+</div>
+
+<!-- CONCEPT -->
+<div class="tab-panel active" id="tab-concept">
+  <p style="font-size:13px;color:#888;margin-bottom:16px;">IDOR happens when an app exposes a raw internal object reference (ID, filename, key) and trusts the user to only request their own data — without verifying ownership on the server.</p>
+  <svg width="100%" viewBox="0 0 680 380" style="max-width:680px;display:block;margin:0 auto 20px;">
+    <defs>
+      <marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </marker>
+    </defs>
+    <rect x="20" y="20" width="128" height="56" rx="8" fill="#2a1010" stroke="#f87171" stroke-width="0.8"/>
+    <text x="84" y="43" text-anchor="middle" font-size="13" font-weight="600" fill="#f87171" font-family="system-ui">Attacker</text>
+    <text x="84" y="62" text-anchor="middle" font-size="11" fill="#f87171" font-family="system-ui" opacity="0.8">logged in as user 42</text>
+    <rect x="275" y="20" width="128" height="56" rx="8" fill="#2a1a08" stroke="#fbbf24" stroke-width="0.8"/>
+    <text x="339" y="43" text-anchor="middle" font-size="13" font-weight="600" fill="#fbbf24" font-family="system-ui">Server</text>
+    <text x="339" y="62" text-anchor="middle" font-size="11" fill="#fbbf24" font-family="system-ui" opacity="0.8">no ownership check</text>
+    <rect x="530" y="20" width="130" height="56" rx="8" fill="#1a1a22" stroke="#555" stroke-width="0.8"/>
+    <text x="595" y="43" text-anchor="middle" font-size="13" font-weight="600" fill="#ccc" font-family="system-ui">Database</text>
+    <text x="595" y="62" text-anchor="middle" font-size="11" fill="#888" font-family="system-ui">all user records</text>
+    <line x1="150" y1="48" x2="273" y2="48" stroke="#f87171" stroke-width="1.5" marker-end="url(#arr)"/>
+    <rect x="154" y="30" width="116" height="16" rx="3" fill="#13131a"/>
+    <text x="212" y="39" text-anchor="middle" font-size="11" fill="#f87171" font-family="Courier New,monospace">GET /invoice?id=99</text>
+    <line x1="405" y1="48" x2="528" y2="48" stroke="#888" stroke-width="1" marker-end="url(#arr)"/>
+    <rect x="408" y="30" width="118" height="16" rx="3" fill="#13131a"/>
+    <text x="467" y="39" text-anchor="middle" font-size="11" fill="#888" font-family="Courier New,monospace">WHERE id = 99</text>
+    <rect x="530" y="104" width="130" height="52" rx="8" fill="#0d1f3a" stroke="#60a5fa" stroke-width="0.8"/>
+    <text x="595" y="126" text-anchor="middle" font-size="12" font-weight="600" fill="#60a5fa" font-family="system-ui">User 99 (victim)</text>
+    <text x="595" y="144" text-anchor="middle" font-size="11" fill="#60a5fa" font-family="system-ui" opacity="0.8">invoice · SSN · address</text>
+    <rect x="530" y="166" width="130" height="52" rx="8" fill="#1a1a22" stroke="#444" stroke-width="0.8"/>
+    <text x="595" y="188" text-anchor="middle" font-size="12" font-weight="600" fill="#888" font-family="system-ui">User 42 (attacker)</text>
+    <text x="595" y="206" text-anchor="middle" font-size="11" fill="#666" font-family="system-ui">own data only</text>
+    <path d="M595 104 Q595 88 340 88 Q140 88 84 170" fill="none" stroke="#f87171" stroke-width="1.5" stroke-dasharray="5 3" marker-end="url(#arr)"/>
+    <rect x="292" y="72" width="130" height="16" rx="3" fill="#13131a"/>
+    <text x="357" y="81" text-anchor="middle" font-size="11" fill="#f87171" font-family="system-ui">victim's data returned!</text>
+    <rect x="20" y="244" width="640" height="116" rx="10" fill="#13131a" stroke="#2a2a30" stroke-width="0.8"/>
+    <text x="340" y="268" text-anchor="middle" font-size="13" font-weight="600" fill="#ccc" font-family="system-ui">Why authentication alone is not enough</text>
+    <rect x="40" y="284" width="180" height="60" rx="8" fill="#0f2a1a" stroke="#4ade80" stroke-width="0.8"/>
+    <text x="130" y="306" text-anchor="middle" font-size="12" font-weight="600" fill="#4ade80" font-family="system-ui">Authentication</text>
+    <text x="130" y="322" text-anchor="middle" font-size="11" fill="#4ade80" font-family="system-ui" opacity="0.8">proves WHO you are</text>
+    <text x="130" y="337" text-anchor="middle" font-size="11" fill="#4ade80" font-family="system-ui" opacity="0.6">"you are user 42"</text>
+    <text x="278" y="318" text-anchor="middle" font-size="20" fill="#666" font-family="system-ui">≠</text>
+    <rect x="300" y="284" width="180" height="60" rx="8" fill="#2a1010" stroke="#f87171" stroke-width="0.8"/>
+    <text x="390" y="306" text-anchor="middle" font-size="12" font-weight="600" fill="#f87171" font-family="system-ui">Authorization</text>
+    <text x="390" y="322" text-anchor="middle" font-size="11" fill="#f87171" font-family="system-ui" opacity="0.8">proves WHAT you own</text>
+    <text x="390" y="337" text-anchor="middle" font-size="11" fill="#f87171" font-family="system-ui" opacity="0.6">"id=99 belongs to you?"</text>
+    <text x="587" y="312" text-anchor="middle" font-size="11" fill="#f87171" font-family="system-ui">IDOR skips</text>
+    <text x="587" y="328" text-anchor="middle" font-size="11" fill="#f87171" font-family="system-ui">this check →</text>
+  </svg>
+</div>
+
+<!-- DEMO -->
+<div class="tab-panel" id="tab-demo">
+  <p style="font-size:13px;color:#888;margin-bottom:14px;">You are logged in as <strong style="font-weight:600;color:#e2e2e6">Alice (user_id: 1001)</strong>. Request different invoice IDs to see how a vulnerable vs. secure server responds.</p>
+  <div style="margin-bottom:12px;">
+    <div class="chip">Request URL</div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px;">
+      <span style="font-family:'Courier New',monospace;font-size:12px;color:#888">GET /api/invoice?id=</span>
+      <input type="number" id="invoice-id" value="2042" min="1" style="width:90px;font-family:'Courier New',monospace;" oninput="runDemo()"/>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <button class="id-btn mine" onclick="setID(2001)">2001 — Alice's</button>
+      <button class="id-btn evil" onclick="setID(2042)">2042 — Bob's</button>
+      <button class="id-btn evil" onclick="setID(2099)">2099 — Carol's</button>
+      <button class="id-btn evil" onclick="setID(2007)">2007 — Admin</button>
+    </div>
+  </div>
+  <div class="grid2">
+    <div>
+      <div style="font-size:12px;font-weight:600;margin-bottom:6px;color:#f87171;">❌ Vulnerable server <span style="font-weight:400;color:#666;font-size:11px">— no ownership check</span></div>
+      <div class="mono-out" id="vuln-out"></div>
+    </div>
+    <div>
+      <div style="font-size:12px;font-weight:600;margin-bottom:6px;color:#4ade80;">✅ Secure server <span style="font-weight:400;color:#666;font-size:11px">— enforces ownership</span></div>
+      <div class="mono-out" id="safe-out"></div>
+    </div>
+  </div>
+  <div id="verdict" class="result-box"></div>
+</div>
+
+<!-- TYPES -->
+<div class="tab-panel" id="tab-types">
+  <div class="sc-card sc-red">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <span style="font-size:13px;font-weight:600;">① Numeric ID in URL</span><span class="badge b-red">Most common</span>
+    </div>
+    <p style="font-size:12px;color:#888;margin-bottom:6px;">Sequential integers are trivially enumerable — increment by 1 to walk all records.</p>
+    <div class="code">GET /api/orders/1042        → attacker's order
+GET /api/orders/1043        → victim's order  ← IDOR!
+GET /api/profile?user_id=99 → victim's profile</div>
+  </div>
+  <div class="sc-card sc-red">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <span style="font-size:13px;font-weight:600;">② UUID — still vulnerable without ownership check</span><span class="badge b-amber">Often missed</span>
+    </div>
+    <p style="font-size:12px;color:#888;margin-bottom:6px;">UUIDs prevent enumeration but not IDOR. If Alice gets Bob's UUID via a referral link or API leak, she can still access his record.</p>
+    <div class="code">GET /api/doc/3f2d9a1b-4e82-4c1a-a9d2-...  → Bob's doc (UUID leaked)</div>
+  </div>
+  <div class="sc-card sc-amber">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <span style="font-size:13px;font-weight:600;">③ File / path reference</span><span class="badge b-amber">Medium</span>
+    </div>
+    <p style="font-size:12px;color:#888;margin-bottom:6px;">Filename or path passed as a parameter — often combined with path traversal.</p>
+    <div class="code">GET /download?file=invoice_alice.pdf
+GET /download?file=../invoice_bob.pdf   ← Bob's file!</div>
+  </div>
+  <div class="sc-card sc-amber">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <span style="font-size:13px;font-weight:600;">④ Hidden parameter / POST body</span><span class="badge b-amber">Often overlooked</span>
+    </div>
+    <p style="font-size:12px;color:#888;margin-bottom:6px;">ID lives in a JSON/POST body, not the URL — missed by testers scanning only query strings.</p>
+    <div class="code">POST /api/update-profile
+{"user_id": 99, "email": "attacker@evil.com"}   ← tampered</div>
+  </div>
+  <div class="sc-card sc-blue">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <span style="font-size:13px;font-weight:600;">⑤ Predictable hash / indirect reference</span><span class="badge b-blue">Advanced</span>
+    </div>
+    <p style="font-size:12px;color:#888;margin-bottom:6px;">MD5/SHA1 of a numeric ID looks opaque but the input space is tiny and brute-forceable.</p>
+    <div class="code">GET /report?token=c4ca4238a0b923820d  ← MD5("1") — predictable!</div>
+  </div>
+</div>
+
+<!-- HUNT -->
+<div class="tab-panel" id="tab-hunt">
+  <p style="font-size:13px;color:#888;margin-bottom:14px;">A systematic approach used in bug bounty hunting and penetration testing.</p>
+  <div class="step-row">
+    <span class="snum d">1</span>
+    <div><div style="font-size:13px;font-weight:600;margin-bottom:3px;">Map every endpoint with an object reference</div>
+    <div style="font-size:12px;color:#888;">Proxy all traffic (Burp Suite). Flag every parameter that looks like an ID — numeric, UUID, filename, hash — in URLs, POST bodies, headers, and cookies.</div></div>
+  </div>
+  <div class="step-row">
+    <span class="snum d">2</span>
+    <div><div style="font-size:13px;font-weight:600;margin-bottom:3px;">Create two test accounts (A and B)</div>
+    <div style="font-size:12px;color:#888;">Generate objects with account A. Replay those requests authenticated as B — if B gets A's data, IDOR confirmed. Use Burp's "Match and Replace" to auto-swap session tokens.</div></div>
+  </div>
+  <div class="step-row">
+    <span class="snum d">3</span>
+    <div><div style="font-size:13px;font-weight:600;margin-bottom:3px;">Test all HTTP verbs, not just GET</div>
+    <div style="font-size:12px;color:#888;">GET may be locked but PUT/DELETE/PATCH on the same path may not. <span style="font-family:'Courier New',monospace;font-size:11px">DELETE /api/posts/42</span> with another user's session is a classic miss.</div></div>
+  </div>
+  <div class="step-row">
+    <span class="snum d">4</span>
+    <div><div style="font-size:13px;font-weight:600;margin-bottom:3px;">Check response bodies for nested IDs</div>
+    <div style="font-size:12px;color:#888;">API responses often embed <span style="font-family:'Courier New',monospace;font-size:11px">order.customer_id</span>, <span style="font-family:'Courier New',monospace;font-size:11px">document.owner_id</span> — use these in follow-up requests to reach other users' objects.</div></div>
+  </div>
+  <div class="step-row">
+    <span class="snum d">5</span>
+    <div><div style="font-size:13px;font-weight:600;margin-bottom:3px;">Test vertical IDOR, not just horizontal</div>
+    <div style="font-size:12px;color:#888;">Horizontal = user A accessing user B's data. Vertical = regular user accessing admin resources. Try <span style="font-family:'Courier New',monospace;font-size:11px">user_id=1</span>, <span style="font-family:'Courier New',monospace;font-size:11px">role_id=0</span>, <span style="font-family:'Courier New',monospace;font-size:11px">account_type=admin</span>.</div></div>
+  </div>
+  <div class="step-row">
+    <span class="snum g">✓</span>
+    <div><div style="font-size:13px;font-weight:600;margin-bottom:3px;">Automate with Burp Autorize</div>
+    <div style="font-size:12px;color:#888;">Autorize replays every request with a low-privilege session token and flags responses that match the original — turning manual testing into a passive scan across the entire app.</div></div>
+  </div>
+</div>
+
+<!-- FIX -->
+<div class="tab-panel" id="tab-fix">
+  <div class="fix-card">
+    <div style="font-size:13px;font-weight:600;margin-bottom:4px;">① Server-side ownership check — always <span class="badge b-green">Essential</span></div>
+    <div style="font-size:12px;color:#888;margin-bottom:8px;">Every request for an object must verify the requesting user owns or has permission to access it. Never trust the ID alone.</div>
+    <div class="code">// ❌ Vulnerable — trusts the ID
+app.get('/invoice/:id', async (req, res) => {
+  const invoice = await db.Invoice.findById(req.params.id);
+  res.json(invoice);  // any authenticated user gets any record
+});
+
+// ✅ Secure — ownership enforced in the query
+app.get('/invoice/:id', requireAuth, async (req, res) => {
+  const invoice = await db.Invoice.findOne({
+    _id: req.params.id,
+    owner: req.user.id    // ← MUST match the session user
+  });
+  if (!invoice) return res.status(403).json({ error: 'Forbidden' });
+  res.json(invoice);
+});</div>
+  </div>
+  <div class="fix-card">
+    <div style="font-size:13px;font-weight:600;margin-bottom:4px;">② Indirect object references <span class="badge b-green">Defense in depth</span></div>
+    <div style="font-size:12px;color:#888;margin-bottom:8px;">Map real IDs to session-scoped tokens server-side. The client never sees the real database ID — nothing to tamper with.</div>
+    <div class="code">// Session token → real DB id (server-side map)
+const sessionMap = {
+  'tok_abc123': { realId: 1042, userId: 1001 },
+};
+
+app.get('/invoice/:token', requireAuth, (req, res) => {
+  const entry = sessionMap[req.params.token];
+  if (!entry || entry.userId !== req.user.id)
+    return res.status(403).json({ error: 'Forbidden' });
+  // tok_abc123 is meaningless to any other user
+});</div>
+  </div>
+  <div class="fix-card warn">
+    <div style="font-size:13px;font-weight:600;margin-bottom:4px;">③ UUIDs + ownership check <span class="badge b-amber">Not UUIDs alone</span></div>
+    <div style="font-size:12px;color:#888;">UUIDs stop enumeration but do NOT prevent IDOR. A UUID is secrecy, not authorization. Always pair with an ownership check — if the UUID leaks via referral link, API log, or browser history, the record is exposed without a server-side check.</div>
+  </div>
+  <div class="fix-card">
+    <div style="font-size:13px;font-weight:600;margin-bottom:4px;">④ RBAC for vertical IDOR <span class="badge b-green">Good</span></div>
+    <div style="font-size:12px;color:#888;margin-bottom:8px;">Check both identity and role before serving any elevated resource.</div>
+    <div class="code">function requireRole(role) {
+  return (req, res, next) => {
+    if (!req.user || req.user.role !== role)
+      return res.status(403).json({ error: 'Forbidden' });
+    next();
+  };
+}
+app.delete('/admin/users/:id',
+  requireAuth, requireRole('admin'), deleteUserHandler);</div>
+  </div>
+  <div class="fix-card info">
+    <div style="font-size:13px;font-weight:600;margin-bottom:4px;">⑤ Testing checklist</div>
+    <div style="font-size:12px;color:#888;line-height:1.9;">
+      Add object-level auth to every code review checklist &nbsp;·&nbsp;
+      Use Burp Autorize in every pentest &nbsp;·&nbsp;
+      Log and alert on 403/401 spikes (enumeration signal) &nbsp;·&nbsp;
+      Run two-account IDOR tests in CI &nbsp;·&nbsp;
+      Prefer <span style="font-family:'Courier New',monospace">findOne({_id, owner})</span> over fetch-then-compare
+    </div>
+  </div>
+</div>
+
+<script>
+function showTab(id,btn){
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+  btn.classList.add('active');
+}
+const DB={
+  2001:{id:2001,owner_id:1001,owner:'Alice',amount:'$340.00',items:'Pro subscription x1',date:'2026-03-01',status:'Paid'},
+  2042:{id:2042,owner_id:1002,owner:'Bob',amount:'$1,250.00',items:'Enterprise plan x1',date:'2026-03-10',status:'Paid',ssn:'XXX-XX-4782',bank:'Chase ****3391'},
+  2099:{id:2099,owner_id:1003,owner:'Carol',amount:'$89.00',items:'Starter plan x3',date:'2026-02-28',status:'Overdue'},
+  2007:{id:2007,owner_id:1,owner:'Admin',amount:'$0',items:'Internal billing record',date:'2026-01-01',status:'Internal',notes:'Contains all user payment methods'},
+};
+const ME={id:1001,name:'Alice'};
+function setID(id){document.getElementById('invoice-id').value=id;runDemo();}
+function hl(json){
+  return json
+    .replace(/("[\w_]+")\s*:/g,'<span style="color:#60a5fa">$1</span>:')
+    .replace(/:\s*(".*?")/g,': <span style="color:#4ade80">$1</span>');
+}
+function runDemo(){
+  const id=parseInt(document.getElementById('invoice-id').value)||0;
+  const vOut=document.getElementById('vuln-out');
+  const sOut=document.getElementById('safe-out');
+  const verd=document.getElementById('verdict');
+  const rec=DB[id];
+  if(!rec){
+    vOut.innerHTML=sOut.innerHTML='{ "error": "Invoice not found" }';
+    verd.className='result-box r-amber';
+    verd.innerHTML='<strong>No record</strong> for ID '+id+'. Try a preset above.';
+    return;
+  }
+  let obj={id:rec.id,owner:rec.owner,amount:rec.amount,items:rec.items,date:rec.date,status:rec.status};
+  if(rec.ssn)obj.ssn=rec.ssn;
+  if(rec.bank)obj.bank_account=rec.bank;
+  if(rec.notes)obj.notes=rec.notes;
+  vOut.innerHTML=hl(JSON.stringify(obj,null,2));
+  if(rec.owner_id===ME.id){
+    sOut.innerHTML=hl(JSON.stringify(obj,null,2));
+    verd.className='result-box r-green';
+    verd.innerHTML='<strong>Your invoice.</strong> Both servers correctly return invoice '+id+' — it belongs to Alice (user 1001).';
+  } else {
+    sOut.innerHTML='<span style="color:#f87171">HTTP 403 Forbidden\n{\n  "error": "Access denied",\n  "message": "You do not own this resource"\n}</span>';
+    verd.className='result-box r-red';
+    let extras=[];
+    if(rec.ssn)extras.push('SSN');
+    if(rec.bank)extras.push('bank account');
+    if(rec.notes)extras.push('payment methods');
+    verd.innerHTML='<strong>IDOR confirmed!</strong> Invoice '+id+' belongs to <strong>'+rec.owner+'</strong>. The vulnerable server returns it to anyone who knows the ID.'+(extras.length?' Sensitive data exposed: '+extras.join(', ')+'.' :'')+' The secure server blocks with 403.';
+  }
+}
+runDemo();
+</script>
+</body>
+</html>

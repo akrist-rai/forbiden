@@ -1,0 +1,1027 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Web Enumeration</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,sans-serif;background:#0f0f11;color:#e2e2e6;padding:24px;line-height:1.6;font-size:14px}
+h1{font-size:22px;font-weight:500;margin-bottom:4px}
+.sub{color:#888;font-size:13px;margin-bottom:20px}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px}
+.tab-btn{background:none;border:1px solid #2a2a30;padding:6px 16px;border-radius:8px;cursor:pointer;font-size:13px;color:#aaa;transition:all .15s}
+.tab-btn.active{background:#1e1e26;color:#e2e2e6;border-color:#555;font-weight:500}
+.tab-panel{display:none}.tab-panel.active{display:block}
+.code{background:#13131a;border:1px solid #2a2a30;border-radius:8px;padding:12px;font-family:'Courier New',monospace;font-size:12px;line-height:1.7;color:#aaa;white-space:pre-wrap;margin:8px 0;overflow-x:auto}
+.badge{display:inline-block;font-size:11px;padding:2px 8px;border-radius:6px;font-weight:500}
+.b-red{background:#3a1515;color:#f87171}
+.b-green{background:#0f2a1a;color:#4ade80}
+.b-amber{background:#2a1d0a;color:#fbbf24}
+.b-blue{background:#0d1f3a;color:#60a5fa}
+.b-purple{background:#1e1030;color:#c084fc}
+.b-teal{background:#0a2020;color:#2dd4bf}
+.b-gray{background:#1e1e22;color:#888}
+.result-box{padding:10px 14px;border-radius:8px;font-size:13px;line-height:1.6;margin-top:8px}
+.r-red{background:#2a1010;border:1px solid #5a2020;color:#f87171}
+.r-green{background:#0d2218;border:1px solid #1a4a30;color:#4ade80}
+.r-amber{background:#2a1c08;border:1px solid #5a3a10;color:#fbbf24}
+.r-blue{background:#0a1828;border:1px solid #1a3a60;color:#60a5fa}
+.sc-card{background:#13131a;border-radius:8px;padding:12px 14px;margin-bottom:10px}
+.sc-red{border-left:3px solid #f87171}
+.sc-amber{border-left:3px solid #fbbf24}
+.sc-blue{border-left:3px solid #60a5fa}
+.sc-green{border-left:3px solid #4ade80}
+.sc-purple{border-left:3px solid #c084fc}
+.sc-teal{border-left:3px solid #2dd4bf}
+.step-row{display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid #1e1e26}
+.step-row:last-child{border-bottom:none}
+.snum{min-width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0}
+.snum.d{background:#3a1515;color:#f87171}
+.snum.g{background:#0f2a1a;color:#4ade80}
+.snum.b{background:#0d1f3a;color:#60a5fa}
+.snum.p{background:#1e1030;color:#c084fc}
+.snum.a{background:#2a1d0a;color:#fbbf24}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+@media(max-width:600px){.grid2,.grid3{grid-template-columns:1fr}}
+input,select,textarea{background:#13131a;border:1px solid #2a2a30;border-radius:8px;padding:7px 12px;color:#e2e2e6;font-size:13px;outline:none;transition:border .15s;font-family:'Courier New',monospace}
+input:focus,select:focus,textarea:focus{border-color:#555}
+.mono-out{background:#13131a;border:1px solid #2a2a30;border-radius:8px;padding:12px;font-family:'Courier New',monospace;font-size:11px;line-height:1.7;min-height:130px;overflow:auto;color:#aaa;white-space:pre-wrap}
+.chip{font-size:11px;color:#666;margin-bottom:4px}
+.preset-btn{background:#13131a;border:1px solid #2a2a30;border-radius:8px;padding:5px 12px;cursor:pointer;font-size:12px;color:#aaa;transition:all .15s}
+.preset-btn:hover{border-color:#555;color:#e2e2e6}
+.tool-card{background:#13131a;border:1px solid #2a2a30;border-radius:8px;padding:10px 14px}
+.tool-name{font-size:13px;font-weight:600;margin-bottom:3px}
+.tool-desc{font-size:12px;color:#888;margin-bottom:6px}
+.phase-box{background:#13131a;border:1px solid #2a2a30;border-radius:8px;padding:10px 14px;margin-bottom:8px;cursor:pointer;transition:border-color .15s}
+.phase-box:hover{border-color:#555}
+.phase-box.active-phase{border-color:#60a5fa;background:#0a1828}
+.finding-row{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid #1e1e26;font-size:12px}
+.finding-row:last-child{border-bottom:none}
+.http-code{font-family:'Courier New',monospace;font-size:11px;padding:2px 7px;border-radius:4px;font-weight:600}
+.c200{background:#0f2a1a;color:#4ade80}
+.c301{background:#0d1f3a;color:#60a5fa}
+.c302{background:#0d1f3a;color:#60a5fa}
+.c401{background:#2a1d0a;color:#fbbf24}
+.c403{background:#2a1010;color:#f87171}
+.c404{background:#1e1e22;color:#888}
+.c500{background:#3a1515;color:#f87171}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{text-align:left;padding:8px 10px;font-weight:500;color:#888;border-bottom:1px solid #2a2a30}
+td{padding:8px 10px;border-bottom:1px solid #1e1e26;vertical-align:top}
+tr:last-child td{border-bottom:none}
+.progress-bar{height:6px;background:#2a2a30;border-radius:3px;overflow:hidden;margin:4px 0}
+.progress-fill{height:100%;border-radius:3px;transition:width .3s}
+</style>
+</head>
+<body>
+
+<h1>Web Enumeration</h1>
+<p class="sub">Recon Phase · OWASP Testing Guide · The art of mapping what a target exposes before exploitation</p>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="showTab('concept',this)">What it is</button>
+  <button class="tab-btn" onclick="showTab('phases',this)">Phases</button>
+  <button class="tab-btn" onclick="showTab('demo',this)">Live demo</button>
+  <button class="tab-btn" onclick="showTab('dirs',this)">Dir &amp; file brute</button>
+  <button class="tab-btn" onclick="showTab('tech',this)">Tech fingerprinting</button>
+  <button class="tab-btn" onclick="showTab('tools',this)">Tools</button>
+  <button class="tab-btn" onclick="showTab('opsec',this)">OPSEC</button>
+</div>
+
+<!-- WHAT IT IS -->
+<div class="tab-panel active" id="tab-concept">
+  <p style="font-size:13px;color:#888;margin-bottom:16px;">Web enumeration is the <strong style="color:#e2e2e6;font-weight:600">systematic process of discovering everything a web application exposes</strong> — directories, files, subdomains, technologies, API endpoints, usernames, and misconfigurations — before attempting any exploitation. Every major vulnerability class is found faster with thorough enumeration.</p>
+
+  <svg width="100%" viewBox="0 0 680 360" style="max-width:680px;display:block;margin:0 auto 20px;">
+    <defs>
+      <marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </marker>
+    </defs>
+
+    <!-- Target in center -->
+    <rect x="285" y="140" width="110" height="52" rx="10" fill="#2a1a08" stroke="#fbbf24" stroke-width="1"/>
+    <text x="340" y="162" text-anchor="middle" font-size="12" font-weight="600" fill="#fbbf24" font-family="system-ui">Target</text>
+    <text x="340" y="178" text-anchor="middle" font-size="10" fill="#fbbf24" font-family="system-ui" opacity="0.8">target.com</text>
+
+    <!-- Enumeration vectors around it -->
+    <!-- DNS / Subdomains -->
+    <rect x="20" y="20" width="130" height="48" rx="8" fill="#0a2020" stroke="#2dd4bf" stroke-width="0.8"/>
+    <text x="85" y="40" text-anchor="middle" font-size="11" font-weight="600" fill="#2dd4bf" font-family="system-ui">DNS / Subdomains</text>
+    <text x="85" y="56" text-anchor="middle" font-size="10" fill="#2dd4bf" font-family="system-ui" opacity="0.8">dev. admin. api. mail.</text>
+    <line x1="150" y1="44" x2="283" y2="155" stroke="#2dd4bf" stroke-width="1" stroke-dasharray="4 3" marker-end="url(#arr)"/>
+
+    <!-- Dir bruteforce -->
+    <rect x="20" y="100" width="130" height="48" rx="8" fill="#0d1f3a" stroke="#60a5fa" stroke-width="0.8"/>
+    <text x="85" y="120" text-anchor="middle" font-size="11" font-weight="600" fill="#60a5fa" font-family="system-ui">Dir / File brute</text>
+    <text x="85" y="136" text-anchor="middle" font-size="10" fill="#60a5fa" font-family="system-ui" opacity="0.8">/admin /backup .git</text>
+    <line x1="150" y1="124" x2="283" y2="165" stroke="#60a5fa" stroke-width="1" stroke-dasharray="4 3" marker-end="url(#arr)"/>
+
+    <!-- Port scan -->
+    <rect x="20" y="180" width="130" height="48" rx="8" fill="#1e1030" stroke="#c084fc" stroke-width="0.8"/>
+    <text x="85" y="200" text-anchor="middle" font-size="11" font-weight="600" fill="#c084fc" font-family="system-ui">Port / Service scan</text>
+    <text x="85" y="216" text-anchor="middle" font-size="10" fill="#c084fc" font-family="system-ui" opacity="0.8">80 443 8080 8443</text>
+    <line x1="150" y1="204" x2="283" y2="178" stroke="#c084fc" stroke-width="1" stroke-dasharray="4 3" marker-end="url(#arr)"/>
+
+    <!-- Tech fingerprint -->
+    <rect x="20" y="260" width="130" height="48" rx="8" fill="#0f2a1a" stroke="#4ade80" stroke-width="0.8"/>
+    <text x="85" y="280" text-anchor="middle" font-size="11" font-weight="600" fill="#4ade80" font-family="system-ui">Tech fingerprint</text>
+    <text x="85" y="296" text-anchor="middle" font-size="10" fill="#4ade80" font-family="system-ui" opacity="0.8">CMS, framework, WAF</text>
+    <line x1="150" y1="284" x2="283" y2="185" stroke="#4ade80" stroke-width="1" stroke-dasharray="4 3" marker-end="url(#arr)"/>
+
+    <!-- API endpoints -->
+    <rect x="530" y="20" width="130" height="48" rx="8" fill="#2a1010" stroke="#f87171" stroke-width="0.8"/>
+    <text x="595" y="40" text-anchor="middle" font-size="11" font-weight="600" fill="#f87171" font-family="system-ui">API endpoints</text>
+    <text x="595" y="56" text-anchor="middle" font-size="10" fill="#f87171" font-family="system-ui" opacity="0.8">/api/v1/users /graphql</text>
+    <line x1="530" y1="44" x2="397" y2="155" stroke="#f87171" stroke-width="1" stroke-dasharray="4 3" marker-end="url(#arr)"/>
+
+    <!-- JS analysis -->
+    <rect x="530" y="100" width="130" height="48" rx="8" fill="#2a1d0a" stroke="#fbbf24" stroke-width="0.8"/>
+    <text x="595" y="120" text-anchor="middle" font-size="11" font-weight="600" fill="#fbbf24" font-family="system-ui">JS analysis</text>
+    <text x="595" y="136" text-anchor="middle" font-size="10" fill="#fbbf24" font-family="system-ui" opacity="0.8">secrets, endpoints, tokens</text>
+    <line x1="530" y1="124" x2="397" y2="165" stroke="#fbbf24" stroke-width="1" stroke-dasharray="4 3" marker-end="url(#arr)"/>
+
+    <!-- Username enum -->
+    <rect x="530" y="180" width="130" height="48" rx="8" fill="#1e1030" stroke="#c084fc" stroke-width="0.8"/>
+    <text x="595" y="200" text-anchor="middle" font-size="11" font-weight="600" fill="#c084fc" font-family="system-ui">Username enum</text>
+    <text x="595" y="216" text-anchor="middle" font-size="10" fill="#c084fc" font-family="system-ui" opacity="0.8">login timing, error msgs</text>
+    <line x1="530" y1="204" x2="397" y2="178" stroke="#c084fc" stroke-width="1" stroke-dasharray="4 3" marker-end="url(#arr)"/>
+
+    <!-- OSINT -->
+    <rect x="530" y="260" width="130" height="48" rx="8" fill="#0a2020" stroke="#2dd4bf" stroke-width="0.8"/>
+    <text x="595" y="280" text-anchor="middle" font-size="11" font-weight="600" fill="#2dd4bf" font-family="system-ui">OSINT / Google dorks</text>
+    <text x="595" y="296" text-anchor="middle" font-size="10" fill="#2dd4bf" font-family="system-ui" opacity="0.8">certs, repos, pastes</text>
+    <line x1="530" y1="284" x2="397" y2="185" stroke="#2dd4bf" stroke-width="1" stroke-dasharray="4 3" marker-end="url(#arr)"/>
+
+    <!-- Output box -->
+    <rect x="168" y="236" width="344" height="100" rx="10" fill="#13131a" stroke="#2a2a30" stroke-width="0.8"/>
+    <text x="340" y="258" text-anchor="middle" font-size="12" font-weight="600" fill="#ccc" font-family="system-ui">Enumeration output feeds into...</text>
+    <text x="190" y="278" font-size="11" fill="#f87171" font-family="system-ui">→ Exploitation targets (SQLi, IDOR, SSTI)</text>
+    <text x="190" y="296" font-size="11" fill="#fbbf24" font-family="system-ui">→ Attack surface map (subdomains, endpoints)</text>
+    <text x="190" y="314" font-size="11" fill="#4ade80" font-family="system-ui">→ Vulnerability prioritization (CVEs for found versions)</text>
+  </svg>
+
+  <div style="background:#13131a;border-radius:8px;padding:12px;border:1px solid #2a2a30;">
+    <div style="font-size:13px;font-weight:600;margin-bottom:8px;color:#ccc;">Why enumeration comes before exploitation</div>
+    <div class="grid3" style="gap:8px;margin-top:6px;">
+      <div style="background:#1a1a22;border-radius:8px;padding:10px 12px;border:1px solid #2a2a30;">
+        <div style="font-size:12px;font-weight:600;color:#60a5fa;margin-bottom:4px;">You can't attack what you don't know exists</div>
+        <div style="font-size:11px;color:#888;">A hidden /admin panel or an undocumented /api/v2 route is invisible until enumerated. Most critical bugs hide in forgotten or unlinked endpoints.</div>
+      </div>
+      <div style="background:#1a1a22;border-radius:8px;padding:10px 12px;border:1px solid #2a2a30;">
+        <div style="font-size:12px;font-weight:600;color:#fbbf24;margin-bottom:4px;">Technology fingerprinting narrows the exploit list</div>
+        <div style="font-size:11px;color:#888;">Knowing it's WordPress 6.1 + WooCommerce on PHP 8.1 behind nginx immediately suggests which CVEs and misconfigs to test first.</div>
+      </div>
+      <div style="background:#1a1a22;border-radius:8px;padding:10px 12px;border:1px solid #2a2a30;">
+        <div style="font-size:12px;font-weight:600;color:#4ade80;margin-bottom:4px;">Scope clarity prevents wasted effort</div>
+        <div style="font-size:11px;color:#888;">Enumeration reveals which assets are in scope, where CDN / WAF layers exist, and which IPs the application actually runs on.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PHASES -->
+<div class="tab-panel" id="tab-phases">
+  <p style="font-size:13px;color:#888;margin-bottom:14px;">Web enumeration follows a layered methodology — each phase builds on the last, expanding the attack surface map progressively.</p>
+
+  <div class="step-row">
+    <span class="snum b">1</span>
+    <div>
+      <div style="font-size:13px;font-weight:600;margin-bottom:3px;">Passive OSINT — zero interaction with target</div>
+      <div style="font-size:12px;color:#888;margin-bottom:6px;">Gather information from public sources without sending a single packet to the target. Completely undetectable.</div>
+      <div class="code">## Google dorks
+site:target.com inurl:admin
+site:target.com ext:php OR ext:bak OR ext:sql
+site:target.com "index of"
+site:target.com filetype:env OR filetype:log
+"target.com" inurl:wp-admin
+
+## Certificate transparency — find all subdomains
+https://crt.sh/?q=%.target.com
+curl "https://crt.sh/?q=%25.target.com&output=json" | jq '.[].name_value'
+
+## Archive / history
+https://web.archive.org/web/*/target.com/*
+
+## GitHub dorks for leaked secrets
+org:target-company "api_key" OR "secret_key" OR ".env"
+filename:.env "DB_PASSWORD"
+
+## Shodan / Censys — exposed infrastructure
+shodan search "ssl.cert.subject.cn:target.com"
+censys search "target.com" --index=certificates</div>
+    </div>
+  </div>
+
+  <div class="step-row">
+    <span class="snum b">2</span>
+    <div>
+      <div style="font-size:13px;font-weight:600;margin-bottom:3px;">DNS enumeration — discover all subdomains</div>
+      <div style="font-size:12px;color:#888;margin-bottom:6px;">A forgotten subdomain — dev.target.com, staging.target.com, old.target.com — is often less hardened than the main site and runs older software.</div>
+      <div class="code">## Passive (no direct DNS queries to target)
+subfinder -d target.com -all -recursive
+amass enum -passive -d target.com
+
+## Active brute force
+gobuster dns -d target.com -w /usr/share/seclists/Discovery/DNS/subdomains-top1million-5000.txt
+ffuf -u https://FUZZ.target.com -w subdomains.txt -mc 200,301,302,403
+
+## Zone transfer attempt (rarely works but worth trying)
+dig axfr @ns1.target.com target.com
+
+## Reverse DNS on IP ranges
+for i in $(seq 1 254); do host 10.10.1.$i | grep "domain name"; done
+
+## Virtual host enumeration (same IP, different Host headers)
+gobuster vhost -u http://target.com -w subdomains.txt</div>
+    </div>
+  </div>
+
+  <div class="step-row">
+    <span class="snum a">3</span>
+    <div>
+      <div style="font-size:13px;font-weight:600;margin-bottom:3px;">Port &amp; service discovery</div>
+      <div style="font-size:12px;color:#888;margin-bottom:6px;">Web apps often run on non-standard ports. 8080, 8443, 8888, 4443 are common. An admin interface on port 8082 might have no authentication.</div>
+      <div class="code">## Quick top-ports scan
+nmap -sV -sC --top-ports 1000 target.com
+
+## Full port scan (all 65535)
+nmap -p- -T4 target.com
+
+## Web-specific service detection
+nmap -sV -p 80,443,8080,8443,8888,9000,9090,3000,5000 target.com
+
+## Check for HTTP on every open port
+for port in 80 443 8080 8443 8888 9000 3000 5000; do
+  curl -sk --max-time 3 http://target.com:$port | grep -i "<title>"
+done</div>
+    </div>
+  </div>
+
+  <div class="step-row">
+    <span class="snum p">4</span>
+    <div>
+      <div style="font-size:13px;font-weight:600;margin-bottom:3px;">Technology fingerprinting</div>
+      <div style="font-size:12px;color:#888;margin-bottom:6px;">Identify exactly what the target runs — CMS, framework, server, CDN, WAF — to map directly to known CVEs and default misconfigurations.</div>
+      <div class="code">## Wappalyzer / WhatWeb
+whatweb -a 3 https://target.com
+wappalyzer https://target.com  # browser extension or CLI
+
+## Response headers reveal the stack
+curl -sI https://target.com | grep -iE "server:|x-powered-by:|x-generator:|via:"
+# Server: Apache/2.4.51 → known CVE-2021-42013
+# X-Powered-By: PHP/7.4.3  → outdated PHP
+# X-Generator: Drupal 9    → check Drupageddon
+
+## robots.txt and sitemap
+curl https://target.com/robots.txt
+curl https://target.com/sitemap.xml
+
+## CMS detection
+# WordPress:  /wp-login.php, /wp-json/wp/v2/users
+# Drupal:     /CHANGELOG.txt, /core/CHANGELOG.txt
+# Joomla:     /administrator/, /README.txt
+# Laravel:    /_ignition/health-check, /api/user</div>
+    </div>
+  </div>
+
+  <div class="step-row">
+    <span class="snum d">5</span>
+    <div>
+      <div style="font-size:13px;font-weight:600;margin-bottom:3px;">Directory &amp; file brute force</div>
+      <div style="font-size:12px;color:#888;margin-bottom:6px;">Discover hidden paths, backup files, admin panels, and exposed configuration files by brute-forcing against common wordlists.</div>
+      <div class="code">## gobuster
+gobuster dir -u https://target.com -w /usr/share/seclists/Discovery/Web-Content/raft-medium-directories.txt -x php,html,txt,bak,zip,sql -t 50
+
+## ffuf
+ffuf -u https://target.com/FUZZ -w common.txt -mc 200,301,302,401,403 -c
+
+## feroxbuster (recursive)
+feroxbuster -u https://target.com -w dirs.txt --depth 3 -x php,bak,txt
+
+## High-value paths to always check
+/.git/HEAD           ← git repo exposed
+/.env                ← credentials
+/backup.zip          ← full source code
+/phpinfo.php         ← PHP config disclosure
+/server-status       ← Apache mod_status
+/.htpasswd           ← password file
+/swagger.json        ← full API spec
+/graphql             ← GraphQL endpoint
+/actuator            ← Spring Boot metrics</div>
+    </div>
+  </div>
+
+  <div class="step-row">
+    <span class="snum g">6</span>
+    <div>
+      <div style="font-size:13px;font-weight:600;margin-bottom:3px;">JavaScript &amp; API endpoint extraction</div>
+      <div style="font-size:12px;color:#888;margin-bottom:6px;">Modern SPAs embed their entire API surface in JavaScript bundles. Mining JS files reveals endpoints, authentication flows, and sometimes hardcoded secrets.</div>
+      <div class="code">## Extract all JS files
+katana -u https://target.com -js-crawl -o jsfiles.txt
+gau target.com | grep "\.js$"
+
+## Find endpoints in JS bundles
+python3 LinkFinder.py -i https://target.com/app.js -o cli
+
+## Find secrets / keys in JS
+trufflehog filesystem --directory /path/to/js/
+grep -rE "(api_key|secret|password|token|auth)['\"]?\s*[=:]\s*['\"][a-zA-Z0-9_-]{10,}" *.js
+
+## Check source maps (sometimes expose original source)
+curl https://target.com/static/js/main.chunk.js.map
+
+## GraphQL introspection
+curl -s -X POST https://target.com/graphql \
+  -H "Content-Type: application/json" \
+  -d '{"query":"{__schema{types{name fields{name}}}}"}'</div>
+    </div>
+  </div>
+</div>
+
+<!-- LIVE DEMO -->
+<div class="tab-panel" id="tab-demo">
+  <p style="font-size:13px;color:#888;margin-bottom:14px;">Simulate a web enumeration scan against a fictional target. Select what to enumerate and see what the scanner discovers — including the findings an attacker would prioritize.</p>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+    <div>
+      <div class="chip">Target</div>
+      <input type="text" id="target-input" value="target-corp.com" style="width:100%;font-family:system-ui;"/>
+    </div>
+    <div>
+      <div class="chip">Scan type</div>
+      <select id="scan-type" onchange="runScan()" style="width:100%;font-family:system-ui;">
+        <option value="dir">Directory brute force</option>
+        <option value="sub">Subdomain enumeration</option>
+        <option value="tech">Technology fingerprinting</option>
+        <option value="js">JavaScript endpoint mining</option>
+        <option value="headers">Header analysis</option>
+      </select>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
+    <span style="font-size:12px;color:#888;align-self:center">Quick:</span>
+    <button class="preset-btn" onclick="setScan('dir')">Dir scan</button>
+    <button class="preset-btn" onclick="setScan('sub')">Subdomain enum</button>
+    <button class="preset-btn" onclick="setScan('tech')">Tech fingerprint</button>
+    <button class="preset-btn" onclick="setScan('js')">JS mining</button>
+    <button class="preset-btn" onclick="setScan('headers')">Header analysis</button>
+  </div>
+
+  <div style="margin-bottom:10px;">
+    <div style="font-size:12px;font-weight:600;margin-bottom:6px;color:#60a5fa;">Scanner output</div>
+    <div class="mono-out" id="scan-output" style="min-height:180px;"></div>
+  </div>
+
+  <div id="scan-findings" style="margin-top:10px;"></div>
+
+  <div style="margin-top:14px;background:#13131a;border-radius:8px;padding:12px;border:1px solid #2a2a30;" id="findings-panel">
+    <div style="font-size:12px;font-weight:600;margin-bottom:8px;color:#ccc;">Findings summary</div>
+    <div id="findings-table"></div>
+  </div>
+</div>
+
+<!-- DIR & FILE BRUTE -->
+<div class="tab-panel" id="tab-dirs">
+  <p style="font-size:13px;color:#888;margin-bottom:14px;">Directory and file brute forcing is the most common enumeration technique. The goal is finding paths the application doesn't link to but still serves — admin panels, backup files, exposed configs.</p>
+
+  <div class="sc-card sc-red" style="margin-bottom:10px;">
+    <div style="font-size:13px;font-weight:600;margin-bottom:6px;">High-value paths to always check first</div>
+    <div style="overflow-x:auto;">
+      <table>
+        <thead><tr><th>Path</th><th>Risk</th><th>What it exposes</th></tr></thead>
+        <tbody>
+          <tr><td style="font-family:'Courier New',monospace;color:#f87171">/.git/HEAD</td><td><span class="badge b-red">Critical</span></td><td>Full source code, commit history, secrets in git history</td></tr>
+          <tr><td style="font-family:'Courier New',monospace;color:#f87171">/.env</td><td><span class="badge b-red">Critical</span></td><td>DB credentials, API keys, SECRET_KEY, cloud creds</td></tr>
+          <tr><td style="font-family:'Courier New',monospace;color:#f87171">/backup.zip / /backup.tar.gz</td><td><span class="badge b-red">Critical</span></td><td>Full application backup with source + database dumps</td></tr>
+          <tr><td style="font-family:'Courier New',monospace;color:#f87171">/phpinfo.php</td><td><span class="badge b-red">High</span></td><td>PHP version, loaded modules, server path, env vars</td></tr>
+          <tr><td style="font-family:'Courier New',monospace;color:#f87171">/actuator</td><td><span class="badge b-red">High</span></td><td>Spring Boot — env, beans, heap dump, RCE via /actuator/env</td></tr>
+          <tr><td style="font-family:'Courier New',monospace;color:#f87171">/swagger.json / /api-docs</td><td><span class="badge b-red">High</span></td><td>Complete API specification — every endpoint documented</td></tr>
+          <tr><td style="font-family:'Courier New',monospace;color:#f87171">/graphql</td><td><span class="badge b-amber">Medium</span></td><td>GraphQL — try introspection to dump full schema</td></tr>
+          <tr><td style="font-family:'Courier New',monospace;color:#f87171">/.htpasswd</td><td><span class="badge b-red">High</span></td><td>Hashed credentials for HTTP Basic Auth</td></tr>
+          <tr><td style="font-family:'Courier New',monospace;color:#amber">/server-status</td><td><span class="badge b-amber">Medium</span></td><td>Apache mod_status — active requests, client IPs</td></tr>
+          <tr><td style="font-family:'Courier New',monospace;color:#aaa">/.DS_Store</td><td><span class="badge b-amber">Medium</span></td><td>Mac OS metadata — reveals directory listing structure</td></tr>
+          <tr><td style="font-family:'Courier New',monospace;color:#aaa">/robots.txt</td><td><span class="badge b-blue">Info</span></td><td>Disallowed paths — roadmap of sensitive areas</td></tr>
+          <tr><td style="font-family:'Courier New',monospace;color:#aaa">/sitemap.xml</td><td><span class="badge b-blue">Info</span></td><td>All public URLs the site wants crawled</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="sc-card sc-blue" style="margin-bottom:10px;">
+    <div style="font-size:13px;font-weight:600;margin-bottom:6px;">HTTP status code interpretation</div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;">
+      <div style="background:#1a1a22;border-radius:8px;padding:8px 12px;min-width:160px;">
+        <span class="http-code c200">200 OK</span>
+        <div style="font-size:11px;color:#4ade80;margin-top:4px;">Exists and accessible — investigate</div>
+      </div>
+      <div style="background:#1a1a22;border-radius:8px;padding:8px 12px;min-width:160px;">
+        <span class="http-code c301">301/302</span>
+        <div style="font-size:11px;color:#60a5fa;margin-top:4px;">Exists, redirects — follow it</div>
+      </div>
+      <div style="background:#1a1a22;border-radius:8px;padding:8px 12px;min-width:160px;">
+        <span class="http-code c401">401 Unauthorized</span>
+        <div style="font-size:11px;color:#fbbf24;margin-top:4px;">Exists, needs auth — try defaults</div>
+      </div>
+      <div style="background:#1a1a22;border-radius:8px;padding:8px 12px;min-width:160px;">
+        <span class="http-code c403">403 Forbidden</span>
+        <div style="font-size:11px;color:#f87171;margin-top:4px;">Exists but blocked — try bypass techniques</div>
+      </div>
+      <div style="background:#1a1a22;border-radius:8px;padding:8px 12px;min-width:160px;">
+        <span class="http-code c404">404 Not Found</span>
+        <div style="font-size:11px;color:#888;margin-top:4px;">Doesn't exist — skip (usually)</div>
+      </div>
+      <div style="background:#1a1a22;border-radius:8px;padding:8px 12px;min-width:160px;">
+        <span class="http-code c500">500 Server Error</span>
+        <div style="font-size:11px;color:#f87171;margin-top:4px;">Exists, broken — potential injection point</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sc-card sc-purple">
+    <div style="font-size:13px;font-weight:600;margin-bottom:6px;">403 bypass techniques</div>
+    <p style="font-size:12px;color:#888;margin-bottom:6px;">A 403 means the path exists but access is restricted — often by a WAF or misconfigured rule that can be bypassed.</p>
+    <div class="code">## Path manipulation
+/admin/          → /.//admin//
+/admin           → /ADMIN  (case folding)
+/admin           → /admin/.
+
+## Header-based bypass
+X-Original-URL: /admin
+X-Rewrite-URL: /admin
+X-Forwarded-For: 127.0.0.1
+X-Custom-IP-Authorization: 127.0.0.1
+
+## HTTP verb confusion
+GET /admin → 403
+POST /admin → 200  (different verb, different ACL)
+
+## URL encoding
+/admin → /%61dmin (URL-encoded 'a')
+/admin → /admin%20 (trailing space)</div>
+  </div>
+</div>
+
+<!-- TECH FINGERPRINTING -->
+<div class="tab-panel" id="tab-tech">
+  <p style="font-size:13px;color:#888;margin-bottom:14px;">Technology fingerprinting maps the exact software stack — server, language, framework, CMS, libraries, CDN, WAF. Every identified component leads directly to known CVEs and default misconfigurations.</p>
+
+  <div class="grid2" style="margin-bottom:12px;">
+    <div class="sc-card sc-teal">
+      <div style="font-size:13px;font-weight:600;margin-bottom:6px;">HTTP headers — the most revealing source</div>
+      <div class="code">## Headers that leak technology
+Server: Apache/2.4.51 (Ubuntu)
+  → Apache 2.4.51 → CVE-2021-42013 (RCE)
+
+X-Powered-By: PHP/7.4.3
+  → PHP 7.4.3 EOL → unpatched vulns
+
+X-Generator: Drupal 9 (https://www.drupal.org)
+  → Check SA-CORE-2018-002 (Drupalgeddon2)
+
+X-AspNet-Version: 4.0.30319
+  → .NET version → ViewState exploits
+
+Set-Cookie: PHPSESSID=...  → PHP
+Set-Cookie: JSESSIONID=... → Java/Tomcat
+Set-Cookie: ASP.NET_SessionId=... → .NET
+
+Via: 1.1 varnish → Varnish cache
+CF-RAY: ... → Cloudflare CDN
+X-Cache: HIT from squid → Squid proxy</div>
+    </div>
+    <div class="sc-card sc-blue">
+      <div style="font-size:13px;font-weight:600;margin-bottom:6px;">CMS-specific fingerprints</div>
+      <div class="code">## WordPress
+/wp-login.php         → admin login
+/wp-json/wp/v2/users  → user enumeration!
+/wp-content/          → plugin list
+/xmlrpc.php           → brute force vector
+Generator meta tag: WordPress 6.1.1
+
+## Drupal
+/CHANGELOG.txt → exact version
+/core/CHANGELOG.txt
+Generator: Drupal 9.x
+
+## Joomla
+/administrator/
+/README.txt → version
+/configuration.php~ → backup
+
+## Laravel
+/_ignition/health-check
+/.env exposed → common misconfiguration
+/storage/logs/laravel.log
+
+## Django
+/admin/ → Django admin
+DEBUG=True → full stack traces</div>
+    </div>
+  </div>
+
+  <div class="sc-card sc-amber" style="margin-bottom:10px;">
+    <div style="font-size:13px;font-weight:600;margin-bottom:6px;">WAF detection — know before you probe</div>
+    <p style="font-size:12px;color:#888;margin-bottom:6px;">Detecting a WAF lets you choose the right bypass technique. Sending unfiltered payloads against a WAF wastes time and gets you blocked.</p>
+    <div class="code">## wafw00f — automated WAF detection
+wafw00f https://target.com
+# Detected: Cloudflare [Generic]
+# Detected: AWS WAF [Amazon]
+# Detected: ModSecurity [Apache]
+
+## Manual WAF fingerprinting
+# Send an obvious XSS payload and check the response:
+curl -s "https://target.com/?q=<script>alert(1)</script>"
+# 403 + "Access Denied" → WAF present
+# Cloudflare: "Attention Required! | Cloudflare"
+# AWS WAF: 403 with request ID header
+# Akamai: 403 with "Reference #" in body
+
+## Common WAF bypass starters
+# URL encoding: %3Cscript%3E
+# Case variation: &lt;ScRiPt&gt;
+# HTML entities: &#x3C;script&#x3E;</div>
+  </div>
+
+  <div class="sc-card sc-green">
+    <div style="font-size:13px;font-weight:600;margin-bottom:6px;">Version → CVE mapping</div>
+    <div class="code">## After fingerprinting, immediately check:
+searchsploit "Apache 2.4"
+searchsploit "WordPress 6.1"
+
+## NVD lookup
+https://nvd.nist.gov/vuln/search?query=wordpress+6.1
+
+## PoC databases
+https://www.exploit-db.com/?q=drupal+9
+https://packetstormsecurity.com/
+
+## Nuclei — automated CVE templates
+nuclei -u https://target.com -t cves/ -severity critical,high
+
+## WPScan for WordPress
+wpscan --url https://target.com --enumerate vp,vt,u
+# vp = vulnerable plugins, vt = vulnerable themes, u = users</div>
+  </div>
+</div>
+
+<!-- TOOLS -->
+<div class="tab-panel" id="tab-tools">
+  <p style="font-size:13px;color:#888;margin-bottom:14px;">The core toolchain used in professional web enumeration assessments. Each tool excels at a specific phase.</p>
+
+  <div class="grid2" style="gap:10px;margin-bottom:10px;">
+    <div class="tool-card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px;">
+        <div class="tool-name" style="color:#60a5fa;">gobuster</div><span class="badge b-blue">Dir / DNS / VHost</span>
+      </div>
+      <div class="tool-desc">Fast Go-based brute forcer for directories, DNS subdomains, and virtual hosts. Concurrent, simple, reliable.</div>
+      <div class="code">gobuster dir -u https://target.com \
+  -w /usr/share/seclists/Discovery/Web-Content/raft-large-directories.txt \
+  -x php,html,txt,bak,zip,sql,conf \
+  -t 50 -o results.txt
+
+gobuster dns -d target.com \
+  -w /usr/share/seclists/Discovery/DNS/subdomains-top1million-20000.txt \
+  -t 100</div>
+    </div>
+
+    <div class="tool-card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px;">
+        <div class="tool-name" style="color:#fbbf24;">ffuf</div><span class="badge b-amber">Fuzzer</span>
+      </div>
+      <div class="tool-desc">Extremely fast web fuzzer with flexible FUZZ keyword placement — directories, parameters, headers, POST bodies.</div>
+      <div class="code">## Directory fuzzing
+ffuf -u https://target.com/FUZZ -w dirs.txt -mc 200,301,302,401,403
+
+## Parameter discovery
+ffuf -u https://target.com/page?FUZZ=test -w params.txt -mc 200
+
+## Subdomain fuzzing
+ffuf -u https://FUZZ.target.com -w subdomains.txt -mc 200,301</div>
+    </div>
+
+    <div class="tool-card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px;">
+        <div class="tool-name" style="color:#c084fc;">amass / subfinder</div><span class="badge b-purple">Subdomain</span>
+      </div>
+      <div class="tool-desc">Passive + active subdomain enumeration using certificate transparency, DNS brute force, and 100+ data sources.</div>
+      <div class="code">subfinder -d target.com -all -recursive -o subs.txt
+
+amass enum -active -d target.com \
+  -brute -w subdomains.txt \
+  -o amass-results.txt
+
+## Combine and deduplicate
+cat subs.txt amass-results.txt | sort -u | httpx -mc 200,301,302</div>
+    </div>
+
+    <div class="tool-card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px;">
+        <div class="tool-name" style="color:#4ade80;">feroxbuster</div><span class="badge b-green">Recursive</span>
+      </div>
+      <div class="tool-desc">Recursive content discovery — automatically re-runs on every discovered directory, finding deeply nested paths.</div>
+      <div class="code">feroxbuster -u https://target.com \
+  -w /usr/share/seclists/Discovery/Web-Content/common.txt \
+  --depth 3 \
+  -x php,bak,txt,conf,xml \
+  --auto-tune \
+  -o ferox-results.txt</div>
+    </div>
+
+    <div class="tool-card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px;">
+        <div class="tool-name" style="color:#2dd4bf;">nikto</div><span class="badge b-teal">Vuln scan</span>
+      </div>
+      <div class="tool-desc">Web server scanner checking for 6700+ dangerous files, outdated versions, and common misconfigurations. Noisy but thorough.</div>
+      <div class="code">nikto -h https://target.com -o nikto-results.txt -Format htm
+
+# With authentication
+nikto -h https://target.com -id admin:password
+
+# Tune for specific checks
+nikto -h target.com -Tuning 1234567890ab</div>
+    </div>
+
+    <div class="tool-card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px;">
+        <div class="tool-name" style="color:#f87171;">nuclei</div><span class="badge b-red">CVE / Vuln</span>
+      </div>
+      <div class="tool-desc">Template-based vulnerability scanner with 5000+ CVE templates. Runs after fingerprinting to match known issues.</div>
+      <div class="code">## Run all critical/high CVE templates
+nuclei -u https://target.com -t cves/ -severity critical,high
+
+## Technology-specific
+nuclei -u https://target.com -t technologies/wordpress.yaml
+
+## Expose common misconfigs
+nuclei -u https://target.com -t exposures/ -t misconfiguration/</div>
+    </div>
+
+    <div class="tool-card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px;">
+        <div class="tool-name" style="color:#fbbf24;">katana / gau</div><span class="badge b-amber">Crawl / JS</span>
+      </div>
+      <div class="tool-desc">katana crawls with JS rendering; gau fetches all known URLs from Wayback, CommonCrawl, URLScan. Both mine endpoints from JS bundles.</div>
+      <div class="code">## Active crawl with JS execution
+katana -u https://target.com -js-crawl -depth 3 -o crawl.txt
+
+## Passive URL collection
+gau --threads 5 target.com | tee gau-results.txt
+
+## Extract endpoints from JS
+cat gau-results.txt | grep "\.js$" | \
+  xargs -I{} python3 LinkFinder.py -i {} -o cli 2>/dev/null</div>
+    </div>
+
+    <div class="tool-card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px;">
+        <div class="tool-name" style="color:#60a5fa;">whatweb / wappalyzer</div><span class="badge b-blue">Fingerprint</span>
+      </div>
+      <div class="tool-desc">Technology detection from response headers, body patterns, cookies, and script tags. Maps to version + CVE lookup.</div>
+      <div class="code">whatweb -a 3 https://target.com -v
+
+# Aggressive scan (more requests)
+whatweb -a 4 https://target.com --log-json=tech.json
+
+# With authentication
+whatweb -a 3 --user admin --password secret https://target.com/admin</div>
+    </div>
+  </div>
+
+  <div style="background:#13131a;border-radius:8px;padding:12px;border:1px solid #2a2a30;">
+    <div style="font-size:13px;font-weight:600;margin-bottom:6px;color:#ccc;">Key wordlists (SecLists)</div>
+    <div class="code">## Install SecLists
+apt install seclists  # or: git clone https://github.com/danielmiessler/SecLists
+
+## Most useful wordlists
+/usr/share/seclists/Discovery/Web-Content/
+  raft-large-directories.txt         # 62k dirs
+  raft-large-files.txt               # 37k files
+  common.txt                         # 4600 common paths
+  api/api-endpoints.txt              # API paths
+  swagger.txt                        # Swagger / OpenAPI paths
+
+/usr/share/seclists/Discovery/DNS/
+  subdomains-top1million-5000.txt    # fast subdomain scan
+  subdomains-top1million-20000.txt   # thorough
+
+/usr/share/seclists/Usernames/
+  top-usernames-shortlist.txt        # common usernames</div>
+  </div>
+</div>
+
+<!-- OPSEC -->
+<div class="tab-panel" id="tab-opsec">
+  <p style="font-size:13px;color:#888;margin-bottom:14px;">Operational security during enumeration — how to stay under the radar, avoid detection, and enumerate ethically.</p>
+
+  <div class="sc-card sc-red" style="margin-bottom:10px;">
+    <div style="font-size:13px;font-weight:600;margin-bottom:6px;">Rate limiting &amp; detection avoidance</div>
+    <div class="code">## Slow down scans to avoid WAF rate limits
+gobuster dir -u https://target.com -w dirs.txt -t 10 --delay 100ms
+
+## Randomize user agent
+ffuf -u https://target.com/FUZZ -w dirs.txt \
+  -H "User-Agent: Mozilla/5.0 (compatible; Googlebot/2.1)"
+
+## Use a proxy / VPN rotation
+proxychains gobuster dir -u https://target.com -w dirs.txt
+
+## Limit requests per second
+feroxbuster -u https://target.com --rate-limit 50
+
+## Spread scanning over time
+# Use --scan-limit or --time-limit flags</div>
+  </div>
+
+  <div class="sc-card sc-amber" style="margin-bottom:10px;">
+    <div style="font-size:13px;font-weight:600;margin-bottom:6px;">What leaves traces in server logs</div>
+    <div style="display:flex;flex-direction:column;gap:6px;font-size:12px;">
+      <div style="display:flex;gap:10px;align-items:flex-start;padding:6px 0;border-bottom:1px solid #2a2a30;">
+        <span class="badge b-red" style="flex-shrink:0;">High noise</span>
+        <span style="color:#888;">Full port scans (nmap), nikto, large directory brute force with default user agents, thousands of 404s in seconds</span>
+      </div>
+      <div style="display:flex;gap:10px;align-items:flex-start;padding:6px 0;border-bottom:1px solid #2a2a30;">
+        <span class="badge b-amber" style="flex-shrink:0;">Medium noise</span>
+        <span style="color:#888;">Directory fuzzing at moderate speed, subdomain brute force, crawler traffic</span>
+      </div>
+      <div style="display:flex;gap:10px;align-items:flex-start;padding:6px 0;">
+        <span class="badge b-green" style="flex-shrink:0;">Low noise</span>
+        <span style="color:#888;">Passive OSINT (crt.sh, Shodan), viewing robots.txt/sitemap.xml, curl for single files, Google dorks</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="sc-card sc-green" style="margin-bottom:10px;">
+    <div style="font-size:13px;font-weight:600;margin-bottom:6px;">Legal &amp; ethical boundaries</div>
+    <div class="step-row" style="border-bottom:1px solid #2a2a30;">
+      <span class="snum g">✓</span>
+      <div style="font-size:12px;color:#888;"><strong style="font-weight:600;color:#4ade80;">Always have written authorization</strong> — a bug bounty scope document, a pentest SOW, or explicit written permission before touching any target. Unauthorized enumeration is a crime in most jurisdictions regardless of intent.</div>
+    </div>
+    <div class="step-row" style="border-bottom:1px solid #2a2a30;">
+      <span class="snum g">✓</span>
+      <div style="font-size:12px;color:#888;"><strong style="font-weight:600;color:#4ade80;">Verify scope</strong> — confirm which domains, IPs, and subdomains are in scope. An enumeration tool that discovers out-of-scope assets can probe them automatically — check every finding against the scope document.</div>
+    </div>
+    <div class="step-row">
+      <span class="snum g">✓</span>
+      <div style="font-size:12px;color:#888;"><strong style="font-weight:600;color:#4ade80;">Don't cause damage</strong> — avoid scans that send requests to production databases, trigger alert storms, or consume excessive bandwidth. Prefer passive recon and low-speed active scans in production environments.</div>
+    </div>
+  </div>
+
+  <div class="sc-card sc-blue">
+    <div style="font-size:13px;font-weight:600;margin-bottom:6px;">Recommended enumeration order (stealth-first)</div>
+    <div class="code">1. Passive OSINT first (zero server contact)
+   crt.sh → subfinder → Shodan → GitHub → Wayback
+
+2. Single low-noise requests
+   robots.txt → sitemap.xml → /favicon.ico hash → headers
+
+3. Technology fingerprinting (1-2 requests)
+   whatweb, wappalyzer, single curl
+
+4. Targeted dir scan (high-value paths only)
+   .git/HEAD .env backup.zip phpinfo.php — not full wordlist
+
+5. Full wordlist scan (if authorized, during low-traffic hours)
+   gobuster / ffuf with rate limiting
+
+6. Active subdomain brute force
+   Only after passive subdomain enum is exhausted
+
+7. Crawler / JS mining
+   katana with depth limit, avoid login flows</div>
+  </div>
+</div>
+
+<script>
+function showTab(id,btn){
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+  btn.classList.add('active');
+}
+
+function setScan(type){
+  document.getElementById('scan-type').value=type;
+  runScan();
+}
+
+const SCAN_DATA={
+  dir:{
+    cmd:(t)=>`gobuster dir -u https://${t} \\\n  -w /usr/share/seclists/Discovery/Web-Content/raft-medium-directories.txt \\\n  -x php,html,txt,bak,zip,sql,conf \\\n  -t 50 -o results.txt`,
+    sim:(t)=>`[+] Starting gobuster scan on https://${t}
+[+] Wordlist: raft-medium-directories.txt (63,087 words)
+[+] Extensions: php,html,txt,bak,zip,sql,conf
+[+] Threads: 50
+==========================================
+/index.php            (Status: 200) [Size: 4821]
+/admin                (Status: 301) [→ /admin/]
+/login.php            (Status: 200) [Size: 2341]
+/.env                 (Status: 200) [Size: 312]   ←← CRITICAL
+/.git                 (Status: 301) [→ /.git/]   ←← CRITICAL
+/backup.zip           (Status: 200) [Size: 1.4MB] ←← CRITICAL
+/phpinfo.php          (Status: 200) [Size: 47230] ←← HIGH
+/config.php           (Status: 200) [Size: 0]
+/upload               (Status: 403) [→ try bypass]
+/api                  (Status: 301) [→ /api/v1/]
+/swagger.json         (Status: 200) [Size: 8901]  ←← HIGH
+/robots.txt           (Status: 200) [Size: 156]
+/sitemap.xml          (Status: 200) [Size: 3201]
+==========================================
+Finished. 13 findings in 4m 22s`,
+    findings:[
+      {path:'/.env',code:'200',risk:'Critical',note:'Credentials / API keys exposed'},
+      {path:'/.git/',code:'301',risk:'Critical',note:'Git repo — source code + history'},
+      {path:'/backup.zip',code:'200',risk:'Critical',note:'1.4MB backup archive'},
+      {path:'/phpinfo.php',code:'200',risk:'High',note:'PHP config + env vars'},
+      {path:'/swagger.json',code:'200',risk:'High',note:'Full API specification'},
+      {path:'/admin/',code:'200',risk:'Medium',note:'Admin panel — check for weak creds'},
+      {path:'/upload',code:'403',risk:'Low',note:'Upload dir — try 403 bypass'},
+    ]
+  },
+  sub:{
+    cmd:(t)=>`subfinder -d ${t} -all -recursive -o subs.txt\namass enum -passive -d ${t} -o amass.txt\ncat subs.txt amass.txt | sort -u | httpx -mc 200,301,302`,
+    sim:(t)=>`[+] subfinder — passive subdomain enumeration
+[+] Target: ${t}
+[+] Sources: CertSpotter, Crtsh, DNS, Wayback, VirusTotal...
+==========================================
+[INF] api.${t}               [200]
+[INF] dev.${t}               [200] ←← target — dev environments often unprotected
+[INF] staging.${t}           [200] ←← target — may run older software versions
+[INF] admin.${t}             [403] ←← blocked — try header bypass
+[INF] mail.${t}              [200]
+[INF] old.${t}               [200] ←← target — legacy apps, outdated software
+[INF] vpn.${t}               [200]
+[INF] beta.${t}              [200] ←← target — unfinished features
+[INF] internal.${t}          [200] ←← target — intended to be internal!
+[INF] test.${t}              [200] ←← target — test environments
+[INF] cdn.${t}               [200]
+==========================================
+11 subdomains found | 8 accessible (httpx)`,
+    findings:[
+      {path:'dev.'+'{t}',code:'200',risk:'High',note:'Dev env — often debug mode, weaker auth'},
+      {path:'staging.'+'{t}',code:'200',risk:'High',note:'Older software versions, test credentials'},
+      {path:'old.'+'{t}',code:'200',risk:'High',note:'Legacy application — unpatcheed CVEs'},
+      {path:'internal.'+'{t}',code:'200',risk:'Critical',note:'Should not be internet-facing'},
+      {path:'beta.'+'{t}',code:'200',risk:'Medium',note:'Unfinished features, potential injection points'},
+      {path:'admin.'+'{t}',code:'403',risk:'Medium',note:'403 bypass may give access'},
+    ]
+  },
+  tech:{
+    cmd:(t)=>`whatweb -a 3 https://${t} -v\ncurl -sI https://${t} | grep -iE "server:|x-powered-by:|x-generator:|via:|set-cookie:"`,
+    sim:(t)=>`[+] whatweb fingerprinting https://${t}
+==========================================
+Server: nginx/1.18.0 (Ubuntu)
+X-Powered-By: PHP/7.4.3
+Set-Cookie: PHPSESSID=abc123; path=/
+X-Generator: WordPress 6.1.1
+
+[+] WhatWeb Analysis:
+  PHP           [version: 7.4.3]        ←← EOL — unpatched CVEs
+  WordPress     [version: 6.1.1]        ←← check WPScan
+  nginx         [version: 1.18.0]
+  jQuery        [version: 1.12.4]       ←← outdated — CVE-2020-11022 XSS
+  Bootstrap     [version: 3.4.1]        ←← outdated
+
+[+] Matched CVEs:
+  CVE-2023-5561  WordPress 6.1.x    CVSS: 5.3  User enumeration
+  CVE-2022-3590  WordPress < 6.0.3  CVSS: 5.4  Blind SSRF
+  CVE-2023-2745  WordPress < 6.2.1  CVSS: 5.4  Directory traversal
+
+[+] WPScan results:
+  Users found: admin, editor, john_smith
+  Vulnerable plugins: contact-form-7 (< 5.7.7)
+  Theme: Divi — version: 4.20.0
+==========================================
+Stack identified. 3 CVEs matched.`,
+    findings:[
+      {path:'PHP 7.4.3',code:'EOL',risk:'High',note:'End of life — no security patches'},
+      {path:'WordPress 6.1.1',code:'CVE',risk:'High',note:'Multiple CVEs — run wpscan'},
+      {path:'jQuery 1.12.4',code:'CVE',risk:'Medium',note:'CVE-2020-11022 XSS via html()'},
+      {path:'Users: admin, editor',code:'ENUM',risk:'Medium',note:'User enumeration via /wp-json/'},
+    ]
+  },
+  js:{
+    cmd:(t)=>`katana -u https://${t} -js-crawl -o jsfiles.txt\ncat jsfiles.txt | grep "\\.js$" | xargs -I{} python3 LinkFinder.py -i {} -o cli`,
+    sim:(t)=>`[+] katana JS crawler — https://${t}
+[+] JS-crawl enabled, depth: 3
+==========================================
+[JSF] Found JS file: /static/js/app.bundle.js (2.3MB)
+[JSF] Found JS file: /static/js/vendor.js (1.1MB)
+[JSF] Found source map: /static/js/app.bundle.js.map ←← exposes original source!
+
+[+] LinkFinder — endpoint extraction:
+  /api/v1/users              ←← user enumeration
+  /api/v1/admin/users        ←← admin endpoint!
+  /api/v1/orders/{id}        ←← IDOR candidate
+  /api/internal/metrics      ←← internal metrics
+  /api/v2/upload             ←← file upload
+  /api/v1/password/reset     ←← password reset flow
+
+[+] Secret scanner:
+  app.bundle.js:1842  api_key = "sk-live-xK9mP2qR8vL5nW3..."  ←← CRITICAL
+  app.bundle.js:3301  firebase_config: { apiKey: "AIzaSy..." } ←← HIGH
+  app.bundle.js:5012  //staging-api.${t}/api                   ←← staging endpoint
+
+==========================================
+6 API endpoints, 2 secrets, 1 source map found`,
+    findings:[
+      {path:'/api/v1/admin/users',code:'200',risk:'Critical',note:'Admin API endpoint in JS bundle'},
+      {path:'api_key in JS',code:'LEAK',risk:'Critical',note:'Hardcoded API key in client JS'},
+      {path:'app.bundle.js.map',code:'200',risk:'High',note:'Source map — original source code'},
+      {path:'/api/v1/orders/{id}',code:'200',risk:'High',note:'IDOR candidate — test with other IDs'},
+      {path:'/api/internal/metrics',code:'200',risk:'Medium',note:'Internal endpoint exposed publicly'},
+    ]
+  },
+  headers:{
+    cmd:(t)=>`curl -sI https://${t}\ncurl -sI https://${t} | grep -iE "server:|x-powered-by:|x-frame|content-security|strict-transport|x-content-type"`,
+    sim:(t)=>`[+] HTTP header analysis — https://${t}
+==========================================
+HTTP/2 200
+
+Server: Apache/2.4.51 (Ubuntu)           ←← CVE-2021-42013 possible
+X-Powered-By: PHP/7.4.3                  ←← version disclosure
+Content-Type: text/html; charset=UTF-8
+Set-Cookie: session=abc123; Path=/        ←← Missing Secure flag!
+                                          ←← Missing HttpOnly flag!
+                                          ←← Missing SameSite!
+
+[+] Missing security headers:
+  ✗ Content-Security-Policy              ←← XSS no mitigation
+  ✗ X-Frame-Options                      ←← clickjacking possible
+  ✗ X-Content-Type-Options               ←← MIME sniffing
+  ✗ Strict-Transport-Security            ←← HTTPS not enforced
+  ✗ Permissions-Policy                   ←← browser features unrestricted
+  ✗ Referrer-Policy                      ←← referer leakage
+
+[+] Dangerous headers present:
+  X-Powered-By: PHP/7.4.3               ←← remove in production
+  Server: Apache/2.4.51                 ←← version disclosure
+
+Score: D (3/10) — multiple missing security headers
+==========================================`,
+    findings:[
+      {path:'Apache 2.4.51',code:'CVE',risk:'High',note:'CVE-2021-42013 path traversal / RCE'},
+      {path:'Cookie: no Secure/HttpOnly',code:'MISCFG',risk:'High',note:'Session cookie theft possible over HTTP'},
+      {path:'No Content-Security-Policy',code:'MISSING',risk:'Medium',note:'XSS has no browser-level mitigation'},
+      {path:'No X-Frame-Options',code:'MISSING',risk:'Medium',note:'Clickjacking / iframe embedding possible'},
+      {path:'No HSTS',code:'MISSING',risk:'Medium',note:'Strict-Transport-Security not set'},
+    ]
+  }
+};
+
+function runScan(){
+  const type=document.getElementById('scan-type').value;
+  const target=document.getElementById('target-input').value.trim()||'target-corp.com';
+  const data=SCAN_DATA[type];
+  const out=document.getElementById('scan-output');
+  const findingsDiv=document.getElementById('findings-table');
+
+  // Animate output
+  const lines=data.sim(target).split('\n');
+  out.textContent='';
+  let i=0;
+  const interval=setInterval(()=>{
+    if(i<lines.length){
+      const line=lines[i];
+      const colored=line
+        .replace(/(CRITICAL|←← CRITICAL)/g,'<span style="color:#f87171;font-weight:600">$1</span>')
+        .replace(/(HIGH|←← HIGH)/g,'<span style="color:#f87171">$1</span>')
+        .replace(/(←← target)/g,'<span style="color:#fbbf24">$1</span>')
+        .replace(/(\[Status: 200\])/g,'<span style="color:#4ade80">$1</span>')
+        .replace(/(\[Status: 403\])/g,'<span style="color:#f87171">$1</span>')
+        .replace(/(\[Status: 301\])/g,'<span style="color:#60a5fa">$1</span>')
+        .replace(/(←←)/g,'<span style="color:#fbbf24">←←</span>');
+      out.innerHTML+=colored+'\n';
+      out.scrollTop=out.scrollHeight;
+      i++;
+    } else {
+      clearInterval(interval);
+    }
+  },35);
+
+  // Findings table
+  const findings=data.findings;
+  const riskColor={Critical:'#f87171',High:'#f87171',Medium:'#fbbf24',Low:'#888',EOL:'#f87171',CVE:'#f87171',ENUM:'#fbbf24',LEAK:'#f87171',MISCFG:'#f87171',MISSING:'#fbbf24'};
+  const riskBadge={Critical:'b-red',High:'b-red',Medium:'b-amber',Low:'b-gray',EOL:'b-red',CVE:'b-red',ENUM:'b-amber',LEAK:'b-red',MISCFG:'b-red',MISSING:'b-amber'};
+  let html='<table><thead><tr><th>Finding</th><th>Status</th><th>Risk</th><th>Impact</th></tr></thead><tbody>';
+  findings.forEach(f=>{
+    const p=f.path.replace('{t}',target);
+    html+=`<tr>
+      <td style="font-family:'Courier New',monospace;color:#e2e2e6">${p}</td>
+      <td><span class="http-code c${f.code==='200'?'200':f.code==='301'?'301':f.code==='403'?'403':'200'}">${f.code}</span></td>
+      <td><span class="badge ${riskBadge[f.risk]||'b-gray'}">${f.risk}</span></td>
+      <td style="color:#888">${f.note}</td>
+    </tr>`;
+  });
+  html+='</tbody></table>';
+  findingsDiv.innerHTML=html;
+}
+
+// Run initial scan
+setTimeout(runScan,100);
+</script>
+</body>
+</html>

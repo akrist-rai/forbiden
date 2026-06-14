@@ -1,0 +1,1 @@
+{"root":["./src/App.tsx","./src/main.tsx","./src/components/GraphCanvas/NodeCard.tsx","./src/components/Layout/Topbar.tsx","./src/components/ui/index.tsx","./src/hooks/useWS.ts","./src/lib/api.ts","./src/lib/supabase.ts","./src/pages/Dashboard/index.tsx","./src/pages/Editor/index.tsx","./src/pages/IDE/index.tsx","./src/pages/Login/index.tsx"],"errors":true,"version":"5.9.3"}

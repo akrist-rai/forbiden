@@ -1,0 +1,418 @@
+
+<style>
+  .tab-btn { background: none; border: 0.5px solid var(--color-border-tertiary); padding: 6px 16px; border-radius: var(--border-radius-md); cursor: pointer; font-size: 13px; color: var(--color-text-secondary); transition: all .15s; }
+  .tab-btn.active { background: var(--color-background-secondary); color: var(--color-text-primary); border-color: var(--color-border-primary); font-weight: 500; }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+  .code-block { background: var(--color-background-secondary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-md); padding: 12px; font-family: var(--font-mono); font-size: 12px; line-height: 1.7; color: var(--color-text-secondary); white-space: pre-wrap; margin: 8px 0; }
+  .badge { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: var(--border-radius-md); font-weight: 500; }
+  .badge-danger { background: var(--color-background-danger); color: var(--color-text-danger); }
+  .badge-safe { background: var(--color-background-success); color: var(--color-text-success); }
+  .badge-warn { background: var(--color-background-warning); color: var(--color-text-warning); }
+  .badge-info { background: var(--color-background-info); color: var(--color-text-info); }
+  .step-row { display: flex; align-items: flex-start; gap: 12px; padding: 10px 0; border-bottom: 0.5px solid var(--color-border-tertiary); }
+  .step-row:last-child { border-bottom: none; }
+  .step-num { min-width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 500; }
+  .step-num.danger { background: var(--color-background-danger); color: var(--color-text-danger); }
+  .step-num.ok { background: var(--color-background-success); color: var(--color-text-success); }
+  .step-num.info { background: var(--color-background-info); color: var(--color-text-info); }
+  .result-box { margin-top: 10px; padding: 10px 14px; border-radius: var(--border-radius-md); font-size: 13px; line-height: 1.6; }
+  .result-vuln { background: var(--color-background-danger); border: 0.5px solid var(--color-border-danger); color: var(--color-text-danger); }
+  .result-safe { background: var(--color-background-success); border: 0.5px solid var(--color-border-success); color: var(--color-text-success); }
+  .result-warn { background: var(--color-background-warning); border: 0.5px solid var(--color-border-warning); color: var(--color-text-warning); }
+  .fix-row { background: var(--color-background-secondary); border-radius: var(--border-radius-md); padding: 10px 14px; margin-bottom: 8px; border-left: 3px solid var(--color-border-success); }
+  .server-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); gap: 8px; margin: 10px 0; }
+  .server-card { background: var(--color-background-secondary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-md); padding: 10px 12px; }
+  .server-name { font-size: 12px; font-weight: 500; margin-bottom: 4px; }
+  .server-behavior { font-family: var(--font-mono); font-size: 11px; color: var(--color-text-danger); }
+  .server-behavior.safe { color: var(--color-text-success); }
+  .pipe-row { display: flex; align-items: center; gap: 0; margin: 6px 0; }
+  .pipe-box { padding: 6px 12px; font-size: 12px; border: 0.5px solid var(--color-border-tertiary); background: var(--color-background-secondary); }
+  .pipe-box:first-child { border-radius: 6px 0 0 6px; }
+  .pipe-box:last-child { border-radius: 0 6px 6px 0; }
+  .pipe-arrow { padding: 6px 4px; font-size: 12px; color: var(--color-text-tertiary); border-top: 0.5px solid var(--color-border-tertiary); border-bottom: 0.5px solid var(--color-border-tertiary); background: var(--color-background-secondary); }
+  .pipe-box.danger { background: var(--color-background-danger); border-color: var(--color-border-danger); color: var(--color-text-danger); font-family: var(--font-mono); }
+  .pipe-box.safe-box { background: var(--color-background-success); border-color: var(--color-border-success); color: var(--color-text-success); font-family: var(--font-mono); }
+  select { font-size: 13px; }
+</style>
+
+<div style="padding:1rem 0;">
+
+  <div style="display:flex;gap:8px;margin-bottom:1.5rem;flex-wrap:wrap;">
+    <button class="tab-btn active" onclick="showTab('concept')">How it works</button>
+    <button class="tab-btn" onclick="showTab('parsers')">Parser behavior</button>
+    <button class="tab-btn" onclick="showTab('attacks')">Attack scenarios</button>
+    <button class="tab-btn" onclick="showTab('demo')">Live demo</button>
+    <button class="tab-btn" onclick="showTab('fix')">Fixes</button>
+  </div>
+
+  <!-- ── TAB 1: Concept ── -->
+  <div class="tab-panel active" id="tab-concept">
+    <p style="font-size:13px;color:var(--color-text-secondary);margin:0 0 1rem;">HTTP Parameter Pollution (HPP) exploits the fact that different layers of a web stack parse duplicate query parameters differently — what the WAF sees is not what the backend uses.</p>
+
+    <svg width="100%" viewBox="0 0 680 370">
+      <defs>
+        <marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+      </defs>
+
+      <!-- Attacker -->
+      <g class="c-red">
+        <rect x="20" y="30" width="120" height="52" rx="8" stroke-width="0.5"/>
+        <text class="th" x="80" y="50" text-anchor="middle" dominant-baseline="central">Attacker</text>
+        <text class="ts" x="80" y="68" text-anchor="middle" dominant-baseline="central">injects duplicate param</text>
+      </g>
+
+      <!-- WAF -->
+      <g class="c-green">
+        <rect x="200" y="30" width="130" height="52" rx="8" stroke-width="0.5"/>
+        <text class="th" x="265" y="50" text-anchor="middle" dominant-baseline="central">WAF / Proxy</text>
+        <text class="ts" x="265" y="68" text-anchor="middle" dominant-baseline="central">reads first param</text>
+      </g>
+
+      <!-- Backend -->
+      <g class="c-coral">
+        <rect x="400" y="30" width="130" height="52" rx="8" stroke-width="0.5"/>
+        <text class="th" x="465" y="50" text-anchor="middle" dominant-baseline="central">Backend App</text>
+        <text class="ts" x="465" y="68" text-anchor="middle" dominant-baseline="central">reads last param</text>
+      </g>
+
+      <!-- Arrows top -->
+      <line x1="142" y1="56" x2="198" y2="56" stroke="var(--t)" stroke-width="1" opacity="0.5" marker-end="url(#arr)"/>
+      <line x1="332" y1="56" x2="398" y2="56" stroke="#E24B4A" stroke-width="1.5" marker-end="url(#arr)"/>
+      <rect x="336" y="40" width="60" height="16" rx="3" fill="var(--color-background-primary)"/>
+      <text class="ts" x="366" y="48" text-anchor="middle" dominant-baseline="central" style="fill:#E24B4A">bypassed!</text>
+
+      <!-- URL Box -->
+      <rect x="20" y="120" width="640" height="44" rx="8" fill="none" stroke="var(--color-border-secondary)" stroke-width="0.5"/>
+      <text class="ts" x="36" y="142" dominant-baseline="central" style="font-family:var(--font-mono);">GET /transfer?</text>
+      <text class="ts" x="150" y="142" dominant-baseline="central" style="font-family:var(--font-mono);fill:#639922;">to=alice</text>
+      <text class="ts" x="224" y="142" dominant-baseline="central" style="font-family:var(--font-mono);">&amp;</text>
+      <text class="ts" x="236" y="142" dominant-baseline="central" style="font-family:var(--font-mono);fill:#E24B4A;">to=attacker</text>
+      <text class="ts" x="350" y="142" dominant-baseline="central" style="font-family:var(--font-mono);opacity:0.5">&amp;amount=1000</text>
+
+      <!-- Legend arrows -->
+      <line x1="174" y1="164" x2="174" y2="32" stroke="#639922" stroke-width="1" stroke-dasharray="3 3" opacity="0.6"/>
+      <text class="ts" x="154" y="178" text-anchor="middle" dominant-baseline="central" style="fill:#639922">WAF checks</text>
+      <text class="ts" x="154" y="194" text-anchor="middle" dominant-baseline="central" style="fill:#639922">"to=alice" ✓</text>
+
+      <line x1="302" y1="164" x2="302" y2="32" stroke="#E24B4A" stroke-width="1" stroke-dasharray="3 3" opacity="0.6"/>
+      <text class="ts" x="302" y="178" text-anchor="middle" dominant-baseline="central" style="fill:#E24B4A">App uses</text>
+      <text class="ts" x="302" y="194" text-anchor="middle" dominant-baseline="central" style="fill:#E24B4A">"to=attacker" ✗</text>
+
+      <!-- Key insight box -->
+      <rect x="20" y="230" width="640" height="110" rx="10" fill="none" stroke="var(--color-border-secondary)" stroke-width="0.5"/>
+      <text class="th" x="340" y="256" text-anchor="middle" dominant-baseline="central">The core problem</text>
+      <text class="ts" x="340" y="278" text-anchor="middle" dominant-baseline="central">RFC 3986 does not define how to handle duplicate parameters.</text>
+      <text class="ts" x="340" y="298" text-anchor="middle" dominant-baseline="central">Every framework makes its own choice — first, last, or array.</text>
+      <text class="ts" x="340" y="318" text-anchor="middle" dominant-baseline="central" style="fill:var(--color-text-danger)">Inconsistency between layers = exploitable gap.</text>
+    </svg>
+  </div>
+
+  <!-- ── TAB 2: Parser Behavior ── -->
+  <div class="tab-panel" id="tab-parsers">
+    <p style="font-size:13px;color:var(--color-text-secondary);margin:0 0 10px;">Given <span style="font-family:var(--font-mono);font-size:12px;">?color=red&amp;color=blue</span>, here is what each platform returns for <span style="font-family:var(--font-mono);font-size:12px;">color</span>:</p>
+
+    <div style="overflow-x:auto;">
+      <table style="width:100%;font-size:12px;border-collapse:collapse;">
+        <thead>
+          <tr style="border-bottom:0.5px solid var(--color-border-secondary);">
+            <th style="text-align:left;padding:8px 10px;font-weight:500;color:var(--color-text-secondary);">Technology</th>
+            <th style="text-align:left;padding:8px 10px;font-weight:500;color:var(--color-text-secondary);">Result</th>
+            <th style="text-align:left;padding:8px 10px;font-weight:500;color:var(--color-text-secondary);">Behavior</th>
+          </tr>
+        </thead>
+        <tbody id="parser-table"></tbody>
+      </table>
+    </div>
+
+    <div style="margin-top:1.2rem;">
+      <p style="font-size:13px;font-weight:500;margin:0 0 8px;">Visualise a specific pair</p>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <select id="waf-select" onchange="updatePipe()" style="flex:1;min-width:120px;">
+          <option value="first">WAF: takes first</option>
+          <option value="last">WAF: takes last</option>
+          <option value="array">WAF: sees array</option>
+        </select>
+        <span style="font-size:13px;color:var(--color-text-tertiary)">vs</span>
+        <select id="app-select" onchange="updatePipe()" style="flex:1;min-width:120px;">
+          <option value="last" selected>App: takes last</option>
+          <option value="first">App: takes first</option>
+          <option value="array">App: sees array</option>
+        </select>
+      </div>
+      <div id="pipe-display" style="margin-top:10px;"></div>
+    </div>
+  </div>
+
+  <!-- ── TAB 3: Attack Scenarios ── -->
+  <div class="tab-panel" id="tab-attacks">
+    <div style="display:flex;flex-direction:column;gap:12px;">
+
+      <div style="background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:12px 14px;border-left:3px solid var(--color-border-danger);">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+          <span style="font-size:13px;font-weight:500;">Server-side HPP — WAF bypass</span>
+          <span class="badge badge-danger">High severity</span>
+        </div>
+        <p style="font-size:12px;color:var(--color-text-secondary);margin:0 0 8px;">WAF checks the safe first value; backend uses the injected second value.</p>
+        <div class="code-block">GET /transfer?to=alice&to=attacker&amount=5000 HTTP/1.1</div>
+        <div style="font-size:12px;color:var(--color-text-secondary);">WAF sees <span style="font-family:var(--font-mono);color:#639922">to=alice</span> (safe) → passes. PHP app uses <span style="font-family:var(--font-mono);color:#E24B4A">to=attacker</span> (last).</div>
+      </div>
+
+      <div style="background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:12px 14px;border-left:3px solid var(--color-border-danger);">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+          <span style="font-size:13px;font-weight:500;">OAuth token hijack</span>
+          <span class="badge badge-danger">Critical</span>
+        </div>
+        <p style="font-size:12px;color:var(--color-text-secondary);margin:0 0 8px;">The authorization server concatenates duplicate redirect_uri, sending the code to the attacker's URL.</p>
+        <div class="code-block">GET /oauth/authorize
+  ?redirect_uri=https://app.com/cb
+  &redirect_uri=https://evil.com/steal
+  &client_id=123
+  &response_type=code</div>
+        <div style="font-size:12px;color:var(--color-text-secondary);">Some servers concatenate: <span style="font-family:var(--font-mono);color:#E24B4A">redirect_uri=https://app.com/cb,https://evil.com/steal</span> — the code goes to evil.com.</div>
+      </div>
+
+      <div style="background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:12px 14px;border-left:3px solid var(--color-border-warning);">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+          <span style="font-size:13px;font-weight:500;">Client-side HPP — link injection</span>
+          <span class="badge badge-warn">Medium</span>
+        </div>
+        <p style="font-size:12px;color:var(--color-text-secondary);margin:0 0 8px;">Reflected user input is placed in a URL before an existing parameter, poisoning the link.</p>
+        <div class="code-block">&lt;!-- User input: "&amp;role=admin" --&gt;
+&lt;a href="/profile?user=alice&amp;role=admin&amp;role=user"&gt;
+&lt;!-- Browser may read role=admin (first wins) --&gt;</div>
+      </div>
+
+      <div style="background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:12px 14px;border-left:3px solid var(--color-border-info);">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+          <span style="font-size:13px;font-weight:500;">Logic bypass via array confusion</span>
+          <span class="badge badge-info">Variable</span>
+        </div>
+        <p style="font-size:12px;color:var(--color-text-secondary);margin:0 0 8px;">Backend receives an array instead of a string, causing type coercion failures in comparisons.</p>
+        <div class="code-block">POST /api/transfer
+Content-Type: application/x-www-form-urlencoded
+
+amount=100&amount=99999
+
+// Node.js: req.body.amount → ['100','99999']
+// '100' == ['100','99999'] → false → check skipped!</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── TAB 4: Live Demo ── -->
+  <div class="tab-panel" id="tab-demo">
+    <p style="font-size:13px;color:var(--color-text-secondary);margin:0 0 1rem;">Simulate how a backend processes a polluted request depending on its parsing strategy.</p>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+      <div>
+        <label style="font-size:12px;color:var(--color-text-secondary);display:block;margin-bottom:4px;">Parameter name</label>
+        <input type="text" id="param-name" value="to" oninput="runHPPDemo()" style="width:100%;box-sizing:border-box;"/>
+      </div>
+      <div>
+        <label style="font-size:12px;color:var(--color-text-secondary);display:block;margin-bottom:4px;">Backend framework</label>
+        <select id="backend-select" onchange="runHPPDemo()" style="width:100%;box-sizing:border-box;font-size:13px;">
+          <option value="php">PHP (takes last)</option>
+          <option value="nodejs">Node.js Express (takes last)</option>
+          <option value="asp">ASP.NET (takes first)</option>
+          <option value="java">Java Servlet (takes first)</option>
+          <option value="flask">Flask/Django (takes last)</option>
+          <option value="rails">Ruby on Rails (takes last)</option>
+        </select>
+      </div>
+    </div>
+
+    <label style="font-size:12px;color:var(--color-text-secondary);display:block;margin-bottom:4px;">Crafted query string</label>
+    <input type="text" id="query-string" value="to=alice&to=attacker&amount=1000" oninput="runHPPDemo()" style="width:100%;box-sizing:border-box;font-family:var(--font-mono);font-size:12px;"/>
+
+    <div id="demo-result" style="margin-top:12px;"></div>
+
+    <div style="margin-top:1rem;">
+      <p style="font-size:13px;font-weight:500;margin:0 0 8px;">Presets</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="tab-btn" onclick="setPreset('to=alice&to=attacker&amount=1000','to')">Transfer hijack</button>
+        <button class="tab-btn" onclick="setPreset('role=user&role=admin','role')">Role escalation</button>
+        <button class="tab-btn" onclick="setPreset('amount=100&amount=99999','amount')">Amount override</button>
+        <button class="tab-btn" onclick="setPreset('token=safe_abc&token=injected_xyz','token')">Token swap</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── TAB 5: Fixes ── -->
+  <div class="tab-panel" id="tab-fix">
+
+    <div class="fix-row">
+      <div style="font-size:13px;font-weight:500;margin-bottom:4px;">① Explicitly pick one value <span class="badge badge-safe">Best</span></div>
+      <div style="font-size:12px;color:var(--color-text-secondary);margin-bottom:8px;">Never rely on the framework's default. Always select the first or last occurrence deliberately.</div>
+      <div class="code-block">// Node.js — force first value
+const to = Array.isArray(req.query.to)
+  ? req.query.to[0]
+  : req.query.to;
+
+// Python — force first value
+to = request.args.getlist('to')[0]
+
+// PHP — use first explicitly
+$to = is_array($_GET['to']) ? $_GET['to'][0] : $_GET['to'];</div>
+    </div>
+
+    <div class="fix-row">
+      <div style="font-size:13px;font-weight:500;margin-bottom:4px;">② Reject requests with duplicate params <span class="badge badge-safe">Strict</span></div>
+      <div style="font-size:12px;color:var(--color-text-secondary);margin-bottom:8px;">If your API never sends duplicate parameters legitimately, treat any duplicate as an attack signal.</div>
+      <div class="code-block">// Express middleware — block duplicates
+app.use((req, res, next) => {
+  for (const [k, v] of Object.entries(req.query)) {
+    if (Array.isArray(v)) {
+      return res.status(400).json({
+        error: `Duplicate parameter: ${k}`
+      });
+    }
+  }
+  next();
+});</div>
+    </div>
+
+    <div class="fix-row">
+      <div style="font-size:13px;font-weight:500;margin-bottom:4px;">③ Consistent parsing across layers <span class="badge badge-warn">Architectural</span></div>
+      <div style="font-size:12px;color:var(--color-text-secondary);">Ensure your WAF, load balancer, and backend all use the same parameter parsing strategy. Document the chosen behavior. An inconsistency at any boundary is an HPP vector.</div>
+    </div>
+
+    <div class="fix-row" style="border-left-color:var(--color-border-info);">
+      <div style="font-size:13px;font-weight:500;margin-bottom:4px;">④ Framework defaults to know</div>
+      <div style="font-size:12px;color:var(--color-text-secondary);line-height:1.8;">
+        <span style="font-family:var(--font-mono)">PHP</span> — last wins &nbsp;·&nbsp;
+        <span style="font-family:var(--font-mono)">ASP.NET</span> — first,last comma-joined &nbsp;·&nbsp;
+        <span style="font-family:var(--font-mono)">Express.js</span> — array &nbsp;·&nbsp;
+        <span style="font-family:var(--font-mono)">Flask</span> — last wins &nbsp;·&nbsp;
+        <span style="font-family:var(--font-mono)">Rails</span> — last wins &nbsp;·&nbsp;
+        <span style="font-family:var(--font-mono)">Java Servlet</span> — array (getParameterValues)
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// Tab switching
+function showTab(id) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + id).classList.add('active');
+  event.target.classList.add('active');
+}
+
+// Parser table data
+const parsers = [
+  { tech: 'PHP', result: 'blue (last)', behavior: 'last', note: 'Overwrites on duplicate' },
+  { tech: 'ASP.NET / IIS', result: '"red,blue" (joined)', behavior: 'join', note: 'Comma-concatenates all values' },
+  { tech: 'Node.js (Express)', result: "['red','blue'] (array)", behavior: 'array', note: 'Wraps into array' },
+  { tech: 'Flask / Django', result: 'blue (last)', behavior: 'last', note: 'getlist() → array; [] → last' },
+  { tech: 'Ruby on Rails', result: 'blue (last)', behavior: 'last', note: 'Hash override' },
+  { tech: 'Java Servlet', result: 'red (first)', behavior: 'first', note: 'getParameter() → first; getParameterValues() → array' },
+  { tech: 'Go net/http', result: "['red','blue'] (array)", behavior: 'array', note: 'Query().Get() → first; Query()["k"] → array' },
+  { tech: 'Apache (mod_qos)', result: 'red (first)', behavior: 'first', note: 'Takes first occurrence' },
+];
+
+const tbody = document.getElementById('parser-table');
+parsers.forEach(p => {
+  const color = p.behavior === 'array' ? 'var(--color-text-warning)' :
+                p.behavior === 'join'  ? 'var(--color-text-warning)' :
+                p.behavior === 'first' ? 'var(--color-text-info)' : 'var(--color-text-danger)';
+  tbody.innerHTML += `<tr style="border-bottom:0.5px solid var(--color-border-tertiary);">
+    <td style="padding:8px 10px;font-family:var(--font-mono);font-size:12px;">${p.tech}</td>
+    <td style="padding:8px 10px;font-family:var(--font-mono);font-size:12px;color:${color}">${p.result}</td>
+    <td style="padding:8px 10px;font-size:12px;color:var(--color-text-secondary);">${p.note}</td>
+  </tr>`;
+});
+
+// Pipe display
+function updatePipe() {
+  const waf = document.getElementById('waf-select').value;
+  const app = document.getElementById('app-select').value;
+  const display = document.getElementById('pipe-display');
+
+  const label = { first: '"red" (1st)', last: '"blue" (2nd)', array: '["red","blue"]' };
+  const wafVal = label[waf], appVal = label[app];
+  const vuln = waf !== app;
+
+  display.innerHTML = `
+    <div style="font-size:12px;color:var(--color-text-secondary);margin-bottom:6px;">Request: <span style="font-family:var(--font-mono)">?color=red&color=blue</span></div>
+    <div class="pipe-row">
+      <div class="pipe-box">Incoming request</div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-box">WAF sees: <span style="font-family:var(--font-mono);color:#639922">${wafVal}</span></div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-box ${vuln ? 'danger' : 'safe-box'}">App uses: ${appVal}</div>
+    </div>
+    <div class="result-box ${vuln ? 'result-vuln' : 'result-safe'}" style="margin-top:8px;">
+      ${vuln
+        ? `<strong>Inconsistency detected.</strong> WAF checked ${wafVal} but the app executed with ${appVal}. An attacker can place a safe value first and an injected value ${app === 'last' ? 'last' : 'in the array'}.`
+        : `<strong>Consistent parsing.</strong> Both layers use the same value — HPP is much harder to exploit here, though not impossible if combined with other techniques.`}
+    </div>`;
+}
+updatePipe();
+
+// Demo
+function parseQS(qs, name) {
+  const parts = qs.split('&').filter(p => p.trim());
+  const vals = [];
+  parts.forEach(p => {
+    const [k, v] = p.split('=');
+    if (k && k.trim() === name.trim()) vals.push(decodeURIComponent((v||'').replace(/\+/g,' ')));
+  });
+  return vals;
+}
+
+function runHPPDemo() {
+  const qs = document.getElementById('query-string').value;
+  const name = document.getElementById('param-name').value.trim() || 'param';
+  const backend = document.getElementById('backend-select').value;
+  const vals = parseQS(qs, name);
+  const res = document.getElementById('demo-result');
+
+  if (vals.length === 0) {
+    res.innerHTML = `<div class="result-box result-warn">Parameter <code>${name}</code> not found in query string.</div>`;
+    return;
+  }
+
+  let used = '', note = '', vuln = false;
+  if (vals.length === 1) {
+    used = vals[0];
+    note = 'Only one value — no pollution.';
+  } else {
+    vuln = true;
+    if (backend === 'asp') {
+      used = vals.join(',');
+      note = `ASP.NET joins all values: <code>${used}</code>`;
+    } else if (backend === 'java') {
+      used = vals[0];
+      note = `Java Servlet getParameter() → first value: <code>${used}</code>`;
+    } else if (backend === 'nodejs') {
+      used = JSON.stringify(vals);
+      note = `Express wraps into array: <code>${used}</code> — type coercion bugs possible`;
+    } else {
+      used = vals[vals.length - 1];
+      note = `Framework uses last value: <code>${used}</code>`;
+    }
+  }
+
+  const allVals = vals.map((v, i) => `<span style="font-family:var(--font-mono);color:${i===0?'#639922':'#E24B4A'}">${name}=${v}</span>`).join(' → ');
+
+  res.innerHTML = `
+    <div style="font-size:12px;margin-bottom:8px;color:var(--color-text-secondary);">Duplicate occurrences: ${allVals}</div>
+    <div class="result-box ${vuln ? 'result-vuln' : 'result-safe'}">
+      <strong>Backend received:</strong> <code style="font-family:var(--font-mono)">${used}</code><br>
+      <span style="font-size:12px;margin-top:4px;display:block;">${note}</span>
+      ${vals.length > 1 ? `<span style="font-size:12px;margin-top:4px;display:block;">Attacker injected <code>${vals[vals.length-1]}</code> — a WAF checking only the first value (<code>${vals[0]}</code>) would miss this.</span>` : ''}
+    </div>`;
+}
+
+function setPreset(qs, name) {
+  document.getElementById('query-string').value = qs;
+  document.getElementById('param-name').value = name;
+  runHPPDemo();
+}
+runHPPDemo();
+</script>
