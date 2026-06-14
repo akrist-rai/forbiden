@@ -1,0 +1,454 @@
+/* ══════════════════════════════════════════════════════
+   FORBIDEN — MANGA DESIGN SYSTEM
+   Screentone · Panel ink · Speed lines · Impact type
+   ══════════════════════════════════════════════════════ */
+
+@import url('https://fonts.googleapis.com/css2?family=Bangers&family=Oswald:wght@700&family=Share+Tech+Mono&family=JetBrains+Mono:wght@400;700&display=swap');
+
+/* ─── TOKENS ─── */
+:root {
+  --ink:    #0f0f0f;
+  --paper:  #f0ece0;
+  --red:    #c8001a;
+  --yellow: #f2c12e;
+  --muted:  #888;
+  --manga:  'Bangers', 'Bebas Neue', sans-serif;
+  --mono:   'Share Tech Mono', 'JetBrains Mono', monospace;
+}
+
+/* ─── KEYFRAMES ─── */
+@keyframes fblink  { 50% { opacity:0 } }
+@keyframes fpulse  { 50% { opacity:.2 } }
+@keyframes panel-in { from { transform:translateY(6px); opacity:0 } to { transform:none; opacity:1 } }
+
+/* ══════════════════════════════════════════════════════
+   SCREENTONE UTILITY
+   ══════════════════════════════════════════════════════ */
+.st {
+  background-image: radial-gradient(circle, rgba(0,0,0,.09) 1.1px, transparent 1.1px);
+  background-size: 5.5px 5.5px;
+}
+.st-dark {
+  background-image: radial-gradient(circle, rgba(255,255,255,.04) 1px, transparent 1px);
+  background-size: 5px 5px;
+}
+
+/* ══════════════════════════════════════════════════════
+   APP WRAPPER — both themes square, no radius
+   ══════════════════════════════════════════════════════ */
+.app-wrapper { border-radius: 0 !important; border: none !important; box-shadow: none !important; }
+.theme-brutal.app-wrapper, .theme-brutal { box-shadow: none !important; }
+
+/* ══════════════════════════════════════════════════════
+   BRUTAL (LIGHT MANGA) — Canvas
+   ══════════════════════════════════════════════════════ */
+.theme-brutal { --bg:#f0ece0; --text:#0f0f0f; --border:#0f0f0f; font-family: var(--mono) !important; }
+
+.theme-brutal .canvas-bg,
+.theme-brutal .canvas-container {
+  background-color: #f0ece0 !important;
+  background-image: radial-gradient(circle, rgba(0,0,0,.08) 1px, transparent 1px) !important;
+  background-size: 6px 6px !important;
+}
+
+/* Canvas speed-line overlay */
+.theme-brutal .canvas-container::after {
+  content: '';
+  position: absolute; inset: 0; pointer-events: none; z-index: 0;
+  background: conic-gradient(from 0deg at 50% 50%,
+    transparent 0deg, rgba(0,0,0,.012) 1.5deg, transparent 3deg,
+    transparent 22deg, rgba(0,0,0,.012) 23.5deg, transparent 25deg,
+    transparent 45deg, rgba(0,0,0,.012) 46.5deg, transparent 48deg,
+    transparent 68deg, rgba(0,0,0,.012) 69.5deg, transparent 71deg,
+    transparent 90deg, rgba(0,0,0,.012) 91.5deg, transparent 93deg,
+    transparent 113deg, rgba(0,0,0,.012) 114.5deg, transparent 116deg,
+    transparent 135deg, rgba(0,0,0,.012) 136.5deg, transparent 138deg,
+    transparent 158deg, rgba(0,0,0,.012) 159.5deg, transparent 161deg,
+    transparent 180deg, rgba(0,0,0,.012) 181.5deg, transparent 183deg,
+    transparent 203deg, rgba(0,0,0,.012) 204.5deg, transparent 206deg,
+    transparent 225deg, rgba(0,0,0,.012) 226.5deg, transparent 228deg,
+    transparent 248deg, rgba(0,0,0,.012) 249.5deg, transparent 251deg,
+    transparent 270deg, rgba(0,0,0,.012) 271.5deg, transparent 273deg,
+    transparent 293deg, rgba(0,0,0,.012) 294.5deg, transparent 296deg,
+    transparent 315deg, rgba(0,0,0,.012) 316.5deg, transparent 318deg,
+    transparent 338deg, rgba(0,0,0,.012) 339.5deg, transparent 341deg
+  );
+}
+
+/* ══════════════════════════════════════════════════════
+   NODES — manga panel style
+   ══════════════════════════════════════════════════════ */
+.theme-brutal .node-circle {
+  border-radius: 0 !important;
+  background: #f0ece0 !important;
+  border: 3px solid #0f0f0f !important;
+  box-shadow: 4px 4px 0 #0f0f0f !important;
+}
+.theme-brutal .node-label {
+  border-radius: 0 !important;
+  background: #0f0f0f !important;
+  color: #f0ece0 !important;
+  border: 2px solid #0f0f0f !important;
+  box-shadow: 3px 3px 0 rgba(0,0,0,.3) !important;
+  font-family: var(--mono) !important;
+  font-size: .5rem !important;
+  letter-spacing: .06em !important;
+  padding: 2px 7px !important;
+}
+.theme-brutal .obs-node-wrapper.clr-1  .node-circle { border-color:#c8001a!important; box-shadow:4px 4px 0 #c8001a!important; }
+.theme-brutal .obs-node-wrapper.clr-2  .node-circle { border-color:#f2c12e!important; box-shadow:4px 4px 0 #7a5e00!important; }
+.theme-brutal .obs-node-wrapper.clr-5  .node-circle { border-color:#c8001a!important; box-shadow:4px 4px 0 #c8001a!important; }
+
+.theme-brutal .edge-path { stroke:#0f0f0f!important; stroke-opacity:.25!important; }
+.theme-brutal .edge-path:hover { stroke-opacity:.6!important; }
+
+.theme-cyber .node-circle { border-radius:0!important; }
+.theme-cyber .node-label  { border-radius:0!important; font-family:var(--mono)!important; }
+
+/* ══════════════════════════════════════════════════════
+   SIDEBAR — manga activity bar
+   ══════════════════════════════════════════════════════ */
+.theme-brutal .sidebar {
+  background: #0f0f0f !important;
+  border-right: 4px solid #0f0f0f !important;
+  width: 48px !important;
+}
+.theme-brutal .strip-icon { color:#f0ece0!important; border-radius:0!important; }
+.theme-brutal .strip-icon:hover { background:#c8001a!important; }
+.theme-brutal .strip-icon.active { background:#f2c12e!important; color:#0f0f0f!important; border-left:none!important; }
+.theme-brutal .strip-icon-tooltip { background:#0f0f0f!important; color:#f2c12e!important; border:1px solid #f2c12e!important; border-radius:0!important; font-family:var(--manga)!important; letter-spacing:.1em!important; }
+.theme-brutal .badge { background:#c8001a!important; border-radius:0!important; color:#fff!important; font-family:var(--manga)!important; }
+
+/* cyber sidebar — keep Ephemeral style but square */
+.theme-cyber .sidebar { border-right:1px solid rgba(255,42,56,.15)!important; background:rgba(3,3,8,.95)!important; }
+.theme-cyber .strip-icon { border-radius:0!important; }
+.theme-cyber .strip-icon.active { border-left:2px solid #ff2a38!important; background:rgba(255,42,56,.07)!important; color:#ff2a38!important; }
+
+/* ══════════════════════════════════════════════════════
+   FLOATING PANELS — manga panel borders
+   ══════════════════════════════════════════════════════ */
+
+/* BRUTAL panels */
+.theme-brutal .floating-panel {
+  background: #f0ece0 !important;
+  border: 3px solid #0f0f0f !important;
+  border-radius: 0 !important;
+  box-shadow: 6px 6px 0 #0f0f0f !important;
+  animation: panel-in .18s ease !important;
+}
+/* screentone inside panel */
+.theme-brutal .floating-panel::before {
+  content: '';
+  position: absolute; inset: 0; pointer-events: none;
+  background-image: radial-gradient(circle, rgba(0,0,0,.06) 1px, transparent 1px);
+  background-size: 5px 5px;
+  z-index: 0;
+}
+.theme-brutal .floating-panel > * { position: relative; z-index: 1; }
+
+.theme-brutal .floating-panel-title {
+  background: #0f0f0f !important;
+  color: #f2c12e !important;
+  border-bottom: 3px solid #0f0f0f !important;
+  border-radius: 0 !important;
+  font-family: var(--manga) !important;
+  font-size: .75rem !important;
+  letter-spacing: .15em !important;
+  padding: 6px 10px !important;
+}
+.theme-brutal .floating-panel-close { color: #f2c12e !important; font-family: var(--manga)!important; }
+
+/* CYBER panels */
+.theme-cyber .floating-panel {
+  background: rgba(3,3,8,.97) !important;
+  border: 1px solid rgba(255,42,56,.22) !important;
+  border-radius: 0 !important;
+  box-shadow: 0 8px 40px rgba(0,0,0,.9) !important;
+}
+.theme-cyber .floating-panel-title {
+  border-radius: 0 !important;
+  font-family: 'Oswald','Bebas Neue',sans-serif !important;
+  font-size: .6rem !important;
+  letter-spacing: .18em !important;
+  color: #ff2a38 !important;
+  border-bottom: 1px solid rgba(255,42,56,.15) !important;
+}
+
+/* ══════════════════════════════════════════════════════
+   PANEL CONTENT — list items, inputs
+   ══════════════════════════════════════════════════════ */
+.theme-brutal .list-item {
+  border-bottom: 1px solid rgba(0,0,0,.08) !important;
+  font-family: var(--mono) !important;
+}
+.theme-brutal .list-item:hover { background:#f2c12e!important; color:#0f0f0f!important; }
+.theme-brutal .list-item.active { background:#0f0f0f!important; color:#f2c12e!important; }
+
+.theme-brutal .side-input {
+  background: #fff !important;
+  border: 2px solid #0f0f0f !important;
+  border-radius: 0 !important;
+  color: #0f0f0f !important;
+  font-family: var(--mono) !important;
+}
+.theme-brutal .side-input:focus { border-color:#c8001a!important; outline:none!important; box-shadow:3px 3px 0 rgba(200,0,26,.2)!important; }
+
+/* ══════════════════════════════════════════════════════
+   BUTTONS
+   ══════════════════════════════════════════════════════ */
+.theme-brutal .btn,
+.theme-brutal .editor-toolbar-btn {
+  background: #0f0f0f !important;
+  border: 2px solid #0f0f0f !important;
+  color: #f0ece0 !important;
+  border-radius: 0 !important;
+  box-shadow: 3px 3px 0 rgba(0,0,0,.25) !important;
+  font-family: 'Oswald',sans-serif !important;
+  font-weight: 700 !important;
+  letter-spacing: .1em !important;
+  transition: all .15s !important;
+}
+.theme-brutal .btn:hover,
+.theme-brutal .editor-toolbar-btn:hover {
+  background: #c8001a !important;
+  border-color: #c8001a !important;
+  transform: translate(-2px,-2px) !important;
+  box-shadow: 5px 5px 0 rgba(200,0,26,.3) !important;
+}
+
+.theme-cyber .btn { border-radius:0!important; }
+.theme-cyber .btn:hover { border-color:#ff2a38!important; color:#ff2a38!important; background:rgba(255,42,56,.07)!important; box-shadow:none!important; }
+.theme-cyber .editor-toolbar-btn { border-radius:0!important; }
+
+/* ══════════════════════════════════════════════════════
+   MODALS — manga speech bubble / panel
+   ══════════════════════════════════════════════════════ */
+.theme-brutal .create-modal-box,
+.theme-brutal .grp-editor-shell,
+.theme-brutal .card-detail-box {
+  background: #f0ece0 !important;
+  border: 3px solid #0f0f0f !important;
+  border-radius: 0 !important;
+  box-shadow: 8px 8px 0 #0f0f0f !important;
+}
+.theme-brutal .create-modal-title {
+  color: #c8001a !important;
+  font-family: var(--manga) !important;
+  font-size: 1.1rem !important;
+  letter-spacing: .1em !important;
+}
+.theme-brutal .create-modal-label {
+  font-family: 'Oswald',sans-serif !important;
+  font-weight: 700 !important;
+  font-size: .5rem !important;
+  letter-spacing: .18em !important;
+  color: #0f0f0f !important;
+}
+.theme-brutal .create-modal-input {
+  background: #fff !important;
+  border: 2px solid #0f0f0f !important;
+  border-radius: 0 !important;
+  color: #0f0f0f !important;
+  font-family: var(--mono) !important;
+}
+.theme-brutal .create-modal-input:focus {
+  border-color: #c8001a !important;
+  box-shadow: 3px 3px 0 rgba(200,0,26,.2) !important;
+  outline: none !important;
+}
+
+.theme-cyber .create-modal-box,
+.theme-cyber .grp-editor-shell,
+.theme-cyber .card-detail-box { border-radius:0!important; }
+.theme-cyber .create-modal-title { color:#ff2a38!important; font-family:'Oswald',sans-serif!important; font-weight:700!important; letter-spacing:.15em!important; }
+
+/* ══════════════════════════════════════════════════════
+   BOARD — manga storyboard
+   ══════════════════════════════════════════════════════ */
+.theme-brutal .board-col {
+  background: #f0ece0 !important;
+  border: 2px solid #0f0f0f !important;
+  border-radius: 0 !important;
+  box-shadow: 4px 4px 0 #0f0f0f !important;
+}
+.theme-brutal .board-col-hdr {
+  border-radius: 0 !important;
+  border-bottom: 2px solid #0f0f0f !important;
+  background: #0f0f0f !important;
+  font-family: var(--manga) !important;
+  letter-spacing: .1em !important;
+  font-size: .75rem !important;
+}
+.theme-brutal .board-col-hdr span { color: #f2c12e !important; }
+.theme-brutal .board-col-count { background: #c8001a !important; color: #fff !important; border-radius: 0 !important; }
+.theme-brutal .board-card {
+  background: #fff !important;
+  border: 2px solid #0f0f0f !important;
+  border-radius: 0 !important;
+  box-shadow: 3px 3px 0 #0f0f0f !important;
+  transition: all .15s !important;
+}
+.theme-brutal .board-card:hover {
+  box-shadow: 5px 5px 0 #c8001a !important;
+  border-color: #c8001a !important;
+  transform: translate(-2px,-2px) !important;
+}
+.theme-brutal .board-card-title { font-family: var(--mono) !important; color: #0f0f0f !important; font-weight: 700 !important; }
+.theme-brutal .board-card-accent { height: 3px !important; }
+.theme-brutal .board-add-card {
+  border: 2px dashed #0f0f0f !important;
+  border-radius: 0 !important;
+  color: #0f0f0f !important;
+  font-family: 'Oswald',sans-serif !important;
+  font-weight: 700 !important;
+  letter-spacing: .1em !important;
+}
+.theme-brutal .board-add-card:hover { background: #f2c12e !important; border-style: solid !important; }
+.theme-brutal .board-topbar { border-bottom: 2px solid #0f0f0f !important; }
+.theme-brutal .board-meta { font-family: var(--mono) !important; }
+.theme-brutal .board-priority { border-radius: 0 !important; font-family: 'Oswald',sans-serif!important; font-weight:700!important; }
+
+.theme-cyber .board-col { border-radius:0!important; }
+.theme-cyber .board-card { border-radius:0!important; }
+.theme-cyber .board-add-card { border-radius:0!important; }
+
+/* ══════════════════════════════════════════════════════
+   TERMINAL — manga SFX panel
+   ══════════════════════════════════════════════════════ */
+.theme-brutal .term-content { font-family: var(--mono) !important; }
+
+/* ══════════════════════════════════════════════════════
+   STATUS BAR — manga caption strip
+   ══════════════════════════════════════════════════════ */
+.theme-brutal .status-bar {
+  background: #0f0f0f !important;
+  border-top: 3px solid #0f0f0f !important;
+  color: rgba(240,236,224,.65) !important;
+  font-family: var(--mono) !important;
+  height: 28px !important;
+}
+.theme-cyber .status-bar {
+  background: rgba(3,3,8,.98) !important;
+  border-top: 1px solid rgba(255,42,56,.15) !important;
+  font-family: var(--mono) !important;
+}
+
+/* ══════════════════════════════════════════════════════
+   CODE EDITOR — manga panel
+   ══════════════════════════════════════════════════════ */
+.theme-brutal .grp-editor-chrome {
+  background: #0f0f0f !important;
+  border-bottom: 3px solid #0f0f0f !important;
+}
+.theme-brutal .grp-chrome-meta  { color: #f2c12e !important; }
+.theme-brutal .grp-chrome-sep   { background: rgba(255,255,255,.12) !important; }
+.theme-brutal .grp-chrome-dot   { border-radius: 0 !important; }
+.theme-brutal .editor-wrap      { border: 3px solid #0f0f0f !important; border-radius: 0 !important; box-shadow: 5px 5px 0 #0f0f0f !important; }
+.theme-brutal .breadcrumb       { border-bottom: 2px solid #0f0f0f !important; background: #f0ece0 !important; }
+.theme-brutal .editor-tab       { border-radius: 0 !important; border-right: 2px solid #0f0f0f !important; font-family: var(--mono) !important; }
+.theme-brutal .editor-tab.active { background: #0f0f0f !important; color: #f2c12e !important; }
+.theme-brutal .editor-toolbar-wrap { background: #f0ece0 !important; border-bottom: 1px solid rgba(0,0,0,.12) !important; }
+.theme-brutal .editor-toolbar-btn { font-size: .44rem !important; }
+.theme-brutal .type-btn { border-radius:0!important; font-family:'Oswald',sans-serif!important; font-weight:700!important; }
+.theme-brutal .type-btn.selected { background:#c8001a!important; border-color:#c8001a!important; color:#fff!important; box-shadow:3px 3px 0 rgba(200,0,26,.3)!important; }
+
+.theme-cyber .editor-wrap   { border-radius:0!important; }
+.theme-cyber .editor-tab    { border-radius:0!important; }
+.theme-cyber .breadcrumb    { background:rgba(3,3,8,.95)!important; }
+.theme-cyber .grp-editor-chrome { background:rgba(3,3,8,.98)!important; border-bottom:1px solid rgba(255,42,56,.12)!important; }
+.theme-cyber .grp-chrome-meta { color:#ff2a38!important; }
+
+/* ══════════════════════════════════════════════════════
+   GRAPH MODE BAR
+   ══════════════════════════════════════════════════════ */
+.theme-brutal .graph-mode-bar { background:#0f0f0f!important; border-bottom:3px solid #0f0f0f!important; }
+.theme-brutal .graph-mode-btn {
+  background:transparent!important; border:1px solid rgba(255,255,255,.2)!important;
+  color:rgba(240,236,224,.7)!important; border-radius:0!important;
+  font-family:'Oswald',sans-serif!important; font-weight:700!important; letter-spacing:.1em!important;
+}
+.theme-brutal .graph-mode-btn:hover  { border-color:#f2c12e!important; color:#f2c12e!important; }
+.theme-brutal .graph-mode-btn.active-join { border-color:#f2c12e!important; color:#f2c12e!important; background:rgba(242,193,46,.12)!important; }
+.theme-brutal .graph-mode-btn.active-cut  { border-color:#c8001a!important; color:#c8001a!important; background:rgba(200,0,26,.12)!important; }
+
+.theme-cyber .graph-mode-bar { background:rgba(3,3,8,.94)!important; border-bottom:1px solid rgba(255,42,56,.12)!important; }
+.theme-cyber .graph-mode-btn { border-radius:0!important; font-family:'Oswald',sans-serif!important; font-weight:700!important; }
+.theme-cyber .graph-mode-btn:hover  { border-color:#ff2a38!important; color:#ff2a38!important; }
+.theme-cyber .graph-mode-btn.active-join { border-color:#ccff00!important; color:#ccff00!important; }
+.theme-cyber .graph-mode-btn.active-cut  { border-color:#ff2a38!important; color:#ff2a38!important; }
+
+/* ══════════════════════════════════════════════════════
+   MINIMAP
+   ══════════════════════════════════════════════════════ */
+.theme-brutal .minimap {
+  border: 3px solid #0f0f0f !important; border-radius: 0 !important;
+  box-shadow: 4px 4px 0 #0f0f0f !important; background: #f0ece0 !important;
+}
+.theme-cyber .minimap { border-radius:0!important; border:1px solid rgba(255,42,56,.2)!important; }
+
+/* ══════════════════════════════════════════════════════
+   SCROLLBARS
+   ══════════════════════════════════════════════════════ */
+.theme-brutal ::-webkit-scrollbar       { width:5px; height:5px; }
+.theme-brutal ::-webkit-scrollbar-track { background:#f0ece0; }
+.theme-brutal ::-webkit-scrollbar-thumb { background:#0f0f0f; border-radius:0; }
+.theme-brutal ::-webkit-scrollbar-thumb:hover { background:#c8001a; }
+
+.theme-cyber  ::-webkit-scrollbar       { width:4px; height:4px; }
+.theme-cyber  ::-webkit-scrollbar-track { background:rgba(255,42,56,.03); }
+.theme-cyber  ::-webkit-scrollbar-thumb { background:rgba(255,42,56,.28); border-radius:0; }
+.theme-cyber  ::-webkit-scrollbar-thumb:hover { background:#ff2a38; }
+
+/* ══════════════════════════════════════════════════════
+   CHAT — manga speech bubbles
+   ══════════════════════════════════════════════════════ */
+.theme-brutal .chat-msg {
+  background: #fff !important;
+  border: 2px solid #0f0f0f !important;
+  border-radius: 0 !important;
+  box-shadow: 3px 3px 0 #0f0f0f !important;
+  font-family: var(--mono) !important;
+}
+.theme-brutal .chat-msg.self {
+  background: #0f0f0f !important;
+  color: #f2c12e !important;
+}
+
+/* ══════════════════════════════════════════════════════
+   NLE TIMELINE
+   ══════════════════════════════════════════════════════ */
+.theme-brutal .nle-wrap         { background:#f0ece0!important; }
+.theme-brutal .nle-track-header { background:#0f0f0f!important; color:#f2c12e!important; border-right:2px solid #0f0f0f!important; font-family:var(--manga)!important; }
+.theme-brutal .nle-ruler        { background:#f0ece0!important; border-bottom:2px solid #0f0f0f!important; }
+.theme-brutal .nle-clip         { border:2px solid #0f0f0f!important; border-radius:0!important; background:#fff!important; }
+.theme-brutal .nle-clip:hover   { border-color:#c8001a!important; }
+.theme-brutal .nle-playhead     { background:#c8001a!important; width:2px!important; }
+
+/* ══════════════════════════════════════════════════════
+   WORKSPACE SETTINGS PANEL
+   (avatar picker inside floating panel)
+   ══════════════════════════════════════════════════════ */
+.theme-brutal .cyber-avatar-wrapper {
+  border-radius: 0 !important;
+  border: 2px solid #0f0f0f !important;
+  overflow: hidden !important;
+}
+.theme-brutal .cyber-avatar-wrapper.selected {
+  border-color: #c8001a !important;
+  box-shadow: 4px 4px 0 #c8001a !important;
+}
+
+/* ══════════════════════════════════════════════════════
+   CYBER (DARK MANGA) canvas + panels
+   ══════════════════════════════════════════════════════ */
+.theme-cyber .canvas-bg,
+.theme-cyber .canvas-container {
+  background-color: #030308 !important;
+  background-image: radial-gradient(circle, rgba(255,42,56,.06) 1px, transparent 1px) !important;
+  background-size: 22px 22px !important;
+}
+.theme-cyber .canvas-container::after {
+  content: '';
+  position: absolute; inset: 0; pointer-events: none; z-index: 0;
+  background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,.025) 2px, rgba(0,0,0,.025) 4px);
+}

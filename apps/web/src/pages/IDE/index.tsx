@@ -1,5 +1,6 @@
 // @ts-nocheck
 import './ide.css'
+import './manga.css'
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 
 
@@ -894,8 +895,8 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
       const activeNode = nodesRef.current.find(n=>n.id===(activeTabId||hoveredNodeId));
       const activeZoneKey = activeNode ? ZONES[activeNode.themeIdx%ZONES.length] : 'default';
       const activeTabNode = nodesRef.current.find(n=>n.id===activeTabId);
-      const wrapperClass = `app-wrapper theme-cyber zone-${activeZoneKey}`;
-      const outerBg = '#030308';
+      const wrapperClass = `app-wrapper ${themeMode==='brutal'?'theme-brutal':'theme-cyber'} zone-${activeZoneKey}`;
+      const outerBg = themeMode==='brutal' ? '#f0ece0' : '#030308';
 
       // Force simulation
       useEffect(() => {
@@ -1040,68 +1041,105 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
         <div style={{width:'100vw',height:'100vh',padding:'0px',backgroundColor:outerBg,transition:'background 0.4s',boxSizing:'border-box'}}>
           <div className={wrapperClass}>
 
-            {/* HEADER — Ephemeral-style nav */}
+            {/* HEADER — Manga Chapter Strip */}
             <style>{`
               @keyframes fblink { 50% { opacity:0; } }
-              @keyframes fpulse { 50% { opacity:0.25; } }
+              @keyframes fpulse { 0%,100%{opacity:1} 50%{opacity:0.2} }
+              @import url('https://fonts.googleapis.com/css2?family=Bangers&family=Oswald:wght@700&display=swap');
             `}</style>
-            <div style={{
-              display:'flex', alignItems:'center', padding:'0 1.2rem', height:'52px', flexShrink:0,
-              background:'rgba(3,3,8,0.95)', backdropFilter:'blur(16px)',
-              borderBottom:'1px solid rgba(255,42,56,0.2)',
-              boxShadow:'0 2px 20px rgba(0,0,0,0.7)',
-              zIndex:20, fontFamily:"'Share Tech Mono','JetBrains Mono',monospace",
-            }}>
-              {/* LOGO */}
-              <div style={{fontFamily:"'Bebas Neue','Outfit',sans-serif",fontSize:'1.25rem',letterSpacing:'0.22em',color:'#f5f2eb',lineHeight:1,marginRight:'1.2rem',flexShrink:0}}>
-                FOR<span style={{color:'#ff2a38'}}>BID</span>DEN<span style={{color:'#ff2a38',animation:'fblink 1s infinite'}}>_</span>
-              </div>
-              <div style={{width:'1px',height:'20px',background:'rgba(255,42,56,0.2)',marginRight:'1.2rem'}}/>
-              {/* Breadcrumb */}
-              <div style={{display:'flex',alignItems:'center',gap:'6px',fontSize:'0.5rem',color:'#8a8aaa',letterSpacing:'0.1em',flex:1,minWidth:0,overflow:'hidden'}}>
-                <span style={{color:'rgba(255,255,255,0.18)',flexShrink:0}}>workspace</span>
-                <span style={{color:'rgba(255,42,56,0.3)',flexShrink:0}}>/</span>
-                {activeTabNode
-                  ? <><span style={{color:AVATAR_ACCENTS[activeTabNode.themeIdx%AVATAR_ACCENTS.length],overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{activeTabNode.label}</span><span style={{opacity:0.3,marginLeft:'6px',flexShrink:0}}>{activeTabNode.type}</span></>
-                  : <span style={{opacity:0.18}}>no file open</span>
-                }
-              </div>
-              {/* Center stats */}
-              <div style={{display:'flex',alignItems:'center',gap:'1rem',fontSize:'0.44rem',color:'#8a8aaa',letterSpacing:'0.1em',marginRight:'1.2rem',flexShrink:0}}>
-                <span style={{display:'flex',alignItems:'center',gap:'4px'}}>
-                  <span style={{width:'5px',height:'5px',borderRadius:'50%',background:'#00ff55',display:'inline-block',animation:'fpulse 2s infinite'}}/>
-                  {nodeCount} NODES
-                </span>
-                <span style={{color:'rgba(255,255,255,0.1)'}}>|</span>
-                <span>{edgesRef.current.length} EDGES</span>
-                {modifiedNodes.length>0 && <>
-                  <span style={{color:'rgba(255,255,255,0.1)'}}>|</span>
-                  <span style={{color:'#ccff00'}}>{modifiedNodes.length} UNSAVED</span>
-                </>}
-              </div>
-              {/* Right actions */}
-              <div style={{display:'flex',gap:'0.5rem',alignItems:'center',flexShrink:0}}>
-                <button
-                  onClick={()=>setShowCreateNode(true)}
-                  style={{background:'transparent',border:'1px solid rgba(255,42,56,0.35)',color:'#ff2a38',padding:'0.22rem 0.65rem',fontFamily:"'Share Tech Mono',monospace",fontSize:'0.44rem',letterSpacing:'0.12em',cursor:'pointer',transition:'all 0.2s',textTransform:'uppercase'}}
-                  onMouseEnter={e=>{e.currentTarget.style.background='rgba(255,42,56,0.08)';}}
-                  onMouseLeave={e=>{e.currentTarget.style.background='transparent';}}
-                >+ NODE</button>
-                <button
-                  onClick={()=>setShowCmd(true)}
-                  style={{background:'transparent',border:'1px solid rgba(255,255,255,0.08)',color:'#8a8aaa',padding:'0.22rem 0.65rem',fontFamily:"'Share Tech Mono',monospace",fontSize:'0.44rem',letterSpacing:'0.12em',cursor:'pointer',transition:'all 0.2s'}}
-                  onMouseEnter={e=>{e.currentTarget.style.color='#f5f2eb';}}
-                  onMouseLeave={e=>{e.currentTarget.style.color='#8a8aaa';}}
-                >⌘P</button>
-                {/* Avatar — real JPEG photo */}
-                <div
-                  onClick={()=>setSidebarMode(s=>s==='settings'?null:'settings')}
-                  style={{cursor:'pointer',width:'30px',height:'30px',border:`1px solid ${sidebarMode==='settings'?'#ff2a38':'rgba(255,255,255,0.1)'}`,overflow:'hidden',transition:'border-color 0.2s',flexShrink:0}}
-                >
-                  <img src={`/avatars/0xAV0${String((avatarIndex%6)+1).padStart(2,'0')}s.jpeg`} alt="op" style={{width:'100%',height:'100%',objectFit:'cover'}}/>
+            {themeMode === 'brutal' ? (
+              /* BRUTALIST — light manga chapter header */
+              <div style={{
+                height:'54px', background:'#0a0a0a', flexShrink:0,
+                display:'flex', alignItems:'center', padding:'0 1rem', gap:'0.8rem',
+                borderBottom:'4px solid #0a0a0a', zIndex:20, position:'relative',
+                fontFamily:"'Share Tech Mono','JetBrains Mono',monospace",
+              }}>
+                {/* Logo */}
+                <div style={{fontFamily:"'Bangers','Bebas Neue',sans-serif",fontSize:'1.7rem',letterSpacing:'0.1em',color:'#f4f0e8',lineHeight:1,flexShrink:0}}>
+                  FOR<span style={{color:'#d0021b'}}>BID</span>EN
+                </div>
+                <div style={{width:'3px',height:'28px',background:'#d0021b',flexShrink:0}}/>
+                {/* Breadcrumb caption box */}
+                <div style={{display:'flex',alignItems:'center',gap:'4px',flex:1,minWidth:0,overflow:'hidden'}}>
+                  {activeTabNode ? (
+                    <div style={{background:'#f5c518',color:'#0a0a0a',fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:'0.48rem',letterSpacing:'0.15em',padding:'2px 8px',border:'2px solid #f5c518',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>
+                      {activeTabNode.label} <span style={{opacity:0.6,fontWeight:400}}>// {activeTabNode.type}</span>
+                    </div>
+                  ) : (
+                    <div style={{background:'rgba(255,255,255,0.08)',color:'rgba(255,255,255,0.3)',fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:'0.46rem',letterSpacing:'0.15em',padding:'2px 8px',border:'2px solid rgba(255,255,255,0.08)'}}>NO FILE OPEN</div>
+                  )}
+                </div>
+                {/* Stats captions */}
+                <div style={{display:'flex',alignItems:'center',gap:'4px',flexShrink:0}}>
+                  <div style={{background:'#d0021b',color:'#f4f0e8',fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:'0.4rem',letterSpacing:'0.12em',padding:'2px 7px'}}>
+                    {nodeCount} NODES
+                  </div>
+                  <div style={{background:'rgba(255,255,255,0.08)',color:'rgba(255,255,255,0.5)',fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:'0.4rem',letterSpacing:'0.12em',padding:'2px 7px'}}>
+                    {edgesRef.current.length} EDGES
+                  </div>
+                  {modifiedNodes.length>0 && <div style={{background:'#f5c518',color:'#0a0a0a',fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:'0.4rem',letterSpacing:'0.12em',padding:'2px 7px'}}>{modifiedNodes.length} UNSAVED</div>}
+                </div>
+                {/* Right actions */}
+                <div style={{display:'flex',gap:'4px',alignItems:'center',flexShrink:0}}>
+                  <button onClick={()=>setShowCreateNode(true)} style={{background:'#d0021b',border:'2px solid #d0021b',color:'#f4f0e8',padding:'0.22rem 0.7rem',fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:'0.44rem',letterSpacing:'0.12em',cursor:'pointer',transition:'all 0.15s'}}
+                    onMouseEnter={e=>{e.currentTarget.style.background='#a50014';}} onMouseLeave={e=>{e.currentTarget.style.background='#d0021b';}}>+ NODE</button>
+                  <button onClick={()=>setShowCmd(true)} style={{background:'transparent',border:'2px solid rgba(255,255,255,0.2)',color:'rgba(255,255,255,0.5)',padding:'0.22rem 0.7rem',fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:'0.44rem',letterSpacing:'0.12em',cursor:'pointer',transition:'all 0.15s'}}
+                    onMouseEnter={e=>{e.currentTarget.style.borderColor='#f5c518';e.currentTarget.style.color='#f5c518';}} onMouseLeave={e=>{e.currentTarget.style.borderColor='rgba(255,255,255,0.2)';e.currentTarget.style.color='rgba(255,255,255,0.5)';}}>⌘P</button>
+                  {/* Avatar */}
+                  <div onClick={()=>setSidebarMode(s=>s==='settings'?null:'settings')} style={{cursor:'pointer',width:'32px',height:'32px',border:`2px solid ${sidebarMode==='settings'?'#d0021b':'rgba(255,255,255,0.2)'}`,overflow:'hidden',transition:'border-color 0.15s',flexShrink:0}}>
+                    <img src={`/avatars/0xAV0${String((avatarIndex%6)+1).padStart(2,'0')}s.jpeg`} alt="op" style={{width:'100%',height:'100%',objectFit:'cover'}}/>
+                  </div>
                 </div>
               </div>
-            </div>
+            ) : (
+              /* FORSAKEN — dark manga cyber header */
+              <div style={{
+                display:'flex', alignItems:'center', padding:'0 1.2rem', height:'52px', flexShrink:0,
+                background:'rgba(3,3,8,0.96)', backdropFilter:'blur(16px)',
+                borderBottom:'1px solid rgba(255,42,56,0.22)',
+                boxShadow:'0 2px 20px rgba(0,0,0,0.7)',
+                zIndex:20, fontFamily:"'Share Tech Mono','JetBrains Mono',monospace",
+                position:'relative',
+              }}>
+                {/* Screentone strip */}
+                <div style={{position:'absolute',inset:0,pointerEvents:'none',backgroundImage:'radial-gradient(circle,rgba(255,255,255,0.02) 1px,transparent 1px)',backgroundSize:'5px 5px'}}/>
+                {/* Logo */}
+                <div style={{fontFamily:"'Bangers','Bebas Neue',sans-serif",fontSize:'1.3rem',letterSpacing:'0.12em',color:'#f4f0e8',lineHeight:1,marginRight:'1rem',flexShrink:0,position:'relative'}}>
+                  FOR<span style={{color:'#ff2a38'}}>BID</span>EN<span style={{color:'#ff2a38',animation:'fblink 1s infinite'}}>_</span>
+                </div>
+                <div style={{width:'1px',height:'20px',background:'rgba(255,42,56,0.25)',marginRight:'1rem'}}/>
+                {/* Breadcrumb */}
+                <div style={{display:'flex',alignItems:'center',gap:'6px',fontSize:'0.5rem',color:'#8a8aaa',letterSpacing:'0.1em',flex:1,minWidth:0,overflow:'hidden',position:'relative'}}>
+                  <span style={{color:'rgba(255,255,255,0.18)',flexShrink:0}}>workspace</span>
+                  <span style={{color:'rgba(255,42,56,0.3)',flexShrink:0}}>/</span>
+                  {activeTabNode
+                    ? <><span style={{color:AVATAR_ACCENTS[activeTabNode.themeIdx%AVATAR_ACCENTS.length],overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{activeTabNode.label}</span><span style={{opacity:0.3,marginLeft:'6px',flexShrink:0}}>{activeTabNode.type}</span></>
+                    : <span style={{opacity:0.18}}>no file open</span>
+                  }
+                </div>
+                {/* Stats */}
+                <div style={{display:'flex',alignItems:'center',gap:'0.8rem',fontSize:'0.44rem',color:'#8a8aaa',letterSpacing:'0.1em',marginRight:'1rem',flexShrink:0,position:'relative'}}>
+                  <span style={{display:'flex',alignItems:'center',gap:'4px'}}>
+                    <span style={{width:'5px',height:'5px',borderRadius:'50%',background:'#00ff55',display:'inline-block',animation:'fpulse 2s infinite'}}/>
+                    {nodeCount} NODES
+                  </span>
+                  <span style={{color:'rgba(255,255,255,0.1)'}}>|</span>
+                  <span>{edgesRef.current.length} EDGES</span>
+                  {modifiedNodes.length>0 && <><span style={{color:'rgba(255,255,255,0.1)'}}>|</span><span style={{color:'#ccff00'}}>{modifiedNodes.length} UNSAVED</span></>}
+                </div>
+                {/* Right */}
+                <div style={{display:'flex',gap:'0.4rem',alignItems:'center',flexShrink:0,position:'relative'}}>
+                  <button onClick={()=>setShowCreateNode(true)} style={{background:'transparent',border:'1px solid rgba(255,42,56,0.4)',color:'#ff2a38',padding:'0.22rem 0.65rem',fontFamily:"'Share Tech Mono',monospace",fontSize:'0.44rem',letterSpacing:'0.1em',cursor:'pointer',transition:'all 0.2s',textTransform:'uppercase'}}
+                    onMouseEnter={e=>{e.currentTarget.style.background='rgba(255,42,56,0.08)';}} onMouseLeave={e=>{e.currentTarget.style.background='transparent';}}>+ NODE</button>
+                  <button onClick={()=>setShowCmd(true)} style={{background:'transparent',border:'1px solid rgba(255,255,255,0.08)',color:'#8a8aaa',padding:'0.22rem 0.65rem',fontFamily:"'Share Tech Mono',monospace",fontSize:'0.44rem',letterSpacing:'0.1em',cursor:'pointer',transition:'all 0.2s'}}
+                    onMouseEnter={e=>{e.currentTarget.style.color='#f5f2eb';}} onMouseLeave={e=>{e.currentTarget.style.color='#8a8aaa';}}>⌘P</button>
+                  <div onClick={()=>setSidebarMode(s=>s==='settings'?null:'settings')} style={{cursor:'pointer',width:'30px',height:'30px',border:`1px solid ${sidebarMode==='settings'?'#ff2a38':'rgba(255,255,255,0.12)'}`,overflow:'hidden',transition:'border-color 0.2s',flexShrink:0}}>
+                    <img src={`/avatars/0xAV0${String((avatarIndex%6)+1).padStart(2,'0')}s.jpeg`} alt="op" style={{width:'100%',height:'100%',objectFit:'cover'}}/>
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div className="app-body">
               {/* SIDEBAR */}
@@ -1375,12 +1413,18 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
                   const done=board.cards.filter(c=>c.colId==='c5').length, total=board.cards.length;
                   return (
                     <div className="board-wrap" style={{position:'relative'}}>
-                      <div className="board-topbar">
-                        <span style={{fontSize:'11px',fontWeight:'bold',opacity:0.8,letterSpacing:'0.8px'}}>FORBINDEN / SPRINT-01</span>
-                        <div style={{display:'flex',gap:'5px',marginLeft:'10px'}}>{[0,1,2].map(i=><CyberAvatar key={i} index={i} size={16}/>)}</div>
-                        <div className="board-meta"><span>{done}/{total} DONE</span><span style={{color:'#ffc410'}}>{board.cards.filter(c=>c.priority==='HIGH'&&c.colId!=='c5').length} HIGH-PRI</span></div>
+                      {/* Manga Storyboard header */}
+                      <div className="board-topbar" style={{display:'flex',alignItems:'center',gap:'0.6rem',padding:'0.5rem 0.8rem'}}>
+                        <div style={{background:'var(--accent,#ff2a38)',color:'#fff',fontFamily:"'Bangers','Bebas Neue',sans-serif",fontSize:'0.75rem',letterSpacing:'0.15em',padding:'2px 10px',flexShrink:0}}>FORBIDEN</div>
+                        <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:'0.5rem',letterSpacing:'0.15em',opacity:0.7}}>SPRINT-01 // PLANNING BOARD</div>
+                        <div style={{display:'flex',gap:'4px',marginLeft:'8px'}}>{[0,1,2].map(i=><div key={i} style={{width:'18px',height:'18px',border:'2px solid currentColor',overflow:'hidden'}}><img src={`/avatars/0xAV00${i+1}s.jpeg`} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}}/></div>)}</div>
+                        <div className="board-meta" style={{marginLeft:'auto',display:'flex',gap:'0.8rem',fontFamily:"'Share Tech Mono',monospace",fontSize:'0.42rem'}}>
+                          <span>{done}/{total} DONE</span>
+                          <span style={{color:'#f2c12e'}}>{board.cards.filter(c=>c.priority==='HIGH'&&c.colId!=='c5').length} HIGH-PRI</span>
+                        </div>
                       </div>
-                      <div style={{height:'2px',background:'rgba(128,128,128,0.08)',flexShrink:0}}><div style={{height:'100%',width:`${done/Math.max(total,1)*100}%`,background:'#10b981',transition:'width 0.4s'}}/></div>
+                      {/* Progress bar — manga panel border style */}
+                      <div style={{height:'4px',background:'rgba(128,128,128,0.1)',flexShrink:0,borderTop:'1px solid rgba(128,128,128,0.1)'}}><div style={{height:'100%',width:`${done/Math.max(total,1)*100}%`,background:'#10b981',transition:'width 0.4s'}}/></div>
                       <div className="board-cols">
                         {board.cols.map(col => {
                           const cards=board.cards.filter(c=>c.colId===col.id);
@@ -1562,23 +1606,38 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 
               {/* MAIN CANVAS */}
               <div className="main-view">
-                {/* Graph mode toolbar */}
-                <div className="graph-mode-bar">
-                  <span style={{fontSize:'8px',opacity:0.3,letterSpacing:'1.5px',fontFamily:"'JetBrains Mono',monospace"}}>GRAPH</span>
-                  <div style={{width:'1px',height:'14px',background:'rgba(255,255,255,0.1)'}}/>
+                {/* MANGA GRAPH MODE BAR */}
+                <div className="graph-mode-bar" style={{display:'flex',alignItems:'center',gap:'6px',padding:'0 10px',height:'36px',flexShrink:0}}>
+                  {/* Chapter badge */}
+                  <div style={{background:'var(--accent,#ff2a38)',color:'#fff',fontFamily:"'Bangers',sans-serif",fontSize:'0.65rem',letterSpacing:'0.12em',padding:'2px 8px',flexShrink:0}}>GRAPH</div>
+                  <div style={{width:'2px',height:'20px',background:'rgba(128,128,128,0.2)',flexShrink:0}}/>
+                  {/* Join button */}
                   <button className={`graph-mode-btn ${edgeMode==='join'?'active-join':''}`}
-                    onClick={()=>{ setEdgeMode(m=>m==='join'?null:'join'); setJoinFirstNode(null); }}>
+                    onClick={()=>{ setEdgeMode(m=>m==='join'?null:'join'); setJoinFirstNode(null); }}
+                    style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,letterSpacing:'0.1em',fontSize:'0.48rem'}}>
                     {edgeMode==='join' && <span className="join-pulse"/>}
-                    {edgeMode==='join' ? (joinFirstNode ? '→ CLICK TARGET' : '→ CLICK SOURCE') : '⟶ JOIN'}
+                    {edgeMode==='join' ? (joinFirstNode ? '▶ SELECT TARGET' : '▶ SELECT SOURCE') : '⟶ LINK'}
                   </button>
+                  {/* Cut button */}
                   <button className={`graph-mode-btn ${edgeMode==='cut'?'active-cut':''}`}
-                    onClick={()=>{ setEdgeMode(m=>m==='cut'?null:'cut'); setJoinFirstNode(null); }}>
+                    onClick={()=>{ setEdgeMode(m=>m==='cut'?null:'cut'); setJoinFirstNode(null); }}
+                    style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,letterSpacing:'0.1em',fontSize:'0.48rem'}}>
                     {edgeMode==='cut' && <span className="cut-pulse"/>}
-                    {edgeMode==='cut' ? '✂ CLICK EDGE' : '✂ CUT'}
+                    {edgeMode==='cut' ? '✂ HOVER EDGE' : '✂ SEVER'}
                   </button>
-                  {(edgeMode) && (
-                    <button className="graph-mode-btn" style={{color:'rgba(255,255,255,0.3)'}} onClick={()=>{setEdgeMode(null);setJoinFirstNode(null);}}>ESC</button>
+                  {edgeMode && <button className="graph-mode-btn" style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:'0.44rem'}} onClick={()=>{setEdgeMode(null);setJoinFirstNode(null);}}>✕ CANCEL</button>}
+                  {/* Edge mode status caption */}
+                  {edgeMode && (
+                    <div style={{marginLeft:'auto',background:edgeMode==='join'?'#10b981':'#ff2a38',color:'#fff',fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:'0.42rem',letterSpacing:'0.15em',padding:'2px 8px',animation:'fpulse 1.2s infinite'}}>
+                      {edgeMode==='join'?(joinFirstNode?'→ NOW SELECT TARGET':'→ SELECT SOURCE NODE'):'✂ CLICK AN EDGE TO CUT'}
+                    </div>
                   )}
+                  {/* Node count badge */}
+                  <div style={{marginLeft:edgeMode?'0':'auto',display:'flex',gap:'4px',alignItems:'center',fontFamily:"'Share Tech Mono',monospace",fontSize:'0.4rem',color:'rgba(128,128,128,0.6)'}}>
+                    <span>{nodeCount} NODES</span>
+                    <span style={{opacity:0.3}}>·</span>
+                    <span>{edgesRef.current.length} EDGES</span>
+                  </div>
                 </div>
 
                 <div className="canvas-container"
@@ -1586,6 +1645,28 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
                   onPointerDown={handleCanvasPointerDown} onPointerMove={handleCanvasPointerMove} onPointerUp={handleCanvasPointerUp} onPointerLeave={handleCanvasPointerUp} onWheel={handleWheel}
                   onClick={()=>{setNodeColorPicker(null); setShowTermPalette(false);}}>
                   <div className="canvas-bg"/>
+                  {/* MANGA PAGE OVERLAY — decorative elements */}
+                  {themeMode==='brutal' && (
+                    <>
+                      {/* Page number */}
+                      <div style={{position:'absolute',bottom:'12px',right:'16px',zIndex:2,fontFamily:"'Bangers',sans-serif",fontSize:'1.2rem',color:'rgba(15,15,15,0.12)',letterSpacing:'0.05em',pointerEvents:'none',userSelect:'none',lineHeight:1}}>FORBIDEN</div>
+                      {/* Chapter marker top-left */}
+                      <div style={{position:'absolute',top:'12px',left:'12px',zIndex:2,pointerEvents:'none',userSelect:'none'}}>
+                        <div style={{background:'#0f0f0f',color:'#f2c12e',fontFamily:"'Bangers',sans-serif",fontSize:'0.55rem',letterSpacing:'0.15em',padding:'2px 8px',display:'inline-block'}}>CHAPTER {String(nodeCount).padStart(2,'0')}</div>
+                      </div>
+                      {/* Corner gutters */}
+                      <div style={{position:'absolute',top:0,left:0,right:0,height:'4px',background:'#0f0f0f',zIndex:2,pointerEvents:'none'}}/>
+                      <div style={{position:'absolute',bottom:0,left:0,right:0,height:'2px',background:'rgba(15,15,15,0.25)',zIndex:2,pointerEvents:'none'}}/>
+                    </>
+                  )}
+                  {themeMode==='cyber' && (
+                    <>
+                      <div style={{position:'absolute',bottom:'12px',right:'16px',zIndex:2,fontFamily:"'Bangers',sans-serif",fontSize:'1.2rem',color:'rgba(255,42,56,0.06)',letterSpacing:'0.05em',pointerEvents:'none',userSelect:'none',lineHeight:1}}>FORBIDEN</div>
+                      <div style={{position:'absolute',top:'10px',left:'12px',zIndex:2,pointerEvents:'none',userSelect:'none'}}>
+                        <div style={{background:'rgba(255,42,56,0.08)',color:'#ff2a38',fontFamily:"'Bangers',sans-serif",fontSize:'0.5rem',letterSpacing:'0.18em',padding:'2px 8px',border:'1px solid rgba(255,42,56,0.2)',display:'inline-block'}}>SYS: ONLINE // {nodeCount} NODES</div>
+                      </div>
+                    </>
+                  )}
                   <div className="graph-layer" style={{transform:`translate(${transform.x}px,${transform.y}px) scale(${transform.scale})`}}>
                     <svg className="svg-edges" style={{pointerEvents: edgeMode==='cut' ? 'all' : 'none'}}>
                       {visibleEdges.map(edge => {
@@ -1664,18 +1745,26 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
                             if(!draggingNodeRef.current?.hasDragged) openNodeInEditor(node.id);
                             draggingNodeRef.current=null;
                           }}>
+                          {/* MANGA PANEL NODE */}
                           <div className={`node-circle ${node.isMain?'main-node':'sub-node'}`}
                             style={{
-                              ...(grp?{boxShadow:`0 0 12px ${grp.color}88`}:{}),
-                              ...(isJoinSelected?{boxShadow:`0 0 18px ${nodeAccent}, 0 0 30px ${nodeAccent}88`,border:`2px solid ${nodeAccent}`}:{})
-                            }}/>
+                              ...(grp?{boxShadow:themeMode==='brutal'?`4px 4px 0 ${grp.color}`:`0 0 12px ${grp.color}88`}:{}),
+                              ...(isJoinSelected?themeMode==='brutal'?{boxShadow:`6px 6px 0 ${nodeAccent}`,border:`3px solid ${nodeAccent}`}:{boxShadow:`0 0 18px ${nodeAccent}, 0 0 30px ${nodeAccent}88`,border:`2px solid ${nodeAccent}`}:{})
+                            }}>
+                            {/* Avatar portrait inside main nodes (brutal theme) */}
+                            {node.isMain && themeMode==='brutal' && (
+                              <img src={`/avatars/0xAV0${String((node.themeIdx%6)+1).padStart(2,'0')}s.jpeg`} alt=""
+                                style={{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover',opacity:0.18,pointerEvents:'none'}}/>
+                            )}
+                          </div>
                           <div className="node-label" style={{
-                            ...(grp?{borderColor:grp.color+'44'}:{}),
-                            ...(isJoinSelected?{borderColor:nodeAccent+'88',color:nodeAccent}:{})
+                            ...(grp?themeMode==='brutal'?{borderColor:grp.color,boxShadow:`3px 3px 0 ${grp.color}`}:{borderColor:grp.color+'44'}:{}),
+                            ...(isJoinSelected?themeMode==='brutal'?{borderColor:nodeAccent,boxShadow:`4px 4px 0 ${nodeAccent}`,background:nodeAccent,color:'#fff'}:{borderColor:nodeAccent+'88',color:nodeAccent}:{})
                           }}>
+                            {/* Color swatch / manga panel marker */}
                             <span
                               title="Change color"
-                              style={{display:'inline-block',width:'8px',height:'8px',borderRadius:'50%',background:nodeAccent,marginRight:'5px',verticalAlign:'middle',boxShadow:`0 0 5px ${nodeAccent}88`,flexShrink:0,cursor:'pointer'}}
+                              style={{display:'inline-block',width:'8px',height:'8px',borderRadius:themeMode==='brutal'?'0':'50%',background:nodeAccent,marginRight:'5px',verticalAlign:'middle',flexShrink:0,cursor:'pointer',border:themeMode==='brutal'?'1px solid rgba(0,0,0,0.3)':'none'}}
                               onPointerDown={e=>{e.stopPropagation();}}
                               onClick={e=>{
                                 e.stopPropagation();
@@ -1731,28 +1820,82 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
               </div>
             </div>
 
-            {/* STATUS BAR */}
+            {/* STATUS BAR — Manga Caption Strip */}
             <div className="status-bar">
-              <div className="status-group">
-                <span style={{display:'flex',alignItems:'center',gap:'4px'}}><span className="status-dot" style={{background:'#10b981',boxShadow:'0 0 5px #10b981'}}/>CONNECTED</span>
-                <span style={{opacity:0.3}}>|</span><span>{nodeCount} NODES · {edgesRef.current.length} EDGES</span>
-                <span style={{opacity:0.3}}>|</span><span style={{color:'#ff2a38',opacity:0.7}}>FORBINDEN</span>
-                {edgeMode && <><span style={{opacity:0.3}}>|</span><span style={{color: edgeMode==='join'?'#10b981':'#ff435a', fontWeight:'bold', letterSpacing:'1px'}}>{edgeMode==='join'?(joinFirstNode?'JOIN: SELECT TARGET':'JOIN: SELECT SOURCE'):'CUT MODE — HOVER EDGE TO DELETE'}</span></>}
-              </div>
-              <div className="status-group" style={{gap:'10px'}}>
-                {[['N','node'],['G','group'],['J','join'],['X','cut'],['`','term']].map(([k,l])=>(
-                  <span key={k} style={{opacity:0.25,fontSize:'9px',display:'flex',gap:'3px',alignItems:'center'}}>
-                    <span style={{background:'rgba(255,255,255,0.08)',border:'1px solid rgba(255,255,255,0.12)',borderRadius:'2px',padding:'1px 4px',fontFamily:"'JetBrains Mono',monospace"}}>{k}</span>
-                    <span>{l}</span>
-                  </span>
-                ))}
-              </div>
-              <div className="status-group">
-                <span style={{color:'#ffc410',fontWeight:'bold',fontSize:'10px'}}>VER {activeVersionName}</span>
-                <span style={{opacity:0.3}}>|</span><span style={{opacity:0.5}}>{modifiedNodes.length>0?`${modifiedNodes.length} unsaved`:'all saved'}</span>
-                <span style={{opacity:0.3}}>|</span><span style={{opacity:0.4,cursor:'pointer'}} onClick={()=>setShowCmd(true)}>⌘P</span>
-                <span style={{opacity:0.3}}>|</span><span style={{opacity:0.4}}>{new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'})}</span>
-              </div>
+              {themeMode==='brutal' ? (
+                /* BRUTALIST manga footer */
+                <>
+                  <div style={{display:'flex',alignItems:'center',gap:'0',height:'100%'}}>
+                    {/* FORBIDEN stamp */}
+                    <div style={{background:'#c8001a',color:'#fff',fontFamily:"'Bangers',sans-serif",fontSize:'0.7rem',letterSpacing:'0.12em',padding:'0 10px',height:'100%',display:'flex',alignItems:'center',flexShrink:0,borderRight:'2px solid #0f0f0f'}}>FORBIDEN</div>
+                    {/* Status dot caption */}
+                    <div style={{padding:'0 10px',display:'flex',alignItems:'center',gap:'6px',borderRight:'1px solid rgba(0,0,0,0.15)',height:'100%',fontFamily:"'Share Tech Mono',monospace",fontSize:'0.42rem',color:'#0f0f0f'}}>
+                      <span style={{width:'6px',height:'6px',background:'#10b981',display:'inline-block',flexShrink:0}}/>
+                      <span>NOMINAL</span>
+                    </div>
+                    <div style={{padding:'0 10px',display:'flex',alignItems:'center',gap:'4px',borderRight:'1px solid rgba(0,0,0,0.15)',height:'100%',fontFamily:"'Share Tech Mono',monospace",fontSize:'0.42rem',color:'#0f0f0f'}}>
+                      <span style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:'0.44rem',color:'#0f0f0f'}}>{nodeCount}</span> NODES
+                      <span style={{opacity:0.3}}>·</span>
+                      <span style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:'0.44rem',color:'#0f0f0f'}}>{edgesRef.current.length}</span> EDGES
+                    </div>
+                    {edgeMode && <div style={{padding:'0 10px',background:'#f2c12e',color:'#0f0f0f',fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:'0.42rem',letterSpacing:'0.1em',borderRight:'2px solid #0f0f0f',height:'100%',display:'flex',alignItems:'center'}}>
+                      {edgeMode==='join'?(joinFirstNode?'▶ SELECT TARGET':'▶ SELECT SOURCE'):'✂ HOVER EDGE'}
+                    </div>}
+                    {/* Keyboard hints */}
+                    <div style={{padding:'0 10px',display:'flex',alignItems:'center',gap:'8px',fontFamily:"'Share Tech Mono',monospace",fontSize:'0.38rem',color:'rgba(15,15,15,0.4)',height:'100%'}}>
+                      {[['N','NODE'],['G','GROUP'],['J','LINK'],['X','CUT'],['`','TERM']].map(([k,l])=>(
+                        <span key={k} style={{display:'flex',gap:'2px',alignItems:'center'}}>
+                          <span style={{background:'rgba(0,0,0,0.08)',border:'1px solid rgba(0,0,0,0.2)',padding:'0px 4px',fontFamily:'inherit'}}>{k}</span>
+                          <span>{l}</span>
+                        </span>
+                      ))}
+                    </div>
+                    {/* Right side — operator + time */}
+                    <div style={{marginLeft:'auto',display:'flex',alignItems:'center',gap:'0',height:'100%'}}>
+                      <div style={{padding:'0 10px',borderLeft:'1px solid rgba(0,0,0,0.15)',height:'100%',display:'flex',alignItems:'center',fontFamily:"'Share Tech Mono',monospace",fontSize:'0.4rem',color:'rgba(15,15,15,0.5)'}}>
+                        {modifiedNodes.length>0?<span style={{color:'#c8001a',fontFamily:"'Oswald',sans-serif",fontWeight:700}}>{modifiedNodes.length} UNSAVED</span>:<span>SAVED</span>}
+                      </div>
+                      <div style={{padding:'0 10px',borderLeft:'1px solid rgba(0,0,0,0.15)',height:'100%',display:'flex',alignItems:'center',gap:'5px'}}>
+                        <div style={{width:'16px',height:'16px',overflow:'hidden',border:'1px solid #0f0f0f',flexShrink:0}}>
+                          <img src={`/avatars/0xAV0${String((avatarIndex%6)+1).padStart(2,'0')}s.jpeg`} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}}/>
+                        </div>
+                        <span style={{fontFamily:"'Share Tech Mono',monospace",fontSize:'0.4rem',color:'rgba(15,15,15,0.5)'}}>{new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'})}</span>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                /* CYBER manga footer */
+                <>
+                  <div className="status-group">
+                    <span style={{color:'#ff2a38',fontFamily:"'Bangers',sans-serif",fontSize:'0.7rem',letterSpacing:'0.1em'}}>FORBIDEN</span>
+                    <span style={{color:'rgba(255,255,255,0.15)'}}>|</span>
+                    <span style={{display:'flex',alignItems:'center',gap:'4px'}}><span className="status-dot" style={{background:'#10b981',boxShadow:'0 0 5px #10b981'}}/>ONLINE</span>
+                    <span style={{color:'rgba(255,255,255,0.15)'}}>|</span>
+                    <span>{nodeCount} NODES · {edgesRef.current.length} EDGES</span>
+                    {edgeMode && <><span style={{color:'rgba(255,255,255,0.15)'}}>|</span><span style={{color:edgeMode==='join'?'#10b981':'#ff435a',fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:'0.48rem'}}>{edgeMode==='join'?(joinFirstNode?'JOIN: TARGET':'JOIN: SOURCE'):'CUT MODE'}</span></>}
+                  </div>
+                  <div className="status-group" style={{gap:'8px'}}>
+                    {[['N','node'],['G','group'],['J','join'],['X','cut'],['`','term']].map(([k,l])=>(
+                      <span key={k} style={{opacity:0.22,fontSize:'9px',display:'flex',gap:'2px',alignItems:'center'}}>
+                        <span style={{background:'rgba(255,255,255,0.06)',border:'1px solid rgba(255,255,255,0.1)',padding:'1px 4px',fontFamily:"'JetBrains Mono',monospace"}}>{k}</span>
+                        <span>{l}</span>
+                      </span>
+                    ))}
+                  </div>
+                  <div className="status-group">
+                    <span style={{color:'#ffc410',fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:'0.48rem'}}>VER {activeVersionName}</span>
+                    <span style={{color:'rgba(255,255,255,0.15)'}}>|</span>
+                    <span style={{opacity:0.45}}>{modifiedNodes.length>0?`${modifiedNodes.length} UNSAVED`:'ALL SAVED'}</span>
+                    <span style={{color:'rgba(255,255,255,0.15)'}}>|</span>
+                    <div style={{width:'18px',height:'18px',overflow:'hidden',border:'1px solid rgba(255,42,56,0.3)'}}>
+                      <img src={`/avatars/0xAV0${String((avatarIndex%6)+1).padStart(2,'0')}s.jpeg`} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}}/>
+                    </div>
+                    <span style={{opacity:0.35,cursor:'pointer'}} onClick={()=>setShowCmd(true)}>⌘P</span>
+                    <span style={{opacity:0.35}}>{new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'})}</span>
+                  </div>
+                </>
+              )}
             </div>
 
             {/* CREATE NODE MODAL */}
@@ -2033,6 +2176,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
     function Bootloader() {
       const [theme, setTheme] = useState(null);
       const [avatar, setAvatar] = useState(null);
+      const [hovered, setHovered] = useState(null);
       const [tick, setTick] = useState(0);
 
       useEffect(() => {
@@ -2042,155 +2186,403 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 
       if (theme && avatar !== null) return <IDEWithCmd initialTheme={theme} initialAvatar={avatar}/>;
 
-      const avatarAccent = avatar !== null ? BOOT_ACCENT_COLORS[avatar % BOOT_ACCENT_COLORS.length] : '#ff2a38';
-      const timeStr = new Date().toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+      const OPERATORS = [
+        { name:'GHOST',    code:'0xAV001', num:'01' },
+        { name:'BLADE',    code:'0xAV002', num:'02' },
+        { name:'CIPHER',   code:'0xAV003', num:'03' },
+        { name:'WRAITH',   code:'0xAV004', num:'04' },
+        { name:'SPECTRE',  code:'0xAV005', num:'05' },
+        { name:'NEXUS',    code:'0xAV006', num:'06' },
+      ];
+      const timeStr = new Date().toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit' });
+      const selOp = avatar !== null ? OPERATORS[avatar] : null;
 
       return (
         <div style={{
-          width:'100vw', height:'100vh', background:'#030308',
-          fontFamily:"'Share Tech Mono','JetBrains Mono',monospace", color:'#f5f2eb',
+          width:'100vw', height:'100vh',
+          background:'#f4f0e8', color:'#0a0a0a',
+          fontFamily:"'Share Tech Mono','JetBrains Mono',monospace",
           display:'flex', flexDirection:'column', overflow:'hidden', position:'relative',
         }}>
-          {/* Google Fonts */}
-          <style>{`
-            @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Bebas+Neue&family=Outfit:wght@300;400;600;800&display=swap');
-            @keyframes fblink { 50% { opacity: 0; } }
-            @keyframes fpulse { 50% { opacity: 0.25; } }
-          `}</style>
-
-          {/* Binary wallpaper */}
-          <div style={{position:'absolute',inset:0,overflow:'hidden',pointerEvents:'none',zIndex:0,opacity:0.7}}>
-            {Array.from({length:10}).map((_,i) => (
-              <div key={i} style={{fontFamily:"'Share Tech Mono',monospace",fontSize:'0.4rem',color:'rgba(0,255,65,0.045)',lineHeight:1.5,letterSpacing:'0.04em',wordBreak:'break-all',padding:'0.4rem'}}>
-                {'011001110100100101101110011001000110000101101110011001110110010101110111001000010110011001101111011100100110001001101001011001000110010001100101011011100'
-                  .repeat(14)}
-              </div>
-            ))}
-          </div>
-
-          {/* Dither */}
-          <div style={{position:'absolute',inset:0,pointerEvents:'none',zIndex:1,backgroundImage:'radial-gradient(circle,rgba(0,0,0,.55) 1px,transparent 1px)',backgroundSize:'3.5px 3.5px'}}/>
-          {/* Scanlines */}
-          <div style={{position:'absolute',inset:0,pointerEvents:'none',zIndex:2,background:'repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.06) 2px,rgba(0,0,0,.06) 4px)'}}/>
-
-          {/* NAV */}
+          {/* SCREENTONE BACKGROUND */}
           <div style={{
-            display:'flex', alignItems:'center', padding:'0 1.4rem', height:'58px', flexShrink:0,
-            position:'relative', zIndex:10,
-            background:'rgba(3,3,8,0.88)', backdropFilter:'blur(16px)',
-            borderBottom:'1px solid rgba(255,42,56,0.22)',
-            boxShadow:'0 4px 30px rgba(0,0,0,0.5)',
+            position:'absolute', inset:0, pointerEvents:'none', zIndex:0,
+            backgroundImage:'radial-gradient(circle,rgba(0,0,0,0.09) 1.2px,transparent 1.2px)',
+            backgroundSize:'6px 6px',
+          }}/>
+
+          {/* SPEED LINES from center */}
+          <div style={{
+            position:'absolute', inset:0, pointerEvents:'none', zIndex:1,
+            background:`conic-gradient(from 0deg at 50% 42%,
+              transparent 0deg,rgba(0,0,0,0.025) 1.5deg,transparent 3deg,
+              transparent 10deg,rgba(0,0,0,0.025) 11.5deg,transparent 13deg,
+              transparent 20deg,rgba(0,0,0,0.025) 21.5deg,transparent 23deg,
+              transparent 32deg,rgba(0,0,0,0.025) 33.5deg,transparent 35deg,
+              transparent 45deg,rgba(0,0,0,0.025) 46.5deg,transparent 48deg,
+              transparent 58deg,rgba(0,0,0,0.025) 59.5deg,transparent 61deg,
+              transparent 72deg,rgba(0,0,0,0.025) 73.5deg,transparent 75deg,
+              transparent 88deg,rgba(0,0,0,0.025) 89.5deg,transparent 91deg,
+              transparent 102deg,rgba(0,0,0,0.025) 103.5deg,transparent 105deg,
+              transparent 118deg,rgba(0,0,0,0.025) 119.5deg,transparent 121deg,
+              transparent 135deg,rgba(0,0,0,0.025) 136.5deg,transparent 138deg,
+              transparent 152deg,rgba(0,0,0,0.025) 153.5deg,transparent 155deg,
+              transparent 170deg,rgba(0,0,0,0.025) 171.5deg,transparent 173deg,
+              transparent 188deg,rgba(0,0,0,0.025) 189.5deg,transparent 191deg,
+              transparent 205deg,rgba(0,0,0,0.025) 206.5deg,transparent 208deg,
+              transparent 222deg,rgba(0,0,0,0.025) 223.5deg,transparent 225deg,
+              transparent 240deg,rgba(0,0,0,0.025) 241.5deg,transparent 243deg,
+              transparent 258deg,rgba(0,0,0,0.025) 259.5deg,transparent 261deg,
+              transparent 275deg,rgba(0,0,0,0.025) 276.5deg,transparent 278deg,
+              transparent 292deg,rgba(0,0,0,0.025) 293.5deg,transparent 295deg,
+              transparent 308deg,rgba(0,0,0,0.025) 309.5deg,transparent 311deg,
+              transparent 325deg,rgba(0,0,0,0.025) 326.5deg,transparent 328deg,
+              transparent 342deg,rgba(0,0,0,0.025) 343.5deg,transparent 345deg,
+              transparent 355deg,rgba(0,0,0,0.025) 356.5deg,transparent 358deg
+            )`,
+          }}/>
+
+          {/* TOP CHAPTER STRIP */}
+          <div style={{
+            height:'54px', background:'#0a0a0a', flexShrink:0,
+            display:'flex', alignItems:'center', padding:'0 1.5rem',
+            gap:'1.2rem', zIndex:10, borderBottom:'4px solid #0a0a0a',
+            position:'relative',
           }}>
-            <div style={{fontFamily:"'Bebas Neue','Outfit',sans-serif",fontSize:'1.45rem',letterSpacing:'0.22em',color:'#f5f2eb',lineHeight:1}}>
-              FOR<span style={{color:'#ff2a38'}}>BID</span>DEN
-              <span style={{color:'#ff2a38',animation:'fblink 1s infinite',marginLeft:'1px'}}>_</span>
+            {/* Manga title logo */}
+            <div style={{
+              fontFamily:"'Bangers','Bebas Neue',sans-serif",
+              fontSize:'1.9rem', letterSpacing:'0.1em', lineHeight:1,
+              color:'#f4f0e8',
+            }}>
+              FOR<span style={{color:'#d0021b'}}>BID</span>EN
             </div>
-            <div style={{marginLeft:'auto',display:'flex',alignItems:'center',gap:'1.4rem'}}>
-              <span style={{fontSize:'0.5rem',color:'#8a8aaa',letterSpacing:'0.1em',display:'flex',alignItems:'center',gap:'0.35rem'}}>
-                <span style={{width:'5px',height:'5px',background:'#00ff55',borderRadius:'50%',display:'inline-block',animation:'fpulse 2s infinite'}}/>
-                SYS NOMINAL
-              </span>
-              <span style={{fontSize:'0.5rem',color:'rgba(255,255,255,0.2)',letterSpacing:'0.08em'}}>{timeStr}</span>
+            <div style={{width:'3px', height:'32px', background:'#d0021b', flexShrink:0}}/>
+            <div style={{display:'flex', flexDirection:'column', gap:'1px'}}>
+              <div style={{fontSize:'0.38rem', color:'#f5c518', letterSpacing:'0.2em', fontFamily:"'Oswald',sans-serif", fontWeight:700}}>GRAPH IDE</div>
+              <div style={{fontSize:'0.34rem', color:'rgba(255,255,255,0.35)', letterSpacing:'0.15em'}}>OPERATOR WORKSTATION v2.1</div>
+            </div>
+            <div style={{marginLeft:'auto', display:'flex', alignItems:'center', gap:'1rem'}}>
+              {/* Selected operator preview */}
+              {selOp && (
+                <div style={{display:'flex', alignItems:'center', gap:'0.5rem'}}>
+                  <div style={{width:'32px', height:'32px', border:'2px solid #d0021b', overflow:'hidden', flexShrink:0}}>
+                    <img src={`/avatars/0xAV00${avatar+1}s.jpeg`} alt={selOp.name} style={{width:'100%', height:'100%', objectFit:'cover'}}/>
+                  </div>
+                  <div style={{display:'flex', flexDirection:'column'}}>
+                    <div style={{fontSize:'0.48rem', color:'#d0021b', fontFamily:"'Bangers',sans-serif", letterSpacing:'0.1em'}}>{selOp.name}</div>
+                    <div style={{fontSize:'0.34rem', color:'rgba(255,255,255,0.4)', letterSpacing:'0.1em'}}>{selOp.code}</div>
+                  </div>
+                </div>
+              )}
+              <div style={{fontSize:'0.4rem', color:'rgba(255,255,255,0.3)', letterSpacing:'0.1em', fontFamily:"'Share Tech Mono',monospace"}}>{timeStr}</div>
             </div>
           </div>
 
-          {/* MAIN */}
-          <div style={{flex:1, display:'flex', alignItems:'center', justifyContent:'center', position:'relative', zIndex:5, padding:'1rem'}}>
-            <div style={{width:'min(660px,94vw)', display:'flex', flexDirection:'column', gap:'1.6rem'}}>
+          {/* MANGA PAGE SPREAD */}
+          <div style={{flex:1, display:'flex', overflow:'hidden', position:'relative', zIndex:5}}>
 
-              {/* Title block */}
-              <div style={{textAlign:'center', position:'relative', padding:'1.6rem 1rem'}}>
-                <HudCorners color="#ff2a38" size={16} thickness={1.5}/>
-                <div style={{fontSize:'0.58rem', color:'#8a8aaa', letterSpacing:'0.38em', marginBottom:'0.9rem', textTransform:'uppercase'}}>
-                  SYSTEM BOOT SEQUENCE
+            {/* LEFT PANEL — Character portraits grid */}
+            <div style={{
+              width:'clamp(300px,42%,480px)', flexShrink:0,
+              borderRight:'4px solid #0a0a0a',
+              display:'flex', flexDirection:'column',
+              background:'#0a0a0a',
+              position:'relative', overflow:'hidden',
+            }}>
+              {/* BIG chapter cover portrait */}
+              <div style={{
+                flex:1, position:'relative', overflow:'hidden',
+                borderBottom:'4px solid #0a0a0a',
+              }}>
+                {avatar !== null ? (
+                  <img
+                    src={`/avatars/0xAV00${avatar+1}s.jpeg`}
+                    alt={OPERATORS[avatar].name}
+                    style={{width:'100%', height:'100%', objectFit:'cover', display:'block', filter:'contrast(1.1) saturate(0.85)'}}
+                  />
+                ) : (
+                  <img
+                    src="/avatars/0xAV001s.jpeg"
+                    alt="operator"
+                    style={{width:'100%', height:'100%', objectFit:'cover', display:'block', filter:'contrast(1.05) saturate(0.6) brightness(0.5)'}}
+                  />
+                )}
+                {/* Screentone overlay on portrait */}
+                <div style={{
+                  position:'absolute', inset:0, pointerEvents:'none',
+                  backgroundImage:'radial-gradient(circle,rgba(0,0,0,0.12) 1px,transparent 1px)',
+                  backgroundSize:'4px 4px', mixBlendMode:'multiply',
+                }}/>
+                {/* Caption box */}
+                <div style={{
+                  position:'absolute', bottom:0, left:0, right:0,
+                  background:'rgba(10,10,10,0.88)',
+                  padding:'0.75rem 1rem',
+                  borderTop:'3px solid #d0021b',
+                }}>
+                  <div style={{fontFamily:"'Bangers',sans-serif", fontSize:'1.6rem', letterSpacing:'0.1em', color:'#f4f0e8', lineHeight:1}}>
+                    {avatar !== null ? OPERATORS[avatar].name : '???'}
+                  </div>
+                  <div style={{fontSize:'0.4rem', color:'#d0021b', letterSpacing:'0.15em', marginTop:'3px', fontFamily:"'Oswald',sans-serif", fontWeight:700}}>
+                    {avatar !== null ? OPERATORS[avatar].code : 'SELECT OPERATOR'}
+                  </div>
                 </div>
-                <h1 style={{fontFamily:"'Bebas Neue','Outfit',sans-serif", fontSize:'clamp(3rem,9vw,5.5rem)', letterSpacing:'0.12em', lineHeight:0.88, marginBottom:'0.4rem'}}>
-                  FOR<span style={{color:'#ff2a38'}}>BID</span>DEN
-                </h1>
-                <div style={{fontFamily:"'Share Tech Mono',monospace", fontSize:'0.58rem', color:'#8a8aaa', letterSpacing:'0.28em', marginTop:'0.6rem'}}>
-                  DUAL-ENGINE GRAPH IDE <span style={{color:'rgba(255,42,56,0.5)'}}>// OPERATOR INTERFACE v2.1</span>
+                {/* Volume badge */}
+                <div style={{
+                  position:'absolute', top:'1rem', right:'1rem',
+                  background:'#d0021b', color:'#f4f0e8',
+                  fontFamily:"'Bangers',sans-serif", fontSize:'0.8rem',
+                  padding:'4px 10px', letterSpacing:'0.1em',
+                  border:'2px solid #f4f0e8',
+                }}>
+                  VOL.2
                 </div>
               </div>
 
-              {/* 01 — OPERATOR IDENTITY */}
-              <div style={{background:'rgba(255,255,255,0.015)', border:'1px solid rgba(255,255,255,0.06)', padding:'1.4rem 1.2rem'}}>
-                <div style={{fontSize:'0.52rem', color:'#ff2a38', letterSpacing:'0.18em', marginBottom:'1.2rem', fontWeight:700}}>
-                  01 // SELECT OPERATOR IDENTITY
-                </div>
-                <div style={{display:'flex', gap:'0.9rem', justifyContent:'center', flexWrap:'wrap'}}>
-                  {[0,1,2,3,4,5].map(i => {
-                    const acc = BOOT_ACCENT_COLORS[i % BOOT_ACCENT_COLORS.length];
-                    const isSel = avatar === i;
-                    return (
-                      <div key={i} onClick={() => setAvatar(i)} style={{
-                        display:'flex', flexDirection:'column', alignItems:'center', gap:'0.5rem',
-                        cursor:'pointer', transition:'transform 0.2s',
-                        transform: isSel ? 'translateY(-4px)' : 'none',
-                      }}>
-                        <div style={{
-                          width:'68px', height:'68px', position:'relative',
-                          border: isSel ? `2px solid ${acc}` : '1px solid rgba(255,255,255,0.08)',
-                          boxShadow: isSel ? `0 0 22px ${acc}55, inset 0 0 18px ${acc}0a` : 'none',
-                          background: isSel ? `${acc}08` : 'rgba(255,255,255,0.02)',
-                          transition:'all 0.2s',
-                        }}>
-                          <img src={`/avatars/0xAV0${String(i+1).padStart(2,'0')}s.jpeg`} alt={BOOT_AVATAR_NAMES[i]} style={{width:'68px',height:'68px',objectFit:'cover',display:'block'}}/>
-                          {isSel && <HudCorners color={acc} size={8} thickness={1.2}/>}
-                        </div>
-                        <div style={{
-                          fontSize:'0.4rem', letterSpacing:'0.08em', fontWeight:700, textTransform:'uppercase',
-                          color: isSel ? acc : '#8a8aaa', transition:'color 0.2s',
-                        }}>{BOOT_AVATAR_NAMES[i]}</div>
-                      </div>
-                    );
-                  })}
-                </div>
+              {/* Small portrait grid — bottom */}
+              <div style={{
+                display:'grid', gridTemplateColumns:'repeat(3,1fr)',
+                gap:'4px', padding:'4px', background:'#0a0a0a', flexShrink:0,
+              }}>
+                {OPERATORS.map((op, i) => (
+                  <div
+                    key={i}
+                    onClick={() => setAvatar(i)}
+                    onMouseEnter={() => setHovered(i)}
+                    onMouseLeave={() => setHovered(null)}
+                    style={{
+                      position:'relative', overflow:'hidden', cursor:'pointer',
+                      border: avatar===i ? '2px solid #d0021b' : '2px solid #333',
+                      transition:'all 0.15s',
+                      transform: avatar===i ? 'scale(1.04)' : hovered===i ? 'scale(1.02)' : 'scale(1)',
+                      aspectRatio:'1',
+                    }}
+                  >
+                    <img
+                      src={`/avatars/0xAV00${i+1}s.jpeg`}
+                      alt={op.name}
+                      style={{width:'100%', height:'100%', objectFit:'cover', display:'block', filter: avatar===i ? 'none' : 'grayscale(60%)'}}
+                    />
+                    {/* Number badge */}
+                    <div style={{
+                      position:'absolute', top:0, left:0,
+                      background: avatar===i ? '#d0021b' : '#0a0a0a',
+                      color:'#f4f0e8', fontSize:'0.42rem',
+                      fontFamily:"'Bangers',sans-serif", padding:'1px 5px',
+                      letterSpacing:'0.08em',
+                    }}>{op.num}</div>
+                    {/* Name on hover/selected */}
+                    <div style={{
+                      position:'absolute', bottom:0, left:0, right:0,
+                      background: avatar===i ? 'rgba(208,2,27,0.88)' : 'rgba(10,10,10,0.75)',
+                      padding:'3px 5px',
+                      transition:'opacity 0.15s',
+                    }}>
+                      <div style={{fontFamily:"'Bangers',sans-serif", fontSize:'0.55rem', color:'#f4f0e8', letterSpacing:'0.06em'}}>{op.name}</div>
+                    </div>
+                  </div>
+                ))}
               </div>
+            </div>
 
-              {/* 02 — BOOT */}
-              <div style={{opacity: avatar !== null ? 1 : 0.15, transition:'opacity 0.4s', pointerEvents: avatar !== null ? 'auto' : 'none'}}>
-                <div style={{fontSize:'0.52rem', color:'#ff2a38', letterSpacing:'0.18em', marginBottom:'0.8rem', fontWeight:700}}>
-                  02 // INITIALIZE ENGINE
-                </div>
-                <button
-                  disabled={avatar === null}
-                  onClick={() => setTheme('cyber')}
-                  style={{
-                    width:'100%', padding:'1.2rem',
-                    background:'transparent',
-                    border:'1px solid rgba(255,42,56,0.4)',
-                    color:'#ff2a38', cursor: avatar !== null ? 'pointer' : 'default',
+            {/* MANGA GUTTER */}
+            <div style={{width:'8px', background:'#0a0a0a', flexShrink:0}}/>
+
+            {/* RIGHT PANEL — Boot sequence */}
+            <div style={{
+              flex:1, display:'flex', flexDirection:'column',
+              background:'#f4f0e8', overflow:'hidden', position:'relative',
+            }}>
+              {/* TITLE PANEL — top */}
+              <div style={{
+                padding:'1.5rem 2rem 1.2rem',
+                borderBottom:'4px solid #0a0a0a',
+                position:'relative', overflow:'hidden', flexShrink:0,
+              }}>
+                {/* Screentone on title */}
+                <div style={{
+                  position:'absolute', inset:0, pointerEvents:'none',
+                  backgroundImage:'radial-gradient(circle,rgba(0,0,0,0.05) 1px,transparent 1px)',
+                  backgroundSize:'5px 5px',
+                }}/>
+                <div style={{position:'relative', zIndex:2}}>
+                  <div style={{
+                    display:'inline-block', background:'#d0021b', color:'#f4f0e8',
+                    fontFamily:"'Oswald',sans-serif", fontWeight:700,
+                    fontSize:'0.5rem', letterSpacing:'0.2em', padding:'3px 10px',
+                    marginBottom:'0.8rem',
+                  }}>CHAPTER 01 // SYSTEM BOOT</div>
+                  <div style={{
+                    fontFamily:"'Bangers','Bebas Neue',sans-serif",
+                    fontSize:'clamp(2.5rem,6vw,4.5rem)',
+                    letterSpacing:'0.06em', lineHeight:0.88, color:'#0a0a0a',
+                    WebkitTextStroke:'2px #0a0a0a',
+                  }}>
+                    FOR<span style={{color:'#d0021b',WebkitTextStroke:'2px #d0021b'}}>BID</span>EN
+                  </div>
+                  <div style={{
                     fontFamily:"'Share Tech Mono',monospace",
-                    letterSpacing:'0.18em', textTransform:'uppercase',
-                    transition:'all 0.2s', display:'flex', flexDirection:'column', alignItems:'center', gap:'0.35rem',
-                  }}
-                  onMouseEnter={e => { if(avatar !== null){ e.currentTarget.style.background='rgba(255,42,56,0.06)'; e.currentTarget.style.boxShadow='0 0 40px rgba(255,42,56,0.2)'; e.currentTarget.style.borderColor='#ff2a38'; }}}
-                  onMouseLeave={e => { e.currentTarget.style.background='transparent'; e.currentTarget.style.boxShadow='none'; e.currentTarget.style.borderColor='rgba(255,42,56,0.4)'; }}
-                >
-                  <span style={{fontFamily:"'Bebas Neue',sans-serif", fontSize:'2rem', letterSpacing:'0.25em', lineHeight:1}}>BOOT SYSTEM</span>
-                  <span style={{fontSize:'0.44rem', color:'#8a8aaa', letterSpacing:'0.2em'}}>INITIALIZE FORBINDEN // OPERATOR WORKSTATION</span>
-                </button>
+                    fontSize:'0.5rem', color:'#555', letterSpacing:'0.18em', marginTop:'0.5rem',
+                  }}>
+                    DUAL-ENGINE GRAPH IDE // OPERATOR WORKSTATION
+                  </div>
+                </div>
               </div>
 
+              {/* SELECT OPERATOR caption */}
+              <div style={{
+                padding:'1rem 2rem 0.8rem',
+                borderBottom:'3px solid #0a0a0a',
+                flexShrink:0,
+              }}>
+                <div style={{
+                  display:'inline-block', background:'#0a0a0a', color:'#f5c518',
+                  fontFamily:"'Bangers',sans-serif", fontSize:'0.65rem',
+                  letterSpacing:'0.15em', padding:'3px 12px',
+                  marginBottom:'0.4rem',
+                }}>01 — SELECT OPERATOR</div>
+                <div style={{
+                  fontSize:'0.42rem', color:'#666', letterSpacing:'0.12em',
+                  fontFamily:"'Share Tech Mono',monospace",
+                }}>
+                  {avatar !== null
+                    ? `OPERATOR [${OPERATORS[avatar].name}] IDENTIFIED — READY TO DEPLOY`
+                    : 'SELECT YOUR OPERATIVE FROM THE ROSTER ON THE LEFT'}
+                </div>
+              </div>
+
+              {/* ENGINE SELECTION */}
+              <div style={{flex:1, padding:'1rem 2rem', display:'flex', flexDirection:'column', gap:'0.8rem', overflow:'hidden'}}>
+                <div style={{
+                  display:'inline-block', background:'#0a0a0a', color:'#f5c518',
+                  fontFamily:"'Bangers',sans-serif", fontSize:'0.65rem',
+                  letterSpacing:'0.15em', padding:'3px 12px',
+                  marginBottom:'0.4rem', flexShrink:0,
+                }}>02 — INITIALIZE ENGINE</div>
+
+                <div style={{display:'flex', gap:'0.8rem', flex:1, maxHeight:'200px'}}>
+                  {/* FORSAKEN card — DARK MANGA */}
+                  <button
+                    disabled={avatar === null}
+                    onClick={() => setTheme('cyber')}
+                    style={{
+                      flex:1, background:'#0a0a0a', color:'#f4f0e8',
+                      border:'3px solid #0a0a0a',
+                      boxShadow: avatar !== null ? '6px 6px 0 #d0021b' : '6px 6px 0 #333',
+                      cursor: avatar !== null ? 'pointer' : 'default',
+                      fontFamily:"'Bangers',sans-serif",
+                      display:'flex', flexDirection:'column', alignItems:'stretch',
+                      padding:0, gap:0,
+                      transition:'all 0.18s', position:'relative', overflow:'hidden',
+                    }}
+                    onMouseEnter={e => { if(avatar !== null){ e.currentTarget.style.transform='translate(-3px,-3px)'; e.currentTarget.style.boxShadow='10px 10px 0 #d0021b'; }}}
+                    onMouseLeave={e => { e.currentTarget.style.transform='none'; e.currentTarget.style.boxShadow=avatar!==null?'6px 6px 0 #d0021b':'6px 6px 0 #333'; }}
+                  >
+                    {/* Header strip */}
+                    <div style={{background:'#d0021b',padding:'6px 12px',display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0}}>
+                      <span style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:'0.5rem',letterSpacing:'0.2em',color:'#fff'}}>FORSAKEN</span>
+                      <span style={{fontFamily:"'Bangers',sans-serif",fontSize:'0.9rem',color:'rgba(255,255,255,0.6)'}}>夜</span>
+                    </div>
+                    {/* Body */}
+                    <div style={{flex:1,padding:'1rem 1.2rem',display:'flex',flexDirection:'column',gap:'0.4rem',position:'relative'}}>
+                      <div style={{position:'absolute',inset:0,backgroundImage:'radial-gradient(circle,rgba(255,255,255,0.03) 1px,transparent 1px)',backgroundSize:'5px 5px',pointerEvents:'none'}}/>
+                      <div style={{fontSize:'2rem', letterSpacing:'0.08em', lineHeight:0.92, position:'relative'}}>DARK<br/>MANGA</div>
+                      <div style={{fontSize:'0.38rem', color:'rgba(255,255,255,0.35)', letterSpacing:'0.14em', position:'relative', fontFamily:"'Share Tech Mono',monospace", marginTop:'auto'}}>BERSERK MODE // CYBER NOIR</div>
+                    </div>
+                    <div style={{height:'3px',background:'#d0021b',flexShrink:0}}/>
+                  </button>
+
+                  {/* BRUTALIST card — LIGHT MANGA */}
+                  <button
+                    disabled={avatar === null}
+                    onClick={() => setTheme('brutal')}
+                    style={{
+                      flex:1, background:'#f0ece0', color:'#0a0a0a',
+                      border:'3px solid #0a0a0a',
+                      boxShadow: avatar !== null ? '6px 6px 0 #0a0a0a' : '6px 6px 0 #bbb',
+                      cursor: avatar !== null ? 'pointer' : 'default',
+                      fontFamily:"'Bangers',sans-serif",
+                      display:'flex', flexDirection:'column', alignItems:'stretch',
+                      padding:0, gap:0,
+                      transition:'all 0.18s', position:'relative', overflow:'hidden',
+                    }}
+                    onMouseEnter={e => { if(avatar !== null){ e.currentTarget.style.transform='translate(-3px,-3px)'; e.currentTarget.style.boxShadow='10px 10px 0 #f2c12e'; e.currentTarget.style.borderColor='#0a0a0a'; }}}
+                    onMouseLeave={e => { e.currentTarget.style.transform='none'; e.currentTarget.style.boxShadow=avatar!==null?'6px 6px 0 #0a0a0a':'6px 6px 0 #bbb'; e.currentTarget.style.borderColor='#0a0a0a'; }}
+                  >
+                    {/* Yellow header strip */}
+                    <div style={{background:'#f2c12e',padding:'6px 12px',display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0,borderBottom:'2px solid #0a0a0a'}}>
+                      <span style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:'0.5rem',letterSpacing:'0.2em',color:'#0a0a0a'}}>BRUTALIST</span>
+                      <span style={{fontFamily:"'Bangers',sans-serif",fontSize:'0.9rem',color:'rgba(0,0,0,0.4)'}}>光</span>
+                    </div>
+                    {/* Body — paper white */}
+                    <div style={{flex:1,padding:'1rem 1.2rem',display:'flex',flexDirection:'column',gap:'0.4rem',position:'relative',background:'#f0ece0'}}>
+                      <div style={{position:'absolute',inset:0,backgroundImage:'radial-gradient(circle,rgba(0,0,0,0.08) 1px,transparent 1px)',backgroundSize:'5px 5px',pointerEvents:'none'}}/>
+                      <div style={{fontSize:'2rem', letterSpacing:'0.08em', lineHeight:0.92, position:'relative', color:'#0a0a0a', WebkitTextStroke:'1px #0a0a0a'}}>LIGHT<br/>MANGA</div>
+                      <div style={{fontSize:'0.38rem', color:'rgba(0,0,0,0.45)', letterSpacing:'0.14em', position:'relative', fontFamily:"'Share Tech Mono',monospace", marginTop:'auto'}}>CLASSIC MODE // MANGA INK</div>
+                    </div>
+                    <div style={{height:'3px',background:'#0a0a0a',flexShrink:0}}/>
+                  </button>
+                </div>
+
+                {/* Instruction caption */}
+                <div style={{
+                  background:'#f5c518', color:'#0a0a0a',
+                  fontFamily:"'Oswald',sans-serif", fontWeight:700,
+                  fontSize:'0.44rem', letterSpacing:'0.15em',
+                  padding:'0.35rem 0.8rem', border:'2px solid #0a0a0a',
+                  display:'inline-block', flexShrink:0,
+                  opacity: avatar !== null ? 1 : 0.3,
+                  transition:'opacity 0.4s',
+                }}>
+                  {avatar !== null
+                    ? `OPERATIVE ${OPERATORS[avatar].name} READY — SELECT ENGINE TO DEPLOY`
+                    : 'SELECT OPERATOR FIRST — CHOOSE FROM ROSTER'}
+                </div>
+              </div>
+
+              {/* Manga panel border accent images row */}
+              <div style={{
+                height:'80px', borderTop:'4px solid #0a0a0a',
+                display:'flex', gap:'0', flexShrink:0, overflow:'hidden',
+              }}>
+                {[7,8,9,10,11,12].map(n => (
+                  <div key={n} style={{flex:1, overflow:'hidden', borderRight:'2px solid #0a0a0a', position:'relative'}}>
+                    <img
+                      src={`/avatars/0xAV0${String(n).padStart(2,'0')}s.jpeg`}
+                      alt={`op-${n}`}
+                      style={{width:'100%', height:'100%', objectFit:'cover', filter:'grayscale(80%) contrast(1.1)', display:'block'}}
+                    />
+                    <div style={{position:'absolute',inset:0,background:'rgba(244,240,232,0.35)'}}/>
+                    <div style={{position:'absolute',inset:0,backgroundImage:'radial-gradient(circle,rgba(0,0,0,0.1) 1px,transparent 1px)',backgroundSize:'4px 4px'}}/>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
 
-          {/* STATUS BAR */}
+          {/* BOTTOM STATUS — manga caption bar */}
           <div style={{
-            height:'26px', borderTop:'1px solid rgba(255,42,56,0.14)', flexShrink:0,
-            display:'flex', alignItems:'center', padding:'0 1.4rem', gap:'1rem',
-            fontSize:'0.46rem', color:'#8a8aaa', letterSpacing:'0.1em',
-            background:'rgba(3,3,8,0.92)', position:'relative', zIndex:10,
+            height:'28px', background:'#0a0a0a', flexShrink:0,
+            display:'flex', alignItems:'center', padding:'0 1.5rem', gap:'1rem',
+            fontSize:'0.42rem', color:'rgba(255,255,255,0.45)', letterSpacing:'0.1em',
+            fontFamily:"'Share Tech Mono',monospace",
+            borderTop:'3px solid #0a0a0a',
           }}>
-            <span>FORBINDEN_OS</span>
-            <span style={{color:'rgba(255,255,255,0.12)'}}>|</span>
-            <span>STATUS: <span style={{color:'#00ff55'}}>NOMINAL</span></span>
-            <span style={{color:'rgba(255,255,255,0.12)'}}>|</span>
-            <span>ENGINE: <span style={{color:'#ccff00'}}>DUAL-MODE</span></span>
-            <span style={{color:'rgba(255,255,255,0.12)'}}>|</span>
-            <span>NODES: <span style={{color:'#ff2a38'}}>READY</span></span>
-            <div style={{marginLeft:'auto'}}>
-              OPERATOR: <span style={{color: avatarAccent}}>{avatar !== null ? BOOT_AVATAR_NAMES[avatar] : 'UNIDENTIFIED'}</span>
+            <span style={{color:'#f5c518', fontFamily:"'Bangers',sans-serif", fontSize:'0.6rem', letterSpacing:'0.1em'}}>FORBIDEN</span>
+            <span style={{color:'rgba(255,255,255,0.15)'}}>|</span>
+            <span>STATUS: <span style={{color:'#4ade80'}}>NOMINAL</span></span>
+            <span style={{color:'rgba(255,255,255,0.15)'}}>|</span>
+            <span>ENGINE: <span style={{color:'#f5c518'}}>DUAL-MODE</span></span>
+            <span style={{color:'rgba(255,255,255,0.15)'}}>|</span>
+            <span>NODES: <span style={{color:'#d0021b'}}>READY</span></span>
+            <div style={{marginLeft:'auto', display:'flex', alignItems:'center', gap:'0.5rem'}}>
+              {avatar !== null && (
+                <div style={{width:'16px', height:'16px', overflow:'hidden', border:'1px solid #d0021b'}}>
+                  <img src={`/avatars/0xAV00${avatar+1}s.jpeg`} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}}/>
+                </div>
+              )}
+              <span>OPERATOR: <span style={{color:'#d0021b'}}>{avatar !== null ? OPERATORS[avatar].name : 'UNIDENTIFIED'}</span></span>
             </div>
           </div>
         </div>
@@ -2198,4 +2590,3 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
     }
 
     export default Bootloader;
-  
