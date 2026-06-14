@@ -387,6 +387,222 @@
 .theme-cyber .minimap { border-radius:0!important; border:1px solid rgba(255,42,56,.2)!important; }
 
 /* ══════════════════════════════════════════════════════
+   MANGA HERO OVERLAY (ephemeral-inspired)
+   ══════════════════════════════════════════════════════ */
+
+@keyframes manga-scroll   { 0% { transform: translateX(0); }   100% { transform: translateX(-50%); } }
+@keyframes manga-bg-pulse { 0%,100% { opacity:1; } 50% { opacity:0.7; } }
+@keyframes manga-fade-in  { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:none; } }
+@keyframes manga-sfx-glow { 0%,100% { text-shadow:none; } 50% { text-shadow:0 0 40px rgba(255,42,56,0.25); } }
+
+.manga-hero-root {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  overflow: hidden;
+  animation: manga-fade-in .35s ease;
+}
+
+/* Cinema background */
+.manga-hero-cinema {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+.manga-hero-cinema img {
+  position: absolute;
+  inset: 0;
+  width: 100%; height: 100%;
+  object-fit: cover; object-position: top center;
+  transition: opacity 1s ease;
+  filter: contrast(1.08) saturate(0.75);
+}
+.manga-hero-grad-l  { position:absolute; inset:0; pointer-events:none; }
+.manga-hero-grad-b  { position:absolute; inset:0; pointer-events:none; }
+.manga-hero-scan    {
+  position:absolute; inset:0; pointer-events:none;
+  background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,.028) 2px, rgba(0,0,0,.028) 4px);
+}
+.manga-hero-tone {
+  position:absolute; inset:0; pointer-events:none;
+  background-image: radial-gradient(circle, rgba(255,255,255,.035) 1px, transparent 1px);
+  background-size: 7px 7px;
+}
+
+/* Body grid */
+.manga-hero-body {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 70px;
+  display: grid;
+  grid-template-columns: 1fr 290px;
+  gap: 3px;
+}
+
+/* Left splash panel */
+.manga-hero-left {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 24px 28px;
+  overflow: hidden;
+}
+
+/* Caption box top-left */
+.manga-hero-caption {
+  position: absolute;
+  top: 14px; left: 14px; z-index: 5;
+  padding: 5px 12px;
+  font-family: 'Share Tech Mono', monospace;
+  border-left: 3px solid;
+  animation: manga-fade-in .4s .1s both;
+}
+
+/* Giant SFX watermark */
+.manga-hero-sfx-bg {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding-left: 20px;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+.manga-hero-sfx-bg span {
+  font-family: 'Bangers', 'Bebas Neue', sans-serif;
+  font-size: clamp(6rem, 13vw, 13rem);
+  line-height: .82;
+  letter-spacing: .02em;
+  user-select: none;
+  transform: skew(-5deg) rotate(-1.5deg);
+  animation: manga-sfx-glow 6s ease-in-out infinite;
+}
+
+/* Bottom content */
+.manga-hero-content {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  animation: manga-fade-in .5s .2s both;
+}
+
+/* SFX title */
+.manga-hero-title {
+  font-family: 'Bangers', 'Bebas Neue', sans-serif;
+  font-size: clamp(3rem, 7vw, 5.5rem);
+  line-height: .85;
+  letter-spacing: .04em;
+  transform: skew(-4deg);
+  margin: 0;
+  -webkit-text-stroke: 1px rgba(255,255,255,.2);
+}
+
+.manga-hero-diag { height:2px; width:160px; transform:skew(-12deg); }
+.manga-hero-tag  { font-family:'Share Tech Mono',monospace; font-size:.5rem; letter-spacing:.12em; text-transform:uppercase; }
+
+/* Stats */
+.manga-hero-stats { display:flex; gap:16px; align-items:center; }
+.manga-hero-stat  { display:flex; flex-direction:column; gap:2px; }
+.manga-hero-stat-num { font-family:'Bangers',sans-serif; font-size:2rem; line-height:1; }
+.manga-hero-stat-lbl { font-family:'Share Tech Mono',monospace; font-size:.38rem; letter-spacing:.12em; opacity:.4; }
+.manga-hero-stat-div { width:1px; height:30px; background:rgba(128,128,128,.2); }
+
+/* CTA buttons */
+.manga-hero-ctas { display:flex; gap:8px; pointer-events:all; }
+.manga-hero-cta-play {
+  padding:10px 22px;
+  font-family:'Oswald',sans-serif; font-weight:700; font-size:.6rem; letter-spacing:.14em;
+  cursor:pointer; border:none; text-transform:uppercase;
+  transition:all .15s;
+}
+.manga-hero-cta-play:hover { transform:translate(-2px,-2px); }
+.manga-hero-cta-browse {
+  background:transparent; padding:10px 16px;
+  font-family:'Oswald',sans-serif; font-weight:700; font-size:.58rem; letter-spacing:.1em;
+  cursor:pointer; text-transform:uppercase; transition:all .15s;
+}
+
+/* Right poster grid */
+.manga-hero-right {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.manga-hero-right-label {
+  padding: 8px 10px 6px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: .44rem; letter-spacing: .16em;
+  flex-shrink: 0;
+}
+.manga-hero-grid {
+  flex: 1;
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: repeat(3, 1fr);
+  gap: 2px;
+  padding: 2px;
+}
+.manga-hero-poster {
+  overflow: hidden;
+  position: relative;
+  background: #0a0a10;
+}
+.manga-hero-poster img {
+  width:100%; height:100%;
+  object-fit:cover; display:block;
+  filter:contrast(1.05) saturate(.8);
+}
+.manga-hero-poster::after {
+  content:'';
+  position:absolute; inset:0;
+  background-image:radial-gradient(circle,rgba(255,255,255,.05) 1px,transparent 1px);
+  background-size:5px 5px;
+  pointer-events:none;
+}
+
+/* Bottom strip */
+.manga-hero-strip {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 70px;
+  display: flex;
+  align-items: center;
+  gap: 0;
+  overflow: hidden;
+}
+.manga-hero-strip-label {
+  padding: 0 12px;
+  flex-shrink: 0;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: .42rem; letter-spacing: .12em;
+  height: 100%;
+  display: flex; align-items: center;
+}
+.manga-hero-strip-row {
+  display: flex;
+  gap: 2px;
+  padding: 4px;
+  flex: 1;
+  overflow: hidden;
+  animation: manga-scroll 40s linear infinite;
+  width: max-content;
+}
+.manga-hero-strip-thumb {
+  width: 48px; height: 60px;
+  flex-shrink: 0; overflow: hidden; position: relative;
+}
+.manga-hero-strip-thumb img {
+  width:100%; height:100%;
+  object-fit:cover; display:block;
+}
+
+/* ══════════════════════════════════════════════════════
    SCROLLBARS
    ══════════════════════════════════════════════════════ */
 .theme-brutal ::-webkit-scrollbar       { width:5px; height:5px; }

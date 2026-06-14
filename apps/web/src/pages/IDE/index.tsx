@@ -503,6 +503,233 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
       );
     }
 
+    // Module-level raw filenames for hero overlay (use encodeURIComponent in src)
+    const MANGA_RAW = [
+      'Guts.jpeg','Guts And Zodd, DON.jpeg','Killua.jpeg','Inumaki.jpeg',
+      'Monster.jpeg','Whitebeard.jpeg','Roronoa Zoro.jpeg','Reze.jpeg',
+      'Soul King Brook.jpeg','Fire Punch.jpeg','PANTHEON.jpeg','CHAOS SMILE.jpeg',
+      'Corridor.jpeg','Thorfinn _ Vinland saga.jpeg','Choujin X.jpeg',
+      'Denj - Chainsaw Man_.jpeg','#chainsawman.jpeg',
+      'THE CONTROL DEVIL _ GRAPHIC DESIGN.jpeg','The Weeknd x Chainsaw Man.jpeg',
+      'Kagurabachi X Bleach.jpeg','Kisuke Urahara [Bleach] Poster.jpeg',
+      'Nelliel Brutalism.jpeg','One Piece Magazines.jpeg',
+      'Buggy, Sir Crocodile & Mihawk - One Piece.jpeg','Marco one piece.jpeg',
+      'God Valley.jpeg','ONE PIECE NOVEL LAW_ CH_ 1.jpeg','one piece.jpeg',
+      'Hunter × Hunter Volume 11 Cover.jpeg','Black Clover.jpeg',
+      'ANIME POSTERS - Sergey Zhikin.jpeg','MATT TAYLOR.jpeg',
+      'Slam Dunk Manga New Edition Cover Art – All 20 Covers.jpeg',
+      'SUBWAY DIMENSIONS.jpeg','Burning - Inspired by Van Gogh.jpeg',
+      'VOGUE.jpeg','VOGUE (1).jpeg','Sight - SKJEGG.jpeg',
+      'Queen Marika the Eternal.jpeg','R99 2_1 Poster.jpeg','R99 2_5 Poster.jpeg',
+      'Kyora Sazanami Poster.jpeg','Shugen jikka Kiyomaru.jpeg',
+      'Poster - Veil.jpeg','Rei_) (not my art).jpeg',
+      'Portada del primer número de One punch man_ Es veu al seu protagonista.jpeg',
+      'Choujin X Vol_ 12.jpeg','Choujin X Volume 14.jpeg','Choujin X Volume 3.jpeg',
+      'Poster One Piece - Wanted Whitebeard 61x91,5cm _ bol.jpeg',
+      'aki hayakawa.jpeg','choujin x tokio.jpeg','choujin x.jpeg','csm.jpeg',
+      'ddd.jpeg','denji starboy album cover.jpeg','kizaru.jpeg',
+      'litterally chainsaw man.jpeg','mob psycho 100.jpeg',
+      'Korean Edition Manga [phantom Busters] 팜텀 버스터즈 (jmanga227).jpeg',
+      'SONS OF THE DEVIL Covers 1-5 - toni infante.jpeg',
+      'One piece wano x Gta.jpeg','yhwach god of the Quincy.jpeg',
+      'Credit_ Twitter @avenoirn.jpeg',
+      '20Th Century Boys_ The Perfect Edition, Vol_ 11.jpeg',
+      'Dandadan _ @lihaolow • tw ☆.jpeg',
+      'Makimq is listening 🤫_ Social Poster design #Anime #Poster.jpeg',
+      'Corazon 💔.jpeg','move! move! just like mob!💥.jpeg',
+      '1997_ The start of an adventure ☠️🏕.jpeg',
+      'ishigori ryu _ @neggi_ on X.jpeg','zzyzzyy on X.jpeg',
+      'Sukuna”.jpeg','Hoạt - Poster  _ Facebook.jpeg',
+      'AdriGold 🍊 (@GoldDAdri_) on X.jpeg',
+      'Ai, Feel free to use.jpeg','fashionstation 230226x778.jpeg',
+      'Best _GOODNIGHT PUNPUN_ Fan Graphic Cover _ Poster💪.jpeg',
+      'Makima! 🩸__#Makima #ChainsawMan_#ChainsawManFanart #AnimeArt_#DigitalPainting.jpeg',
+      'Mess🌿 (@Messcult) on X.jpeg','チェンソーマン ＃１.jpeg',
+      '𝓕𝓼𝓸𝓹𝓹.jpeg','🍀.jpeg',
+    ];
+
+    // ═══════════════════════════════════════════════════════════════
+    //  MANGA HERO OVERLAY — ephemeral-inspired splash (no file open)
+    // ═══════════════════════════════════════════════════════════════
+    function MangaHeroOverlay({ nodeCount, edgeCount, themeMode, onNewNode, onOpenGallery }) {
+      const [bgIdx, setBgIdx] = useState(0);
+      const [fadeIn, setFadeIn] = useState(true);
+
+      useEffect(() => {
+        const t = setInterval(() => {
+          setFadeIn(false);
+          setTimeout(() => { setBgIdx(i => (i + 1) % MANGA_RAW.length); setFadeIn(true); }, 600);
+        }, 8000);
+        return () => clearInterval(t);
+      }, []);
+
+      const brutal = themeMode === 'brutal';
+      const acc    = brutal ? '#c8001a' : '#ff2a38';
+      const bg     = brutal ? '#f0ece0' : '#030308';
+      const txt    = brutal ? '#0f0f0f' : '#f4f0e8';
+      const enc    = (f) => encodeURIComponent(f);
+
+      const rightPosters = MANGA_RAW.slice(0, 6);
+      const stripImgs    = [...MANGA_RAW.slice(4, 18), ...MANGA_RAW.slice(4, 18)]; // doubled for loop
+
+      return (
+        <div className="manga-hero-root">
+
+          {/* ── Cinema background ── */}
+          <div className="manga-hero-cinema">
+            <img
+              key={bgIdx}
+              src={`/manga/${enc(MANGA_RAW[bgIdx])}`}
+              alt=""
+              style={{ opacity: fadeIn ? (brutal ? 0.09 : 0.13) : 0 }}
+            />
+            <div className="manga-hero-grad-l" style={{ background: `linear-gradient(90deg, ${bg}dd 0%, ${bg}99 40%, ${bg}44 70%, transparent 100%)` }} />
+            <div className="manga-hero-grad-b" style={{ background: `linear-gradient(180deg, ${bg}88 0%, transparent 35%, transparent 58%, ${bg}ee 100%)` }} />
+            <div className="manga-hero-scan" />
+            <div className="manga-hero-tone" />
+          </div>
+
+          {/* ── Main body ── */}
+          <div className="manga-hero-body">
+
+            {/* LEFT panel */}
+            <div className="manga-hero-left">
+
+              {/* Caption box */}
+              <div className="manga-hero-caption" style={{
+                background: brutal ? '#0f0f0f' : 'rgba(0,0,0,0.72)',
+                border: `1px solid ${brutal ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.12)'}`,
+                borderLeftColor: acc,
+              }}>
+                <div style={{ fontSize:'.48rem', letterSpacing:'.1em', color: brutal ? 'rgba(240,236,224,0.7)' : 'rgba(255,255,255,0.6)' }}>
+                  FORBIDEN // GRAPH IDE
+                </div>
+                <div style={{ fontSize:'.38rem', color:`${acc}cc`, marginTop:'2px' }}>
+                  ONLINE · v2.1 BETA · {MANGA_RAW.length} ART PANELS
+                </div>
+              </div>
+
+              {/* Giant background SFX watermark */}
+              <div className="manga-hero-sfx-bg">
+                <span style={{
+                  color: brutal ? 'rgba(15,15,15,0.055)' : 'rgba(255,42,56,0.045)',
+                  WebkitTextStroke: brutal ? '1px rgba(15,15,15,0.06)' : '1px rgba(255,42,56,0.07)',
+                }}>
+                  FOR<br/>BID<br/>EN
+                </span>
+              </div>
+
+              {/* Content */}
+              <div className="manga-hero-content">
+
+                {/* Title */}
+                <h1 className="manga-hero-title" style={{
+                  color: txt,
+                  textShadow: brutal ? 'none' : '0 2px 40px rgba(0,0,0,0.8)',
+                }}>
+                  FOR<span style={{ color: acc }}>BID</span>EN
+                </h1>
+
+                {/* Diagonal rule */}
+                <div className="manga-hero-diag" style={{
+                  background: `linear-gradient(90deg, ${acc}, ${acc}33, transparent)`,
+                }} />
+
+                {/* Tagline */}
+                <div className="manga-hero-tag" style={{ color: brutal ? 'rgba(15,15,15,0.45)' : 'rgba(255,255,255,0.4)' }}>
+                  Graph-Based Code IDE // Operator Portal
+                </div>
+
+                {/* Stats */}
+                <div className="manga-hero-stats">
+                  <div className="manga-hero-stat">
+                    <span className="manga-hero-stat-num" style={{ color: acc }}>{nodeCount}</span>
+                    <span className="manga-hero-stat-lbl" style={{ color: brutal ? 'rgba(15,15,15,0.4)' : 'rgba(255,255,255,0.35)' }}>NODES</span>
+                  </div>
+                  <div className="manga-hero-stat-div" />
+                  <div className="manga-hero-stat">
+                    <span className="manga-hero-stat-num" style={{ color:'#10b981' }}>{edgeCount}</span>
+                    <span className="manga-hero-stat-lbl" style={{ color: brutal ? 'rgba(15,15,15,0.4)' : 'rgba(255,255,255,0.35)' }}>EDGES</span>
+                  </div>
+                  <div className="manga-hero-stat-div" />
+                  <div className="manga-hero-stat">
+                    <span className="manga-hero-stat-num" style={{ color:'#ffc410' }}>{MANGA_RAW.length}</span>
+                    <span className="manga-hero-stat-lbl" style={{ color: brutal ? 'rgba(15,15,15,0.4)' : 'rgba(255,255,255,0.35)' }}>PANELS</span>
+                  </div>
+                </div>
+
+                {/* CTAs */}
+                <div className="manga-hero-ctas">
+                  <button
+                    className="manga-hero-cta-play"
+                    onPointerDown={e => e.stopPropagation()}
+                    onClick={e => { e.stopPropagation(); onNewNode(); }}
+                    style={{
+                      background: brutal ? '#0f0f0f' : `linear-gradient(135deg, ${acc}, #cc0020)`,
+                      color: brutal ? '#f2c12e' : '#fff',
+                      border: brutal ? '2px solid #0f0f0f' : 'none',
+                      boxShadow: brutal ? `4px 4px 0 ${acc}` : `0 4px 24px ${acc}44`,
+                    }}
+                  >▶ NEW NODE</button>
+                  <button
+                    className="manga-hero-cta-browse"
+                    onPointerDown={e => e.stopPropagation()}
+                    onClick={e => { e.stopPropagation(); onOpenGallery(); }}
+                    style={{
+                      color: brutal ? 'rgba(15,15,15,0.65)' : 'rgba(255,255,255,0.55)',
+                      border: brutal ? '2px solid rgba(15,15,15,0.25)' : '1px solid rgba(255,255,255,0.18)',
+                    }}
+                  >⊞ GALLERY</button>
+                </div>
+              </div>
+            </div>
+
+            {/* RIGHT poster grid */}
+            <div className="manga-hero-right" style={{
+              background: brutal ? 'rgba(240,236,224,0.55)' : 'rgba(3,3,8,0.7)',
+              borderLeft: `3px solid ${brutal ? 'rgba(15,15,15,0.12)' : 'rgba(255,255,255,0.05)'}`,
+            }}>
+              <div className="manga-hero-right-label" style={{
+                color: brutal ? 'rgba(15,15,15,0.4)' : 'rgba(255,255,255,0.3)',
+                borderBottom: `1px solid ${brutal ? 'rgba(15,15,15,0.08)' : 'rgba(255,255,255,0.05)'}`,
+              }}>
+                // ART VAULT — {MANGA_RAW.length} PANELS
+              </div>
+              <div className="manga-hero-grid">
+                {rightPosters.map((img, i) => (
+                  <div key={i} className="manga-hero-poster" style={{
+                    border: `1px solid ${brutal ? 'rgba(15,15,15,0.12)' : 'rgba(255,255,255,0.06)'}`,
+                  }}>
+                    <img src={`/manga/${enc(img)}`} alt="" loading="lazy" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* ── Bottom strip ── */}
+          <div className="manga-hero-strip" style={{
+            borderTop: `2px solid ${brutal ? 'rgba(15,15,15,0.12)' : 'rgba(255,255,255,0.07)'}`,
+            background: brutal ? 'rgba(240,236,224,0.9)' : 'rgba(3,3,8,0.92)',
+          }}>
+            <div className="manga-hero-strip-label" style={{
+              color: brutal ? 'rgba(15,15,15,0.4)' : 'rgba(255,255,255,0.3)',
+              borderRight: `1px solid ${brutal ? 'rgba(15,15,15,0.12)' : 'rgba(255,255,255,0.06)'}`,
+            }}>// PANELS</div>
+            <div className="manga-hero-strip-row">
+              {stripImgs.map((img, i) => (
+                <div key={i} className="manga-hero-strip-thumb" style={{
+                  border: `1px solid ${brutal ? 'rgba(15,15,15,0.12)' : 'rgba(255,255,255,0.07)'}`,
+                }}>
+                  <img src={`/manga/${enc(img)}`} alt="" loading="lazy" />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     // ═══════════════════════════════════════════════════════════════
     //  GROUP DOCK — compact top-right reference card
     // ═══════════════════════════════════════════════════════════════
@@ -892,6 +1119,42 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
       const visibleNodes = nodesRef.current.filter(n => { if (n.id==='n1' && playheadPos<100) return false; if (n.id==='n3' && playheadPos<250) return false; return true; });
       const visibleEdges = edgesRef.current.filter(e => visibleNodes.find(n=>n.id===e.source) && visibleNodes.find(n=>n.id===e.target));
 
+      // Manga images available throughout the IDE
+      const MANGA_IMGS = [
+        'Guts.jpeg','Guts%20And%20Zodd%2C%20DON.jpeg','Killua.jpeg','Inumaki.jpeg',
+        'Mob%20psycho%20100.jpeg','Sukuna%E2%80%9D.jpeg','Monster.jpeg','Whitebeard.jpeg',
+        'Roronoa%20Zoro.jpeg','Reze.jpeg','Soul%20King%20Brook.jpeg','Fire%20Punch.jpeg',
+        'PANTHEON.jpeg','CHAOS%20SMILE.jpeg','Corridor.jpeg','Thorfinn%20_%20Vinland%20saga.jpeg',
+        'Choujin%20X.jpeg','Dandadan%20_%20%40lihaolow%20%E2%80%A2%20tw%20%E2%98%86.jpeg',
+        'Denj%20-%20Chainsaw%20Man_.jpeg','%23chainsawman.jpeg',
+        'Makima%21%20%F0%9F%A9%B8__%23Makima%20%23ChainsawMan_%23ChainsawManFanart%20%23AnimeArt_%23DigitalPainting.jpeg',
+        'THE%20CONTROL%20DEVIL%20_%20GRAPHIC%20DESIGN.jpeg','The%20Weeknd%20x%20Chainsaw%20Man.jpeg',
+        'Kagurabachi%20X%20Bleach.jpeg','Kisuke%20Urahara%20%5BBleach%5D%20Poster.jpeg',
+        'Nelliel%20Brutalism.jpeg','One%20Piece%20Magazines.jpeg',
+        'Buggy%2C%20Sir%20Crocodile%20%26%20Mihawk%20-%20One%20Piece.jpeg',
+        'Marco%20one%20piece.jpeg','God%20Valley.jpeg','Corazon%20%F0%9F%92%94.jpeg',
+        'Goodbye%20Merry%20_%20%40IfihasR5%20%E2%80%A2%20tw%20_%27%29.jpeg',
+        'ONE%20PIECE%20NOVEL%20LAW_%20CH_%201.jpeg','One%20piece%20wano%20x%20Gta.jpeg',
+        'Hunter%20%C3%97%20Hunter%20Volume%2011%20Cover.jpeg','Black%20Clover.jpeg',
+        'ANIME%20POSTERS%20-%20Sergey%20Zhikin.jpeg','MATT%20TAYLOR.jpeg',
+        'Slam%20Dunk%20Manga%20New%20Edition%20Cover%20Art%20%E2%80%93%20All%2020%20Covers.jpeg',
+        'SUBWAY%20DIMENSIONS.jpeg','Burning%20-%20Inspired%20by%20Van%20Gogh.jpeg',
+        'VOGUE.jpeg','VOGUE%20%281%29.jpeg','Sight%20-%20SKJEGG.jpeg',
+        'Queen%20Marika%20the%20Eternal.jpeg','R99%202_1%20Poster.jpeg','R99%202_5%20Poster.jpeg',
+        'Kyora%20Sazanami%20Poster.jpeg','Shugen%20jikka%20Kiyomaru.jpeg',
+        'Best%20_GOODNIGHT%20PUNPUN_%20Fan%20Graphic%20Cover%20_%20Poster%F0%9F%92%AA.jpeg',
+        'Poster%20-%20Veil.jpeg','Credit_%20Twitter%20%40avenoirn.jpeg',
+        'AdriGold%20%F0%9F%8D%8A%20%28%40GoldDAdri_%29%20on%20X.jpeg',
+        'Mess%F0%9F%8C%BF%20%28%40Messcult%29%20on%20X.jpeg','Ai%2C%20Feel%20free%20to%20use.jpeg',
+        'Rei_%29%20%28not%20my%20art%29.jpeg',
+        '1997_%20The%20start%20of%20an%20adventure%20%E2%98%A0%EF%B8%8F%F0%9F%8F%9D.jpeg',
+        'Portada%20del%20primer%20n%C3%BAmero%20de%20One%20punch%20man_%20Es%20veu%20al%20seu%20protagonista.jpeg',
+        'Choujin%20X%20Vol_%2012.jpeg','Choujin%20X%20Volume%2014.jpeg','Choujin%20X%20Volume%203.jpeg',
+        'Makimq%20is%20listening%20%F0%9F%A4%AB_%20Social%20Poster%20design%20%23Anime%20%23Poster.jpeg',
+        'SONS%20OF%20THE%20DEVIL%20Covers%201-5%20-%20toni%20infante.jpeg',
+        'Poster%20One%20Piece%20-%20Wanted%20Whitebeard%2061x91%2C5cm%20_%20bol.jpeg',
+      ];
+
       const activeNode = nodesRef.current.find(n=>n.id===(activeTabId||hoveredNodeId));
       const activeZoneKey = activeNode ? ZONES[activeNode.themeIdx%ZONES.length] : 'default';
       const activeTabNode = nodesRef.current.find(n=>n.id===activeTabId);
@@ -1160,8 +1423,16 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
                   ))}
                 </div>
 
-                <div style={{flex:1}}/>
-
+                {/* Manga image thumbnail strip in sidebar */}
+                <div style={{flex:1,display:'flex',flexDirection:'column',gap:'1px',overflow:'hidden',padding:'3px 0',alignItems:'center'}}>
+                  {MANGA_IMGS.slice(20,26).map((img,i)=>(
+                    <div key={i} style={{width:'32px',height:'32px',flexShrink:0,overflow:'hidden',border:'1px solid rgba(128,128,128,0.2)',cursor:'pointer',opacity:0.7}}
+                      onMouseEnter={e=>{e.currentTarget.style.opacity='1';e.currentTarget.style.transform='scale(1.05)';}}
+                      onMouseLeave={e=>{e.currentTarget.style.opacity='0.7';e.currentTarget.style.transform='scale(1)';}}>
+                      <img src={`/manga/${img}`} alt="" style={{width:'100%',height:'100%',objectFit:'cover',display:'block'}} loading="lazy"/>
+                    </div>
+                  ))}
+                </div>
                 {/* Divider */}
                 <div style={{height:'1px',width:'26px',background:'rgba(128,128,128,0.15)',margin:'6px 0'}}/>
 
@@ -1199,10 +1470,19 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
               </div>
 
               {/* FLOATING PANELS */}
-              <FloatingPanel title="EXPLORER" isOpen={sidebarMode==='files'} onClose={()=>setSidebarMode(null)} defaultX={70} defaultY={70} defaultW={270} defaultH={480}>
-                <div style={{padding:'8px 12px',borderBottom:'1px solid rgba(128,128,128,0.1)',display:'flex',gap:'6px',alignItems:'center'}}>
-                  <span style={{fontSize:'9px',opacity:0.35,letterSpacing:'1px'}}>GRAPH WORKSPACE</span>
-                  <span style={{marginLeft:'auto',fontSize:'9px',opacity:0.3}}>{nodeCount} nodes · {edgeCount} edges</span>
+              <FloatingPanel title="EXPLORER" isOpen={sidebarMode==='files'} onClose={()=>setSidebarMode(null)} defaultX={70} defaultY={70} defaultW={280} defaultH={520}>
+                {/* Manga banner inside explorer */}
+                <div style={{height:'120px',overflow:'hidden',position:'relative',flexShrink:0,borderBottom:'2px solid rgba(128,128,128,0.15)'}}>
+                  <div style={{display:'flex',height:'100%'}}>
+                    {MANGA_IMGS.slice(0,5).map((img,i)=>(
+                      <div key={i} style={{flex:1,overflow:'hidden',borderRight:'1px solid rgba(128,128,128,0.1)'}}>
+                        <img src={`/manga/${img}`} alt="" style={{width:'100%',height:'100%',objectFit:'cover',display:'block',filter:themeMode==='brutal'?'contrast(1.1)':'brightness(0.6) contrast(1.1)'}} loading="lazy"/>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{position:'absolute',inset:0,pointerEvents:'none',background:themeMode==='brutal'?'linear-gradient(to bottom,transparent 40%,rgba(240,236,224,0.9) 100%)':'linear-gradient(to bottom,transparent 40%,rgba(3,3,8,0.9) 100%)'}} />
+                  <div style={{position:'absolute',bottom:'6px',left:'10px',fontFamily:"'Bangers',sans-serif",fontSize:'0.75rem',letterSpacing:'0.15em',color:themeMode==='brutal'?'#0f0f0f':'#f4f0e8',lineHeight:1}}>GRAPH WORKSPACE</div>
+                  <div style={{position:'absolute',bottom:'6px',right:'10px',fontFamily:"'Share Tech Mono',monospace",fontSize:'0.38rem',color:'rgba(128,128,128,0.7)'}}>{nodeCount} nodes · {edgeCount} edges</div>
                 </div>
                 <div style={{flex:1,overflowY:'auto'}}>
                   {visibleNodes.map(n => {
@@ -1305,17 +1585,49 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
                 </div>
               </FloatingPanel>
 
-              <FloatingPanel title="NOTES" isOpen={sidebarMode==='note'} onClose={()=>setSidebarMode(null)} defaultX={100} defaultY={120} defaultW={300} defaultH={300}>
-                <div style={{padding:'6px 12px',borderBottom:'1px solid rgba(128,128,128,0.08)',fontSize:'9px',opacity:0.35,letterSpacing:'1px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-                  <span>OPERATOR SCRATCHPAD</span>
-                  <span style={{opacity:0.6}}>{notesText.split('\n').length} lines</span>
+              <FloatingPanel title="NOTES" isOpen={sidebarMode==='note'} onClose={()=>setSidebarMode(null)} defaultX={100} defaultY={120} defaultW={320} defaultH={480}>
+                {/* Manga collage strip at top */}
+                <div style={{height:'110px',overflow:'hidden',position:'relative',flexShrink:0,borderBottom:'2px solid rgba(128,128,128,0.15)'}}>
+                  <style>{`.notes-manga-scroll{display:flex;animation:manga-scroll 30s linear infinite;width:max-content;}`}</style>
+                  <div className="notes-manga-scroll">
+                    {[...MANGA_IMGS.slice(10,20),...MANGA_IMGS.slice(10,20)].map((img,i)=>(
+                      <div key={i} style={{width:'80px',height:'110px',flexShrink:0,borderRight:'1px solid rgba(128,128,128,0.15)',overflow:'hidden'}}>
+                        <img src={`/manga/${img}`} alt="" style={{width:'100%',height:'100%',objectFit:'cover',display:'block'}} loading="lazy"/>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{position:'absolute',inset:0,pointerEvents:'none',background:'linear-gradient(to bottom,transparent 60%,var(--bg,#030308) 100%)'}} />
+                  <div style={{position:'absolute',bottom:'6px',left:'10px',fontFamily:"'Bangers',sans-serif",fontSize:'0.9rem',letterSpacing:'0.1em',color:'var(--accent,#ff2a38)',opacity:0.8}}>OPERATOR SCRATCHPAD</div>
+                </div>
+                <div style={{padding:'3px 12px 0',fontSize:'8px',opacity:0.3,letterSpacing:'1px',display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0}}>
+                  <span>NOTES</span>
+                  <span>{notesText.split('\n').length} lines</span>
                 </div>
                 <textarea className="code-area" value={notesText} onChange={e=>setNotesText(e.target.value)}
-                  style={{flex:1,width:'100%',resize:'none',color:'var(--text)',fontSize:'11px',fontFamily:"'JetBrains Mono',monospace",padding:'12px',background:'transparent',border:'none',outline:'none'}}
+                  style={{flex:1,width:'100%',resize:'none',color:'var(--text)',fontSize:'11px',fontFamily:"'JetBrains Mono',monospace",padding:'10px 12px',background:'transparent',border:'none',outline:'none'}}
                   placeholder="Personal notes..." spellCheck="false"/>
               </FloatingPanel>
 
+              {/* ── MANGA GALLERY PANEL ── */}
+              <FloatingPanel title="MANGA GALLERY" isOpen={sidebarMode==='gallery'} onClose={()=>setSidebarMode(null)} defaultX={100} defaultY={60} defaultW={640} defaultH={560}>
+                <div style={{padding:'6px 12px',borderBottom:'1px solid rgba(128,128,128,0.1)',display:'flex',gap:'8px',alignItems:'center',flexShrink:0}}>
+                  <div style={{fontFamily:"'Bangers',sans-serif",fontSize:'0.8rem',letterSpacing:'0.12em',color:'var(--accent,#ff2a38)'}}>MANGA ART — {MANGA_IMGS.length} PANELS</div>
+                  <div style={{marginLeft:'auto',fontFamily:"'Share Tech Mono',monospace",fontSize:'0.38rem',opacity:0.4}}>SCROLL TO EXPLORE</div>
+                </div>
+                <div style={{flex:1,overflowY:'auto',padding:'8px',display:'flex',flexWrap:'wrap',gap:'4px',alignContent:'flex-start'}}>
+                  {MANGA_IMGS.map((img,i)=>(
+                    <div key={i} style={{width:'calc(20% - 4px)',aspectRatio:'0.75',overflow:'hidden',position:'relative',flexShrink:0,border:'2px solid rgba(128,128,128,0.15)',cursor:'pointer',transition:'all 0.15s'}}
+                      onMouseEnter={e=>{e.currentTarget.style.transform='scale(1.04)';e.currentTarget.style.zIndex='10';e.currentTarget.style.borderColor='var(--accent,#ff2a38)';}}
+                      onMouseLeave={e=>{e.currentTarget.style.transform='scale(1)';e.currentTarget.style.zIndex='1';e.currentTarget.style.borderColor='rgba(128,128,128,0.15)';}}>
+                      <img src={`/manga/${img}`} alt="" style={{width:'100%',height:'100%',objectFit:'cover',display:'block'}} loading="lazy"/>
+                      <div style={{position:'absolute',inset:0,backgroundImage:'radial-gradient(circle,rgba(0,0,0,0.05) 1px,transparent 1px)',backgroundSize:'4px 4px',pointerEvents:'none'}}/>
+                    </div>
+                  ))}
+                </div>
+              </FloatingPanel>
+
               {/* ── UI COLOR ZONE PANEL ── */}
+
               <FloatingPanel title="UI COLOR ZONE" isOpen={sidebarMode==='uipalette'} onClose={()=>setSidebarMode(null)} defaultX={70} defaultY={80} defaultW={260} defaultH={320}>
                 <div style={{padding:'8px 12px',borderBottom:'1px solid rgba(128,128,128,0.08)',fontSize:'9px',opacity:0.35,letterSpacing:'1px'}}>
                   GLOBAL THEME ACCENT — controls node/zone colors
@@ -1667,6 +1979,31 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
                       </div>
                     </>
                   )}
+
+                  {/* ── MANGA HERO OVERLAY — ephemeral hero splash ── */}
+                  {!activeTabId && (
+                    <MangaHeroOverlay
+                      nodeCount={nodeCount}
+                      edgeCount={edgesRef.current.length}
+                      themeMode={themeMode}
+                      onNewNode={() => setShowCreateNode(true)}
+                      onOpenGallery={() => setSidebarMode('gallery')}
+                    />
+                  )}
+
+                  {/* ── AMBIENT MANGA PANELS — always visible as canvas bg art ── */}
+                  {activeTabId && (
+                    <div style={{position:'absolute',inset:0,zIndex:1,pointerEvents:'none',overflow:'hidden',opacity:0.06}}>
+                      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gridTemplateRows:'1fr 1fr',gap:'3px',width:'100%',height:'100%'}}>
+                        {MANGA_RAW.slice(8,14).map((img,i)=>(
+                          <div key={i} style={{overflow:'hidden',position:'relative'}}>
+                            <img src={`/manga/${encodeURIComponent(img)}`} alt="" style={{width:'100%',height:'100%',objectFit:'cover',filter:'contrast(1.1) saturate(0.6)'}} loading="lazy"/>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   <div className="graph-layer" style={{transform:`translate(${transform.x}px,${transform.y}px) scale(${transform.scale})`}}>
                     <svg className="svg-edges" style={{pointerEvents: edgeMode==='cut' ? 'all' : 'none'}}>
                       {visibleEdges.map(edge => {
@@ -2179,6 +2516,51 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
       const [hovered, setHovered] = useState(null);
       const [tick, setTick] = useState(0);
 
+      // All manga images from /manga/ folder
+      const MANGA_IMGS = [
+        'Guts.jpeg','Guts%20And%20Zodd%2C%20DON.jpeg','Killua.jpeg','Inumaki.jpeg',
+        'Mob%20psycho%20100.jpeg','Sukuna%E2%80%9D.jpeg','Monster.jpeg','Whitebeard.jpeg',
+        'Roronoa%20Zoro.jpeg','Reze.jpeg','Soul%20King%20Brook.jpeg','Fire%20Punch.jpeg',
+        'PANTHEON.jpeg','CHAOS%20SMILE.jpeg','Corridor.jpeg','Thorfinn%20_%20Vinland%20saga.jpeg',
+        'Choujin%20X.jpeg','Choujin%20X%20Vol_%2012.jpeg','Choujin%20X%20Volume%2014.jpeg',
+        'Choujin%20X%20Volume%203.jpeg','Dandadan%20_%20%40lihaolow%20%E2%80%A2%20tw%20%E2%98%86.jpeg',
+        'Denj%20-%20Chainsaw%20Man_.jpeg','%23chainsawman.jpeg',
+        'Makima%21%20%F0%9F%A9%B8__%23Makima%20%23ChainsawMan_%23ChainsawManFanart%20%23AnimeArt_%23DigitalPainting.jpeg',
+        'Makimq%20is%20listening%20%F0%9F%A4%AB_%20Social%20Poster%20design%20%23Anime%20%23Poster.jpeg',
+        'THE%20CONTROL%20DEVIL%20_%20GRAPHIC%20DESIGN.jpeg','The%20Weeknd%20x%20Chainsaw%20Man.jpeg',
+        'Kagurabachi%20X%20Bleach.jpeg','Kisuke%20Urahara%20%5BBleach%5D%20Poster.jpeg',
+        'Nelliel%20Brutalism.jpeg','One%20Piece%20Magazines.jpeg',
+        'Buggy%2C%20Sir%20Crocodile%20%26%20Mihawk%20-%20One%20Piece.jpeg',
+        'Marco%20one%20piece.jpeg','God%20Valley.jpeg','Corazon%20%F0%9F%92%94.jpeg',
+        'Goodbye%20Merry%20_%20%40IfihasR5%20%E2%80%A2%20tw%20_%27%29.jpeg',
+        'ONE%20PIECE%20NOVEL%20LAW_%20CH_%201.jpeg','One%20piece%20wano%20x%20Gta.jpeg',
+        'Poster%20One%20Piece%20-%20Wanted%20Whitebeard%2061x91%2C5cm%20_%20bol.jpeg',
+        'Hunter%20%C3%97%20Hunter%20Volume%2011%20Cover.jpeg','Black%20Clover.jpeg',
+        'ANIME%20POSTERS%20-%20Sergey%20Zhikin.jpeg','MATT%20TAYLOR.jpeg',
+        'Slam%20Dunk%20Manga%20New%20Edition%20Cover%20Art%20%E2%80%93%20All%2020%20Covers.jpeg',
+        'SUBWAY%20DIMENSIONS.jpeg','Burning%20-%20Inspired%20by%20Van%20Gogh.jpeg',
+        'VOGUE.jpeg','VOGUE%20%281%29.jpeg','Sight%20-%20SKJEGG.jpeg','SONS%20OF%20THE%20DEVIL%20Covers%201-5%20-%20toni%20infante.jpeg',
+        'Queen%20Marika%20the%20Eternal.jpeg','R99%202_1%20Poster.jpeg','R99%202_5%20Poster.jpeg',
+        'Kyora%20Sazanami%20Poster.jpeg','Shugen%20jikka%20Kiyomaru.jpeg',
+        'Best%20_GOODNIGHT%20PUNPUN_%20Fan%20Graphic%20Cover%20_%20Poster%F0%9F%92%AA.jpeg',
+        'Poster%20-%20Veil.jpeg','Korean%20Edition%20Manga%20%5Bphantom%20Busters%5D%20%ED%8C%AC%ED%85%80%20%EB%B2%84%EC%8A%A4%ED%84%B0%EC%A6%88%20%28jmanga227%29.jpeg',
+        'PANTHEON.jpeg','Mob%20psycho%20100.jpeg',
+      ];
+      const MANGA_IMGS2 = [
+        'Credit_%20Twitter%20%40avenoirn.jpeg','AdriGold%20%F0%9F%8D%8A%20%28%40GoldDAdri_%29%20on%20X.jpeg',
+        'Mess%F0%9F%8C%BF%20%28%40Messcult%29%20on%20X.jpeg','%40Zuuhl82.jpeg','%40jshdirk%20on%20X.jpeg',
+        'Ai%2C%20Feel%20free%20to%20use.jpeg','Rei_%29%20%28not%20my%20art%29.jpeg',
+        '1997_%20The%20start%20of%20an%20adventure%20%E2%98%A0%EF%B8%8F%F0%9F%8F%9D.jpeg',
+        'Anime%20Posters%20Online%20-%20Shop%20Unique%20Metal%20Prints%2C%20Pictures%2C%20Paintings%20_%20Displate.jpeg',
+        'Instagram%20%281%29.jpeg','Post%20by%20%40plankos%20%C2%B7%201%20image.jpeg',
+        'Rym%20%F0%9F%8F%B4_%E2%98%A0%EF%B8%8F%20%28%40miu_wallp%29%20on%20X.jpeg',
+        'X%20%281%29.jpeg','X%20%282%29.jpeg','Portada%20del%20primer%20n%C3%BAmero%20de%20One%20punch%20man_%20Es%20veu%20al%20seu%20protagonista.jpeg',
+        'Haunting%20HypatiaThe%20Literary%20Lunacy%20of%20a%20Geeky%20Librarian.jpeg',
+        '20Th%20Century%20Boys_%20The%20Perfect%20Edition%2C%20Vol_%2011.jpeg',
+        'Hoa%CC%A3t%20-%20Poster%20%20_%20Facebook.jpeg','Kyora%20Sazanami%20Poster.jpeg',
+        'I%E2%80%99LL%20TAKE%20CARE%20OF%20YOU%20_%20TYLER%20THE%20CREATOR%20_%20DON%E2%80%99T%20TAP%20THE%20GLASS%20_%20FLOWER%20BOY.jpeg',
+      ];
+
       useEffect(() => {
         const id = setInterval(() => setTick(t => t + 1), 1000);
         return () => clearInterval(id);
@@ -2541,22 +2923,24 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
                 </div>
               </div>
 
-              {/* Manga panel border accent images row */}
+              {/* MANGA IMAGE FILM STRIP — auto-scrolling row of manga art */}
               <div style={{
-                height:'80px', borderTop:'4px solid #0a0a0a',
-                display:'flex', gap:'0', flexShrink:0, overflow:'hidden',
+                height:'90px', borderTop:'4px solid #0a0a0a',
+                display:'flex', gap:'0', flexShrink:0, overflow:'hidden', position:'relative',
               }}>
-                {[7,8,9,10,11,12].map(n => (
-                  <div key={n} style={{flex:1, overflow:'hidden', borderRight:'2px solid #0a0a0a', position:'relative'}}>
-                    <img
-                      src={`/avatars/0xAV0${String(n).padStart(2,'0')}s.jpeg`}
-                      alt={`op-${n}`}
-                      style={{width:'100%', height:'100%', objectFit:'cover', filter:'grayscale(80%) contrast(1.1)', display:'block'}}
-                    />
-                    <div style={{position:'absolute',inset:0,background:'rgba(244,240,232,0.35)'}}/>
-                    <div style={{position:'absolute',inset:0,backgroundImage:'radial-gradient(circle,rgba(0,0,0,0.1) 1px,transparent 1px)',backgroundSize:'4px 4px'}}/>
-                  </div>
-                ))}
+                <style>{`
+                  @keyframes manga-scroll { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
+                  .manga-film-track { display:flex; animation:manga-scroll 40s linear infinite; width:max-content; }
+                  .manga-film-track:hover { animation-play-state:paused; }
+                `}</style>
+                <div className="manga-film-track">
+                  {[...MANGA_IMGS, ...MANGA_IMGS].map((img, i) => (
+                    <div key={i} style={{width:'120px',height:'90px',flexShrink:0,borderRight:'2px solid #0a0a0a',overflow:'hidden',position:'relative'}}>
+                      <img src={`/manga/${img}`} alt="" style={{width:'100%',height:'100%',objectFit:'cover',display:'block',filter:'contrast(1.05)'}} loading="lazy"/>
+                      <div style={{position:'absolute',inset:0,backgroundImage:'radial-gradient(circle,rgba(0,0,0,0.08) 1px,transparent 1px)',backgroundSize:'4px 4px',pointerEvents:'none'}}/>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
