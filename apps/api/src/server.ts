@@ -22,7 +22,8 @@ app.use(async (ctx, next) => {
     await next();
   } catch (err: any) {
     ctx.status = err.status || err.statusCode || 500;
-    ctx.body   = { error: err.message || 'Internal server error' };
+    const cause = err.cause?.message || err.cause?.toString?.() || undefined;
+    ctx.body   = { error: err.message || 'Internal server error', cause };
     console.error('[API Error]', err);
   }
 });

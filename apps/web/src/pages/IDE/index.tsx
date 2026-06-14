@@ -2514,459 +2514,317 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
       const [theme, setTheme] = useState(null);
       const [avatar, setAvatar] = useState(null);
       const [hovered, setHovered] = useState(null);
+      const [bgIdx, setBgIdx] = useState(0);
       const [tick, setTick] = useState(0);
-
-      // All manga images from /manga/ folder
-      const MANGA_IMGS = [
-        'Guts.jpeg','Guts%20And%20Zodd%2C%20DON.jpeg','Killua.jpeg','Inumaki.jpeg',
-        'Mob%20psycho%20100.jpeg','Sukuna%E2%80%9D.jpeg','Monster.jpeg','Whitebeard.jpeg',
-        'Roronoa%20Zoro.jpeg','Reze.jpeg','Soul%20King%20Brook.jpeg','Fire%20Punch.jpeg',
-        'PANTHEON.jpeg','CHAOS%20SMILE.jpeg','Corridor.jpeg','Thorfinn%20_%20Vinland%20saga.jpeg',
-        'Choujin%20X.jpeg','Choujin%20X%20Vol_%2012.jpeg','Choujin%20X%20Volume%2014.jpeg',
-        'Choujin%20X%20Volume%203.jpeg','Dandadan%20_%20%40lihaolow%20%E2%80%A2%20tw%20%E2%98%86.jpeg',
-        'Denj%20-%20Chainsaw%20Man_.jpeg','%23chainsawman.jpeg',
-        'Makima%21%20%F0%9F%A9%B8__%23Makima%20%23ChainsawMan_%23ChainsawManFanart%20%23AnimeArt_%23DigitalPainting.jpeg',
-        'Makimq%20is%20listening%20%F0%9F%A4%AB_%20Social%20Poster%20design%20%23Anime%20%23Poster.jpeg',
-        'THE%20CONTROL%20DEVIL%20_%20GRAPHIC%20DESIGN.jpeg','The%20Weeknd%20x%20Chainsaw%20Man.jpeg',
-        'Kagurabachi%20X%20Bleach.jpeg','Kisuke%20Urahara%20%5BBleach%5D%20Poster.jpeg',
-        'Nelliel%20Brutalism.jpeg','One%20Piece%20Magazines.jpeg',
-        'Buggy%2C%20Sir%20Crocodile%20%26%20Mihawk%20-%20One%20Piece.jpeg',
-        'Marco%20one%20piece.jpeg','God%20Valley.jpeg','Corazon%20%F0%9F%92%94.jpeg',
-        'Goodbye%20Merry%20_%20%40IfihasR5%20%E2%80%A2%20tw%20_%27%29.jpeg',
-        'ONE%20PIECE%20NOVEL%20LAW_%20CH_%201.jpeg','One%20piece%20wano%20x%20Gta.jpeg',
-        'Poster%20One%20Piece%20-%20Wanted%20Whitebeard%2061x91%2C5cm%20_%20bol.jpeg',
-        'Hunter%20%C3%97%20Hunter%20Volume%2011%20Cover.jpeg','Black%20Clover.jpeg',
-        'ANIME%20POSTERS%20-%20Sergey%20Zhikin.jpeg','MATT%20TAYLOR.jpeg',
-        'Slam%20Dunk%20Manga%20New%20Edition%20Cover%20Art%20%E2%80%93%20All%2020%20Covers.jpeg',
-        'SUBWAY%20DIMENSIONS.jpeg','Burning%20-%20Inspired%20by%20Van%20Gogh.jpeg',
-        'VOGUE.jpeg','VOGUE%20%281%29.jpeg','Sight%20-%20SKJEGG.jpeg','SONS%20OF%20THE%20DEVIL%20Covers%201-5%20-%20toni%20infante.jpeg',
-        'Queen%20Marika%20the%20Eternal.jpeg','R99%202_1%20Poster.jpeg','R99%202_5%20Poster.jpeg',
-        'Kyora%20Sazanami%20Poster.jpeg','Shugen%20jikka%20Kiyomaru.jpeg',
-        'Best%20_GOODNIGHT%20PUNPUN_%20Fan%20Graphic%20Cover%20_%20Poster%F0%9F%92%AA.jpeg',
-        'Poster%20-%20Veil.jpeg','Korean%20Edition%20Manga%20%5Bphantom%20Busters%5D%20%ED%8C%AC%ED%85%80%20%EB%B2%84%EC%8A%A4%ED%84%B0%EC%A6%88%20%28jmanga227%29.jpeg',
-        'PANTHEON.jpeg','Mob%20psycho%20100.jpeg',
-      ];
-      const MANGA_IMGS2 = [
-        'Credit_%20Twitter%20%40avenoirn.jpeg','AdriGold%20%F0%9F%8D%8A%20%28%40GoldDAdri_%29%20on%20X.jpeg',
-        'Mess%F0%9F%8C%BF%20%28%40Messcult%29%20on%20X.jpeg','%40Zuuhl82.jpeg','%40jshdirk%20on%20X.jpeg',
-        'Ai%2C%20Feel%20free%20to%20use.jpeg','Rei_%29%20%28not%20my%20art%29.jpeg',
-        '1997_%20The%20start%20of%20an%20adventure%20%E2%98%A0%EF%B8%8F%F0%9F%8F%9D.jpeg',
-        'Anime%20Posters%20Online%20-%20Shop%20Unique%20Metal%20Prints%2C%20Pictures%2C%20Paintings%20_%20Displate.jpeg',
-        'Instagram%20%281%29.jpeg','Post%20by%20%40plankos%20%C2%B7%201%20image.jpeg',
-        'Rym%20%F0%9F%8F%B4_%E2%98%A0%EF%B8%8F%20%28%40miu_wallp%29%20on%20X.jpeg',
-        'X%20%281%29.jpeg','X%20%282%29.jpeg','Portada%20del%20primer%20n%C3%BAmero%20de%20One%20punch%20man_%20Es%20veu%20al%20seu%20protagonista.jpeg',
-        'Haunting%20HypatiaThe%20Literary%20Lunacy%20of%20a%20Geeky%20Librarian.jpeg',
-        '20Th%20Century%20Boys_%20The%20Perfect%20Edition%2C%20Vol_%2011.jpeg',
-        'Hoa%CC%A3t%20-%20Poster%20%20_%20Facebook.jpeg','Kyora%20Sazanami%20Poster.jpeg',
-        'I%E2%80%99LL%20TAKE%20CARE%20OF%20YOU%20_%20TYLER%20THE%20CREATOR%20_%20DON%E2%80%99T%20TAP%20THE%20GLASS%20_%20FLOWER%20BOY.jpeg',
-      ];
 
       useEffect(() => {
         const id = setInterval(() => setTick(t => t + 1), 1000);
         return () => clearInterval(id);
       }, []);
 
+      useEffect(() => {
+        const t = setInterval(() => setBgIdx(i => (i + 1) % MANGA_RAW.length), 6000);
+        return () => clearInterval(t);
+      }, []);
+
       if (theme && avatar !== null) return <IDEWithCmd initialTheme={theme} initialAvatar={avatar}/>;
 
       const OPERATORS = [
-        { name:'GHOST',    code:'0xAV001', num:'01' },
-        { name:'BLADE',    code:'0xAV002', num:'02' },
-        { name:'CIPHER',   code:'0xAV003', num:'03' },
-        { name:'WRAITH',   code:'0xAV004', num:'04' },
-        { name:'SPECTRE',  code:'0xAV005', num:'05' },
-        { name:'NEXUS',    code:'0xAV006', num:'06' },
+        { name:'GHOST',   code:'0xAV001', num:'01' },
+        { name:'BLADE',   code:'0xAV002', num:'02' },
+        { name:'CIPHER',  code:'0xAV003', num:'03' },
+        { name:'WRAITH',  code:'0xAV004', num:'04' },
+        { name:'SPECTRE', code:'0xAV005', num:'05' },
+        { name:'NEXUS',   code:'0xAV006', num:'06' },
       ];
       const timeStr = new Date().toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit' });
       const selOp = avatar !== null ? OPERATORS[avatar] : null;
+      const enc = f => encodeURIComponent(f);
 
       return (
         <div style={{
           width:'100vw', height:'100vh',
-          background:'#f4f0e8', color:'#0a0a0a',
+          background:'#f4f0e8',
           fontFamily:"'Share Tech Mono','JetBrains Mono',monospace",
           display:'flex', flexDirection:'column', overflow:'hidden', position:'relative',
         }}>
-          {/* SCREENTONE BACKGROUND */}
-          <div style={{
-            position:'absolute', inset:0, pointerEvents:'none', zIndex:0,
-            backgroundImage:'radial-gradient(circle,rgba(0,0,0,0.09) 1.2px,transparent 1.2px)',
-            backgroundSize:'6px 6px',
-          }}/>
+          {/* SCREENTONE */}
+          <div style={{position:'absolute',inset:0,pointerEvents:'none',zIndex:0,
+            backgroundImage:'radial-gradient(circle,rgba(0,0,0,0.07) 1.2px,transparent 1.2px)',
+            backgroundSize:'6px 6px'}}/>
 
-          {/* SPEED LINES from center */}
-          <div style={{
-            position:'absolute', inset:0, pointerEvents:'none', zIndex:1,
-            background:`conic-gradient(from 0deg at 50% 42%,
-              transparent 0deg,rgba(0,0,0,0.025) 1.5deg,transparent 3deg,
-              transparent 10deg,rgba(0,0,0,0.025) 11.5deg,transparent 13deg,
-              transparent 20deg,rgba(0,0,0,0.025) 21.5deg,transparent 23deg,
-              transparent 32deg,rgba(0,0,0,0.025) 33.5deg,transparent 35deg,
-              transparent 45deg,rgba(0,0,0,0.025) 46.5deg,transparent 48deg,
-              transparent 58deg,rgba(0,0,0,0.025) 59.5deg,transparent 61deg,
-              transparent 72deg,rgba(0,0,0,0.025) 73.5deg,transparent 75deg,
-              transparent 88deg,rgba(0,0,0,0.025) 89.5deg,transparent 91deg,
-              transparent 102deg,rgba(0,0,0,0.025) 103.5deg,transparent 105deg,
-              transparent 118deg,rgba(0,0,0,0.025) 119.5deg,transparent 121deg,
-              transparent 135deg,rgba(0,0,0,0.025) 136.5deg,transparent 138deg,
-              transparent 152deg,rgba(0,0,0,0.025) 153.5deg,transparent 155deg,
-              transparent 170deg,rgba(0,0,0,0.025) 171.5deg,transparent 173deg,
-              transparent 188deg,rgba(0,0,0,0.025) 189.5deg,transparent 191deg,
-              transparent 205deg,rgba(0,0,0,0.025) 206.5deg,transparent 208deg,
-              transparent 222deg,rgba(0,0,0,0.025) 223.5deg,transparent 225deg,
-              transparent 240deg,rgba(0,0,0,0.025) 241.5deg,transparent 243deg,
-              transparent 258deg,rgba(0,0,0,0.025) 259.5deg,transparent 261deg,
-              transparent 275deg,rgba(0,0,0,0.025) 276.5deg,transparent 278deg,
-              transparent 292deg,rgba(0,0,0,0.025) 293.5deg,transparent 295deg,
-              transparent 308deg,rgba(0,0,0,0.025) 309.5deg,transparent 311deg,
-              transparent 325deg,rgba(0,0,0,0.025) 326.5deg,transparent 328deg,
-              transparent 342deg,rgba(0,0,0,0.025) 343.5deg,transparent 345deg,
-              transparent 355deg,rgba(0,0,0,0.025) 356.5deg,transparent 358deg
-            )`,
-          }}/>
+          {/* SPEED LINES */}
+          <div style={{position:'absolute',inset:0,pointerEvents:'none',zIndex:1,
+            background:`conic-gradient(from 0deg at 50% 46%,
+              transparent 0deg,rgba(0,0,0,0.022) 1.5deg,transparent 3deg,
+              transparent 14deg,rgba(0,0,0,0.022) 15.5deg,transparent 17deg,
+              transparent 30deg,rgba(0,0,0,0.022) 31.5deg,transparent 33deg,
+              transparent 47deg,rgba(0,0,0,0.022) 48.5deg,transparent 50deg,
+              transparent 65deg,rgba(0,0,0,0.022) 66.5deg,transparent 68deg,
+              transparent 85deg,rgba(0,0,0,0.022) 86.5deg,transparent 88deg,
+              transparent 108deg,rgba(0,0,0,0.022) 109.5deg,transparent 111deg,
+              transparent 132deg,rgba(0,0,0,0.022) 133.5deg,transparent 135deg,
+              transparent 158deg,rgba(0,0,0,0.022) 159.5deg,transparent 161deg,
+              transparent 185deg,rgba(0,0,0,0.022) 186.5deg,transparent 188deg,
+              transparent 212deg,rgba(0,0,0,0.022) 213.5deg,transparent 215deg,
+              transparent 238deg,rgba(0,0,0,0.022) 239.5deg,transparent 241deg,
+              transparent 265deg,rgba(0,0,0,0.022) 266.5deg,transparent 268deg,
+              transparent 292deg,rgba(0,0,0,0.022) 293.5deg,transparent 295deg,
+              transparent 320deg,rgba(0,0,0,0.022) 321.5deg,transparent 323deg,
+              transparent 345deg,rgba(0,0,0,0.022) 346.5deg,transparent 348deg)`}}/>
 
-          {/* TOP CHAPTER STRIP */}
-          <div style={{
-            height:'54px', background:'#0a0a0a', flexShrink:0,
-            display:'flex', alignItems:'center', padding:'0 1.5rem',
-            gap:'1.2rem', zIndex:10, borderBottom:'4px solid #0a0a0a',
-            position:'relative',
-          }}>
-            {/* Manga title logo */}
-            <div style={{
-              fontFamily:"'Bangers','Bebas Neue',sans-serif",
-              fontSize:'1.9rem', letterSpacing:'0.1em', lineHeight:1,
-              color:'#f4f0e8',
-            }}>
+          {/* TOP STRIP */}
+          <div style={{height:'48px',background:'#0a0a0a',flexShrink:0,
+            display:'flex',alignItems:'center',padding:'0 1.2rem',gap:'0.8rem',
+            zIndex:10,position:'relative',borderBottom:'4px solid #d0021b'}}>
+            <div style={{fontFamily:"'Bangers',sans-serif",fontSize:'1.75rem',letterSpacing:'0.1em',color:'#f4f0e8',lineHeight:1}}>
               FOR<span style={{color:'#d0021b'}}>BID</span>EN
             </div>
-            <div style={{width:'3px', height:'32px', background:'#d0021b', flexShrink:0}}/>
-            <div style={{display:'flex', flexDirection:'column', gap:'1px'}}>
-              <div style={{fontSize:'0.38rem', color:'#f5c518', letterSpacing:'0.2em', fontFamily:"'Oswald',sans-serif", fontWeight:700}}>GRAPH IDE</div>
-              <div style={{fontSize:'0.34rem', color:'rgba(255,255,255,0.35)', letterSpacing:'0.15em'}}>OPERATOR WORKSTATION v2.1</div>
+            <div style={{width:'3px',height:'28px',background:'#d0021b',flexShrink:0}}/>
+            <div style={{display:'flex',flexDirection:'column',gap:'1px'}}>
+              <div style={{fontSize:'0.38rem',color:'#f5c518',letterSpacing:'0.2em',fontFamily:"'Oswald',sans-serif",fontWeight:700}}>GRAPH IDE // VOL.1</div>
+              <div style={{fontSize:'0.32rem',color:'rgba(255,255,255,0.3)',letterSpacing:'0.15em'}}>OPERATOR WORKSTATION</div>
             </div>
-            <div style={{marginLeft:'auto', display:'flex', alignItems:'center', gap:'1rem'}}>
-              {/* Selected operator preview */}
+            <div style={{marginLeft:'auto',display:'flex',alignItems:'center',gap:'0.8rem'}}>
               {selOp && (
-                <div style={{display:'flex', alignItems:'center', gap:'0.5rem'}}>
-                  <div style={{width:'32px', height:'32px', border:'2px solid #d0021b', overflow:'hidden', flexShrink:0}}>
-                    <img src={`/avatars/0xAV00${avatar+1}s.jpeg`} alt={selOp.name} style={{width:'100%', height:'100%', objectFit:'cover'}}/>
+                <div style={{display:'flex',alignItems:'center',gap:'6px'}}>
+                  <div style={{width:'28px',height:'28px',border:'2px solid #d0021b',overflow:'hidden'}}>
+                    <img src={`/avatars/0xAV00${avatar+1}s.jpeg`} alt={selOp.name} style={{width:'100%',height:'100%',objectFit:'cover'}}/>
                   </div>
-                  <div style={{display:'flex', flexDirection:'column'}}>
-                    <div style={{fontSize:'0.48rem', color:'#d0021b', fontFamily:"'Bangers',sans-serif", letterSpacing:'0.1em'}}>{selOp.name}</div>
-                    <div style={{fontSize:'0.34rem', color:'rgba(255,255,255,0.4)', letterSpacing:'0.1em'}}>{selOp.code}</div>
-                  </div>
+                  <div style={{fontFamily:"'Bangers',sans-serif",fontSize:'0.7rem',color:'#d0021b',letterSpacing:'0.1em'}}>{selOp.name}</div>
                 </div>
               )}
-              <div style={{fontSize:'0.4rem', color:'rgba(255,255,255,0.3)', letterSpacing:'0.1em', fontFamily:"'Share Tech Mono',monospace"}}>{timeStr}</div>
+              <div style={{fontSize:'0.38rem',color:'rgba(255,255,255,0.3)',letterSpacing:'0.1em'}}>{timeStr}</div>
             </div>
           </div>
 
-          {/* MANGA PAGE SPREAD */}
-          <div style={{flex:1, display:'flex', overflow:'hidden', position:'relative', zIndex:5}}>
+          {/* MAIN BODY */}
+          <div style={{flex:1,display:'flex',overflow:'hidden',position:'relative',zIndex:5}}>
 
-            {/* LEFT PANEL — Character portraits grid */}
-            <div style={{
-              width:'clamp(300px,42%,480px)', flexShrink:0,
-              borderRight:'4px solid #0a0a0a',
-              display:'flex', flexDirection:'column',
-              background:'#0a0a0a',
-              position:'relative', overflow:'hidden',
-            }}>
-              {/* BIG chapter cover portrait */}
-              <div style={{
-                flex:1, position:'relative', overflow:'hidden',
-                borderBottom:'4px solid #0a0a0a',
-              }}>
-                {avatar !== null ? (
-                  <img
-                    src={`/avatars/0xAV00${avatar+1}s.jpeg`}
-                    alt={OPERATORS[avatar].name}
-                    style={{width:'100%', height:'100%', objectFit:'cover', display:'block', filter:'contrast(1.1) saturate(0.85)'}}
-                  />
-                ) : (
-                  <img
-                    src="/avatars/0xAV001s.jpeg"
-                    alt="operator"
-                    style={{width:'100%', height:'100%', objectFit:'cover', display:'block', filter:'contrast(1.05) saturate(0.6) brightness(0.5)'}}
-                  />
-                )}
-                {/* Screentone overlay on portrait */}
-                <div style={{
-                  position:'absolute', inset:0, pointerEvents:'none',
-                  backgroundImage:'radial-gradient(circle,rgba(0,0,0,0.12) 1px,transparent 1px)',
-                  backgroundSize:'4px 4px', mixBlendMode:'multiply',
-                }}/>
-                {/* Caption box */}
-                <div style={{
-                  position:'absolute', bottom:0, left:0, right:0,
-                  background:'rgba(10,10,10,0.88)',
-                  padding:'0.75rem 1rem',
-                  borderTop:'3px solid #d0021b',
-                }}>
-                  <div style={{fontFamily:"'Bangers',sans-serif", fontSize:'1.6rem', letterSpacing:'0.1em', color:'#f4f0e8', lineHeight:1}}>
-                    {avatar !== null ? OPERATORS[avatar].name : '???'}
+            {/* LEFT: Operator portrait + grid */}
+            <div style={{width:'clamp(220px,33%,380px)',flexShrink:0,borderRight:'4px solid #0a0a0a',
+              display:'flex',flexDirection:'column',background:'#0a0a0a'}}>
+
+              {/* Big portrait */}
+              <div style={{flex:1,position:'relative',overflow:'hidden',borderBottom:'4px solid #0a0a0a'}}>
+                <img
+                  src={avatar !== null ? `/avatars/0xAV00${avatar+1}s.jpeg` : `/avatars/0xAV001s.jpeg`}
+                  alt=""
+                  style={{width:'100%',height:'100%',objectFit:'cover',display:'block',
+                    filter: avatar !== null ? 'contrast(1.12) saturate(0.92)' : 'contrast(1) saturate(0.3) brightness(0.35)',
+                    transition:'filter 0.4s'}}
+                />
+                <div style={{position:'absolute',inset:0,pointerEvents:'none',
+                  backgroundImage:'radial-gradient(circle,rgba(0,0,0,0.15) 1px,transparent 1px)',
+                  backgroundSize:'4px 4px',mixBlendMode:'multiply'}}/>
+                {/* Caption */}
+                <div style={{position:'absolute',bottom:0,left:0,right:0,
+                  background:'rgba(10,10,10,0.92)',padding:'0.55rem 0.9rem',borderTop:'3px solid #d0021b'}}>
+                  <div style={{fontFamily:"'Bangers',sans-serif",fontSize:'1.4rem',letterSpacing:'0.1em',color:'#f4f0e8',lineHeight:1}}>
+                    {avatar !== null ? OPERATORS[avatar].name : 'SELECT'}
                   </div>
-                  <div style={{fontSize:'0.4rem', color:'#d0021b', letterSpacing:'0.15em', marginTop:'3px', fontFamily:"'Oswald',sans-serif", fontWeight:700}}>
-                    {avatar !== null ? OPERATORS[avatar].code : 'SELECT OPERATOR'}
+                  <div style={{fontSize:'0.36rem',color:'#d0021b',letterSpacing:'0.15em',marginTop:'2px',fontFamily:"'Oswald',sans-serif",fontWeight:700}}>
+                    {avatar !== null ? OPERATORS[avatar].code : 'OPERATOR →'}
                   </div>
                 </div>
-                {/* Volume badge */}
-                <div style={{
-                  position:'absolute', top:'1rem', right:'1rem',
-                  background:'#d0021b', color:'#f4f0e8',
-                  fontFamily:"'Bangers',sans-serif", fontSize:'0.8rem',
-                  padding:'4px 10px', letterSpacing:'0.1em',
-                  border:'2px solid #f4f0e8',
-                }}>
-                  VOL.2
+                <div style={{position:'absolute',top:'0.7rem',left:'0.7rem',
+                  background:'#d0021b',color:'#f4f0e8',fontFamily:"'Bangers',sans-serif",
+                  fontSize:'0.65rem',padding:'2px 7px',letterSpacing:'0.1em',border:'2px solid #f4f0e8'}}>
+                  VOL.1
                 </div>
               </div>
 
-              {/* Small portrait grid — bottom */}
-              <div style={{
-                display:'grid', gridTemplateColumns:'repeat(3,1fr)',
-                gap:'4px', padding:'4px', background:'#0a0a0a', flexShrink:0,
-              }}>
+              {/* Operator grid */}
+              <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:'3px',padding:'3px',background:'#111',flexShrink:0}}>
                 {OPERATORS.map((op, i) => (
-                  <div
-                    key={i}
-                    onClick={() => setAvatar(i)}
-                    onMouseEnter={() => setHovered(i)}
-                    onMouseLeave={() => setHovered(null)}
-                    style={{
-                      position:'relative', overflow:'hidden', cursor:'pointer',
-                      border: avatar===i ? '2px solid #d0021b' : '2px solid #333',
+                  <div key={i} onClick={() => setAvatar(i)}
+                    onMouseEnter={() => setHovered(i)} onMouseLeave={() => setHovered(null)}
+                    style={{position:'relative',overflow:'hidden',cursor:'pointer',aspectRatio:'1',
+                      border: avatar===i ? '2px solid #d0021b' : '2px solid #2a2a2a',
                       transition:'all 0.15s',
-                      transform: avatar===i ? 'scale(1.04)' : hovered===i ? 'scale(1.02)' : 'scale(1)',
-                      aspectRatio:'1',
-                    }}
-                  >
-                    <img
-                      src={`/avatars/0xAV00${i+1}s.jpeg`}
-                      alt={op.name}
-                      style={{width:'100%', height:'100%', objectFit:'cover', display:'block', filter: avatar===i ? 'none' : 'grayscale(60%)'}}
-                    />
-                    {/* Number badge */}
-                    <div style={{
-                      position:'absolute', top:0, left:0,
+                      transform: avatar===i ? 'scale(1.06)' : hovered===i ? 'scale(1.02)' : 'scale(1)',
+                      zIndex: avatar===i ? 2 : 1}}>
+                    <img src={`/avatars/0xAV00${i+1}s.jpeg`} alt={op.name}
+                      style={{width:'100%',height:'100%',objectFit:'cover',display:'block',
+                        filter: avatar===i ? 'none' : 'grayscale(65%) brightness(0.65)'}}/>
+                    <div style={{position:'absolute',top:0,left:0,
                       background: avatar===i ? '#d0021b' : '#0a0a0a',
-                      color:'#f4f0e8', fontSize:'0.42rem',
-                      fontFamily:"'Bangers',sans-serif", padding:'1px 5px',
-                      letterSpacing:'0.08em',
-                    }}>{op.num}</div>
-                    {/* Name on hover/selected */}
-                    <div style={{
-                      position:'absolute', bottom:0, left:0, right:0,
-                      background: avatar===i ? 'rgba(208,2,27,0.88)' : 'rgba(10,10,10,0.75)',
-                      padding:'3px 5px',
-                      transition:'opacity 0.15s',
-                    }}>
-                      <div style={{fontFamily:"'Bangers',sans-serif", fontSize:'0.55rem', color:'#f4f0e8', letterSpacing:'0.06em'}}>{op.name}</div>
+                      color:'#f4f0e8',fontSize:'0.38rem',fontFamily:"'Bangers',sans-serif",
+                      padding:'1px 4px',letterSpacing:'0.06em'}}>{op.num}</div>
+                    <div style={{position:'absolute',bottom:0,left:0,right:0,
+                      background: avatar===i ? 'rgba(208,2,27,0.92)' : 'rgba(10,10,10,0.82)',padding:'2px 4px'}}>
+                      <div style={{fontFamily:"'Bangers',sans-serif",fontSize:'0.46rem',color:'#f4f0e8',letterSpacing:'0.06em'}}>{op.name}</div>
                     </div>
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* MANGA GUTTER */}
-            <div style={{width:'8px', background:'#0a0a0a', flexShrink:0}}/>
+            {/* GUTTER */}
+            <div style={{width:'6px',background:'#0a0a0a',flexShrink:0}}/>
 
-            {/* RIGHT PANEL — Boot sequence */}
-            <div style={{
-              flex:1, display:'flex', flexDirection:'column',
-              background:'#f4f0e8', overflow:'hidden', position:'relative',
-            }}>
-              {/* TITLE PANEL — top */}
-              <div style={{
-                padding:'1.5rem 2rem 1.2rem',
-                borderBottom:'4px solid #0a0a0a',
-                position:'relative', overflow:'hidden', flexShrink:0,
-              }}>
-                {/* Screentone on title */}
-                <div style={{
-                  position:'absolute', inset:0, pointerEvents:'none',
+            {/* RIGHT: Title + engine panels */}
+            <div style={{flex:1,display:'flex',flexDirection:'column',background:'#f4f0e8',overflow:'hidden',position:'relative'}}>
+
+              {/* Title panel */}
+              <div style={{padding:'1rem 1.5rem 0.8rem',borderBottom:'4px solid #0a0a0a',position:'relative',overflow:'hidden',flexShrink:0}}>
+                <div style={{position:'absolute',inset:0,pointerEvents:'none',
                   backgroundImage:'radial-gradient(circle,rgba(0,0,0,0.05) 1px,transparent 1px)',
-                  backgroundSize:'5px 5px',
-                }}/>
-                <div style={{position:'relative', zIndex:2}}>
-                  <div style={{
-                    display:'inline-block', background:'#d0021b', color:'#f4f0e8',
-                    fontFamily:"'Oswald',sans-serif", fontWeight:700,
-                    fontSize:'0.5rem', letterSpacing:'0.2em', padding:'3px 10px',
-                    marginBottom:'0.8rem',
-                  }}>CHAPTER 01 // SYSTEM BOOT</div>
-                  <div style={{
-                    fontFamily:"'Bangers','Bebas Neue',sans-serif",
-                    fontSize:'clamp(2.5rem,6vw,4.5rem)',
-                    letterSpacing:'0.06em', lineHeight:0.88, color:'#0a0a0a',
-                    WebkitTextStroke:'2px #0a0a0a',
-                  }}>
+                  backgroundSize:'5px 5px'}}/>
+                <div style={{position:'relative',zIndex:1}}>
+                  <div style={{display:'inline-block',background:'#d0021b',color:'#f4f0e8',
+                    fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:'0.44rem',
+                    letterSpacing:'0.2em',padding:'2px 8px',marginBottom:'0.5rem'}}>
+                    CHAPTER 01 // SYSTEM BOOT
+                  </div>
+                  <div style={{fontFamily:"'Bangers',sans-serif",
+                    fontSize:'clamp(2rem,5.5vw,4rem)',
+                    letterSpacing:'0.05em',lineHeight:0.88,color:'#0a0a0a',WebkitTextStroke:'2px #0a0a0a'}}>
                     FOR<span style={{color:'#d0021b',WebkitTextStroke:'2px #d0021b'}}>BID</span>EN
                   </div>
-                  <div style={{
-                    fontFamily:"'Share Tech Mono',monospace",
-                    fontSize:'0.5rem', color:'#555', letterSpacing:'0.18em', marginTop:'0.5rem',
-                  }}>
-                    DUAL-ENGINE GRAPH IDE // OPERATOR WORKSTATION
+                  <div style={{fontSize:'0.4rem',color:'#555',letterSpacing:'0.16em',marginTop:'0.35rem',fontFamily:"'Share Tech Mono',monospace"}}>
+                    {selOp ? `OPERATIVE [${selOp.name}] IDENTIFIED — SELECT ENGINE` : 'DUAL-ENGINE GRAPH IDE // SELECT YOUR OPERATOR'}
                   </div>
                 </div>
               </div>
 
-              {/* SELECT OPERATOR caption */}
-              <div style={{
-                padding:'1rem 2rem 0.8rem',
-                borderBottom:'3px solid #0a0a0a',
-                flexShrink:0,
-              }}>
-                <div style={{
-                  display:'inline-block', background:'#0a0a0a', color:'#f5c518',
-                  fontFamily:"'Bangers',sans-serif", fontSize:'0.65rem',
-                  letterSpacing:'0.15em', padding:'3px 12px',
-                  marginBottom:'0.4rem',
-                }}>01 — SELECT OPERATOR</div>
-                <div style={{
-                  fontSize:'0.42rem', color:'#666', letterSpacing:'0.12em',
-                  fontFamily:"'Share Tech Mono',monospace",
-                }}>
-                  {avatar !== null
-                    ? `OPERATOR [${OPERATORS[avatar].name}] IDENTIFIED — READY TO DEPLOY`
-                    : 'SELECT YOUR OPERATIVE FROM THE ROSTER ON THE LEFT'}
-                </div>
+              {/* Engine panels — two tall full-bleed manga pages */}
+              <div style={{flex:1,display:'flex',overflow:'hidden'}}>
+
+                {/* DARK MANGA panel */}
+                <button
+                  onClick={() => { if(avatar !== null) setTheme('cyber'); }}
+                  onMouseEnter={e => { if(avatar !== null) e.currentTarget.style.outline='4px solid #d0021b'; }}
+                  onMouseLeave={e => { e.currentTarget.style.outline='none'; }}
+                  style={{flex:1,border:'none',outline:'none',padding:0,cursor: avatar !== null ? 'pointer' : 'default',
+                    display:'flex',flexDirection:'column',position:'relative',overflow:'hidden',
+                    borderRight:'4px solid #0a0a0a',
+                    opacity: avatar !== null ? 1 : 0.5, transition:'opacity 0.3s'}}>
+                  {/* Rotating manga BG */}
+                  <img src={`/manga/${enc(MANGA_RAW[bgIdx])}`} alt=""
+                    style={{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover',
+                      filter:'contrast(1.2) brightness(0.32) saturate(0.65)',pointerEvents:'none',
+                      transition:'opacity 1s'}}/>
+                  {/* Speed lines */}
+                  <div style={{position:'absolute',inset:0,pointerEvents:'none',
+                    background:`conic-gradient(from 0deg at 30% 55%,
+                      transparent 0deg,rgba(255,255,255,0.04) 1.5deg,transparent 3.5deg,
+                      transparent 14deg,rgba(255,255,255,0.04) 15.5deg,transparent 17deg,
+                      transparent 32deg,rgba(255,255,255,0.04) 33.5deg,transparent 35deg,
+                      transparent 52deg,rgba(255,255,255,0.04) 53.5deg,transparent 55deg,
+                      transparent 75deg,rgba(255,255,255,0.04) 76.5deg,transparent 78deg)`}}/>
+                  {/* Screentone */}
+                  <div style={{position:'absolute',inset:0,pointerEvents:'none',
+                    backgroundImage:'radial-gradient(circle,rgba(255,255,255,0.04) 1px,transparent 1px)',
+                    backgroundSize:'5px 5px'}}/>
+                  {/* Red accent triangle — top left */}
+                  <div style={{position:'absolute',top:0,left:0,width:0,height:0,pointerEvents:'none',
+                    borderStyle:'solid',borderWidth:'0 0 60px 60px',
+                    borderColor:`transparent transparent transparent #d0021b`,zIndex:3}}/>
+                  <div style={{position:'absolute',top:'6px',left:'4px',zIndex:4,
+                    fontFamily:"'Bangers',sans-serif",fontSize:'0.55rem',color:'#f4f0e8',
+                    letterSpacing:'0.05em',lineHeight:1,pointerEvents:'none'}}>01</div>
+                  {/* Content */}
+                  <div style={{position:'relative',zIndex:2,flex:1,display:'flex',flexDirection:'column',
+                    justifyContent:'flex-end',padding:'1rem 1.2rem 0.9rem',gap:'0.3rem'}}>
+                    <div style={{fontFamily:"'Bangers',sans-serif",fontSize:'0.5rem',letterSpacing:'0.15em',
+                      color:'rgba(255,255,255,0.35)',marginBottom:'0.1rem'}}>ENGINE 01 // FORSAKEN</div>
+                    <div style={{fontFamily:"'Bangers',sans-serif",
+                      fontSize:'clamp(1.8rem,4vw,3.2rem)',letterSpacing:'0.06em',lineHeight:0.88,
+                      color:'#f4f0e8',WebkitTextStroke:'1px rgba(255,255,255,0.2)'}}>
+                      DARK<br/>MANGA
+                    </div>
+                    <div style={{fontFamily:"'Share Tech Mono',monospace",fontSize:'0.34rem',
+                      color:'rgba(255,255,255,0.4)',letterSpacing:'0.12em',marginTop:'0.2rem'}}>
+                      BERSERK MODE // CYBER NOIR
+                    </div>
+                  </div>
+                  <div style={{height:'4px',background:'#d0021b',flexShrink:0,position:'relative',zIndex:2}}/>
+                </button>
+
+                {/* LIGHT MANGA panel */}
+                <button
+                  onClick={() => { if(avatar !== null) setTheme('brutal'); }}
+                  onMouseEnter={e => { if(avatar !== null) e.currentTarget.style.outline='4px solid #0a0a0a'; }}
+                  onMouseLeave={e => { e.currentTarget.style.outline='none'; }}
+                  style={{flex:1,border:'none',outline:'none',padding:0,cursor: avatar !== null ? 'pointer' : 'default',
+                    display:'flex',flexDirection:'column',position:'relative',overflow:'hidden',
+                    background:'#f4f0e8',
+                    opacity: avatar !== null ? 1 : 0.5, transition:'opacity 0.3s'}}>
+                  {/* Washed-out manga art BG */}
+                  <img src={`/manga/${enc(MANGA_RAW[(bgIdx + 8) % MANGA_RAW.length])}`} alt=""
+                    style={{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover',
+                      filter:'contrast(0.6) brightness(1.45) saturate(0) opacity(0.35)',pointerEvents:'none'}}/>
+                  {/* Screentone over BG */}
+                  <div style={{position:'absolute',inset:0,pointerEvents:'none',
+                    backgroundImage:'radial-gradient(circle,rgba(0,0,0,0.1) 1.2px,transparent 1.2px)',
+                    backgroundSize:'6px 6px'}}/>
+                  {/* Horizontal speed lines */}
+                  <div style={{position:'absolute',inset:0,pointerEvents:'none',
+                    background:`repeating-linear-gradient(
+                      0deg,
+                      transparent,
+                      transparent 11px,
+                      rgba(0,0,0,0.015) 11px,
+                      rgba(0,0,0,0.015) 12px
+                    )`}}/>
+                  {/* Black accent triangle — top left */}
+                  <div style={{position:'absolute',top:0,left:0,width:0,height:0,pointerEvents:'none',
+                    borderStyle:'solid',borderWidth:'0 0 60px 60px',
+                    borderColor:`transparent transparent transparent #0a0a0a`,zIndex:3}}/>
+                  <div style={{position:'absolute',top:'6px',left:'4px',zIndex:4,
+                    fontFamily:"'Bangers',sans-serif",fontSize:'0.55rem',color:'#f4f0e8',
+                    letterSpacing:'0.05em',lineHeight:1,pointerEvents:'none'}}>02</div>
+                  {/* Content */}
+                  <div style={{position:'relative',zIndex:2,flex:1,display:'flex',flexDirection:'column',
+                    justifyContent:'flex-end',padding:'1rem 1.2rem 0.9rem',gap:'0.3rem'}}>
+                    <div style={{fontFamily:"'Bangers',sans-serif",fontSize:'0.5rem',letterSpacing:'0.15em',
+                      color:'rgba(0,0,0,0.35)',marginBottom:'0.1rem'}}>ENGINE 02 // BRUTALIST</div>
+                    <div style={{fontFamily:"'Bangers',sans-serif",
+                      fontSize:'clamp(1.8rem,4vw,3.2rem)',letterSpacing:'0.06em',lineHeight:0.88,
+                      color:'#0a0a0a',WebkitTextStroke:'2px #0a0a0a'}}>
+                      LIGHT<br/>MANGA
+                    </div>
+                    <div style={{fontFamily:"'Share Tech Mono',monospace",fontSize:'0.34rem',
+                      color:'rgba(0,0,0,0.45)',letterSpacing:'0.12em',marginTop:'0.2rem'}}>
+                      CLASSIC MODE // MANGA INK
+                    </div>
+                  </div>
+                  <div style={{height:'4px',background:'#0a0a0a',flexShrink:0,position:'relative',zIndex:2}}/>
+                </button>
               </div>
 
-              {/* ENGINE SELECTION */}
-              <div style={{flex:1, padding:'1rem 2rem', display:'flex', flexDirection:'column', gap:'0.8rem', overflow:'hidden'}}>
-                <div style={{
-                  display:'inline-block', background:'#0a0a0a', color:'#f5c518',
-                  fontFamily:"'Bangers',sans-serif", fontSize:'0.65rem',
-                  letterSpacing:'0.15em', padding:'3px 12px',
-                  marginBottom:'0.4rem', flexShrink:0,
-                }}>02 — INITIALIZE ENGINE</div>
-
-                <div style={{display:'flex', gap:'0.8rem', flex:1, maxHeight:'200px'}}>
-                  {/* FORSAKEN card — DARK MANGA */}
-                  <button
-                    disabled={avatar === null}
-                    onClick={() => setTheme('cyber')}
-                    style={{
-                      flex:1, background:'#0a0a0a', color:'#f4f0e8',
-                      border:'3px solid #0a0a0a',
-                      boxShadow: avatar !== null ? '6px 6px 0 #d0021b' : '6px 6px 0 #333',
-                      cursor: avatar !== null ? 'pointer' : 'default',
-                      fontFamily:"'Bangers',sans-serif",
-                      display:'flex', flexDirection:'column', alignItems:'stretch',
-                      padding:0, gap:0,
-                      transition:'all 0.18s', position:'relative', overflow:'hidden',
-                    }}
-                    onMouseEnter={e => { if(avatar !== null){ e.currentTarget.style.transform='translate(-3px,-3px)'; e.currentTarget.style.boxShadow='10px 10px 0 #d0021b'; }}}
-                    onMouseLeave={e => { e.currentTarget.style.transform='none'; e.currentTarget.style.boxShadow=avatar!==null?'6px 6px 0 #d0021b':'6px 6px 0 #333'; }}
-                  >
-                    {/* Header strip */}
-                    <div style={{background:'#d0021b',padding:'6px 12px',display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0}}>
-                      <span style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:'0.5rem',letterSpacing:'0.2em',color:'#fff'}}>FORSAKEN</span>
-                      <span style={{fontFamily:"'Bangers',sans-serif",fontSize:'0.9rem',color:'rgba(255,255,255,0.6)'}}>夜</span>
-                    </div>
-                    {/* Body */}
-                    <div style={{flex:1,padding:'1rem 1.2rem',display:'flex',flexDirection:'column',gap:'0.4rem',position:'relative'}}>
-                      <div style={{position:'absolute',inset:0,backgroundImage:'radial-gradient(circle,rgba(255,255,255,0.03) 1px,transparent 1px)',backgroundSize:'5px 5px',pointerEvents:'none'}}/>
-                      <div style={{fontSize:'2rem', letterSpacing:'0.08em', lineHeight:0.92, position:'relative'}}>DARK<br/>MANGA</div>
-                      <div style={{fontSize:'0.38rem', color:'rgba(255,255,255,0.35)', letterSpacing:'0.14em', position:'relative', fontFamily:"'Share Tech Mono',monospace", marginTop:'auto'}}>BERSERK MODE // CYBER NOIR</div>
-                    </div>
-                    <div style={{height:'3px',background:'#d0021b',flexShrink:0}}/>
-                  </button>
-
-                  {/* BRUTALIST card — LIGHT MANGA */}
-                  <button
-                    disabled={avatar === null}
-                    onClick={() => setTheme('brutal')}
-                    style={{
-                      flex:1, background:'#f0ece0', color:'#0a0a0a',
-                      border:'3px solid #0a0a0a',
-                      boxShadow: avatar !== null ? '6px 6px 0 #0a0a0a' : '6px 6px 0 #bbb',
-                      cursor: avatar !== null ? 'pointer' : 'default',
-                      fontFamily:"'Bangers',sans-serif",
-                      display:'flex', flexDirection:'column', alignItems:'stretch',
-                      padding:0, gap:0,
-                      transition:'all 0.18s', position:'relative', overflow:'hidden',
-                    }}
-                    onMouseEnter={e => { if(avatar !== null){ e.currentTarget.style.transform='translate(-3px,-3px)'; e.currentTarget.style.boxShadow='10px 10px 0 #f2c12e'; e.currentTarget.style.borderColor='#0a0a0a'; }}}
-                    onMouseLeave={e => { e.currentTarget.style.transform='none'; e.currentTarget.style.boxShadow=avatar!==null?'6px 6px 0 #0a0a0a':'6px 6px 0 #bbb'; e.currentTarget.style.borderColor='#0a0a0a'; }}
-                  >
-                    {/* Yellow header strip */}
-                    <div style={{background:'#f2c12e',padding:'6px 12px',display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0,borderBottom:'2px solid #0a0a0a'}}>
-                      <span style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:'0.5rem',letterSpacing:'0.2em',color:'#0a0a0a'}}>BRUTALIST</span>
-                      <span style={{fontFamily:"'Bangers',sans-serif",fontSize:'0.9rem',color:'rgba(0,0,0,0.4)'}}>光</span>
-                    </div>
-                    {/* Body — paper white */}
-                    <div style={{flex:1,padding:'1rem 1.2rem',display:'flex',flexDirection:'column',gap:'0.4rem',position:'relative',background:'#f0ece0'}}>
-                      <div style={{position:'absolute',inset:0,backgroundImage:'radial-gradient(circle,rgba(0,0,0,0.08) 1px,transparent 1px)',backgroundSize:'5px 5px',pointerEvents:'none'}}/>
-                      <div style={{fontSize:'2rem', letterSpacing:'0.08em', lineHeight:0.92, position:'relative', color:'#0a0a0a', WebkitTextStroke:'1px #0a0a0a'}}>LIGHT<br/>MANGA</div>
-                      <div style={{fontSize:'0.38rem', color:'rgba(0,0,0,0.45)', letterSpacing:'0.14em', position:'relative', fontFamily:"'Share Tech Mono',monospace", marginTop:'auto'}}>CLASSIC MODE // MANGA INK</div>
-                    </div>
-                    <div style={{height:'3px',background:'#0a0a0a',flexShrink:0}}/>
-                  </button>
+              {/* Select-operator hint — yellow caption bar, shown only when no avatar selected */}
+              {avatar === null && (
+                <div style={{padding:'0.45rem 1.2rem',background:'#f5c518',
+                  borderTop:'3px solid #0a0a0a',flexShrink:0,
+                  display:'flex',alignItems:'center',gap:'0.6rem'}}>
+                  <div style={{fontFamily:"'Bangers',sans-serif",fontSize:'1rem',color:'#0a0a0a',lineHeight:1}}>←</div>
+                  <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:'0.4rem',letterSpacing:'0.18em',color:'#0a0a0a'}}>
+                    SELECT AN OPERATOR FROM THE ROSTER FIRST
+                  </div>
                 </div>
-
-                {/* Instruction caption */}
-                <div style={{
-                  background:'#f5c518', color:'#0a0a0a',
-                  fontFamily:"'Oswald',sans-serif", fontWeight:700,
-                  fontSize:'0.44rem', letterSpacing:'0.15em',
-                  padding:'0.35rem 0.8rem', border:'2px solid #0a0a0a',
-                  display:'inline-block', flexShrink:0,
-                  opacity: avatar !== null ? 1 : 0.3,
-                  transition:'opacity 0.4s',
-                }}>
-                  {avatar !== null
-                    ? `OPERATIVE ${OPERATORS[avatar].name} READY — SELECT ENGINE TO DEPLOY`
-                    : 'SELECT OPERATOR FIRST — CHOOSE FROM ROSTER'}
-                </div>
-              </div>
-
-              {/* MANGA IMAGE FILM STRIP — auto-scrolling row of manga art */}
-              <div style={{
-                height:'90px', borderTop:'4px solid #0a0a0a',
-                display:'flex', gap:'0', flexShrink:0, overflow:'hidden', position:'relative',
-              }}>
-                <style>{`
-                  @keyframes manga-scroll { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
-                  .manga-film-track { display:flex; animation:manga-scroll 40s linear infinite; width:max-content; }
-                  .manga-film-track:hover { animation-play-state:paused; }
-                `}</style>
-                <div className="manga-film-track">
-                  {[...MANGA_IMGS, ...MANGA_IMGS].map((img, i) => (
-                    <div key={i} style={{width:'120px',height:'90px',flexShrink:0,borderRight:'2px solid #0a0a0a',overflow:'hidden',position:'relative'}}>
-                      <img src={`/manga/${img}`} alt="" style={{width:'100%',height:'100%',objectFit:'cover',display:'block',filter:'contrast(1.05)'}} loading="lazy"/>
-                      <div style={{position:'absolute',inset:0,backgroundImage:'radial-gradient(circle,rgba(0,0,0,0.08) 1px,transparent 1px)',backgroundSize:'4px 4px',pointerEvents:'none'}}/>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              )}
             </div>
           </div>
 
-          {/* BOTTOM STATUS — manga caption bar */}
-          <div style={{
-            height:'28px', background:'#0a0a0a', flexShrink:0,
-            display:'flex', alignItems:'center', padding:'0 1.5rem', gap:'1rem',
-            fontSize:'0.42rem', color:'rgba(255,255,255,0.45)', letterSpacing:'0.1em',
-            fontFamily:"'Share Tech Mono',monospace",
-            borderTop:'3px solid #0a0a0a',
-          }}>
-            <span style={{color:'#f5c518', fontFamily:"'Bangers',sans-serif", fontSize:'0.6rem', letterSpacing:'0.1em'}}>FORBIDEN</span>
-            <span style={{color:'rgba(255,255,255,0.15)'}}>|</span>
-            <span>STATUS: <span style={{color:'#4ade80'}}>NOMINAL</span></span>
-            <span style={{color:'rgba(255,255,255,0.15)'}}>|</span>
-            <span>ENGINE: <span style={{color:'#f5c518'}}>DUAL-MODE</span></span>
-            <span style={{color:'rgba(255,255,255,0.15)'}}>|</span>
-            <span>NODES: <span style={{color:'#d0021b'}}>READY</span></span>
-            <div style={{marginLeft:'auto', display:'flex', alignItems:'center', gap:'0.5rem'}}>
-              {avatar !== null && (
-                <div style={{width:'16px', height:'16px', overflow:'hidden', border:'1px solid #d0021b'}}>
-                  <img src={`/avatars/0xAV00${avatar+1}s.jpeg`} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}}/>
+          {/* BOTTOM MANGA STRIP */}
+          <div style={{height:'68px',borderTop:'4px solid #0a0a0a',background:'#0a0a0a',
+            display:'flex',gap:0,flexShrink:0,overflow:'hidden',position:'relative',zIndex:10}}>
+            <style>{`
+              @keyframes boot-scroll { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
+              .boot-strip { display:flex; animation:boot-scroll 45s linear infinite; width:max-content; }
+              .boot-strip:hover { animation-play-state:paused; }
+            `}</style>
+            <div className="boot-strip">
+              {[...MANGA_RAW.slice(0,22), ...MANGA_RAW.slice(0,22)].map((img, i) => (
+                <div key={i} style={{width:'90px',height:'68px',flexShrink:0,borderRight:'2px solid #1a1a1a',overflow:'hidden',position:'relative'}}>
+                  <img src={`/manga/${enc(img)}`} alt=""
+                    style={{width:'100%',height:'100%',objectFit:'cover',display:'block',filter:'contrast(1.05) brightness(0.8)'}}
+                    loading="lazy"/>
+                  <div style={{position:'absolute',inset:0,backgroundImage:'radial-gradient(circle,rgba(0,0,0,0.1) 1px,transparent 1px)',backgroundSize:'4px 4px',pointerEvents:'none'}}/>
                 </div>
-              )}
-              <span>OPERATOR: <span style={{color:'#d0021b'}}>{avatar !== null ? OPERATORS[avatar].name : 'UNIDENTIFIED'}</span></span>
+              ))}
             </div>
           </div>
         </div>
