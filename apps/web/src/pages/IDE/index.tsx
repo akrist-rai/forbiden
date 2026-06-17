@@ -3375,7 +3375,7 @@ function IDE({ initialTheme = 'cyber', initialAvatar = 0 }) {
         {/* Avatar */}
         <div onClick={()=>setSidebarMode(s=>s==='settings'?null:'settings')}
           style={{cursor:'pointer',width:'32px',height:'32px',border:`2px solid ${sidebarMode==='settings'?'#ff2a38':'rgba(255,255,255,.12)'}`,overflow:'hidden',flexShrink:0,transition:'border-color .15s'}}>
-          <img src={`/avatars/0xAV0${String((avatarIndex%6)+1).padStart(2,'0')}s.jpeg`} alt="op" style={{width:'100%',height:'100%',objectFit:'cover'}}/>
+          <img src={`${import.meta.env.BASE_URL}avatars/0xAV0${String((avatarIndex%6)+1).padStart(2,'0')}s.jpeg`} alt="op" style={{width:'100%',height:'100%',objectFit:'cover'}}/>
         </div>
       </div>
 
@@ -3492,7 +3492,7 @@ function IDE({ initialTheme = 'cyber', initialAvatar = 0 }) {
                     {[0,1,2,3,4,5].map(i=>(
                       <div key={i} onClick={()=>setAvatarIndex(i)}
                         style={{border:`2px solid ${avatarIndex===i?ACCENTS[i]:'rgba(128,128,128,.15)'}`,cursor:'pointer',overflow:'hidden',aspectRatio:'1'}}>
-                        <img src={`/avatars/0xAV0${String(i+1).padStart(2,'0')}s.jpeg`} alt="" style={{width:'100%',height:'100%',objectFit:'cover',display:'block'}}/>
+                        <img src={`${import.meta.env.BASE_URL}avatars/0xAV0${String(i+1).padStart(2,'0')}s.jpeg`} alt="" style={{width:'100%',height:'100%',objectFit:'cover',display:'block'}}/>
                       </div>
                     ))}
                   </div>

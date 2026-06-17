@@ -66,7 +66,7 @@ export default function Home() {
     <div className="boot-home" style={{ '--boot-accent': selectedOp.accent } as React.CSSProperties}>
       {/* ── Animated BG ── */}
       <div className="boot-bg" aria-hidden="true">
-        <img key={heroImage} src={`/manga/${enc(heroImage)}`} alt="" className="boot-bg-img" />
+        <img key={heroImage} src={`${import.meta.env.BASE_URL}manga/${enc(heroImage)}`} alt="" className="boot-bg-img" />
         <div className="boot-bg-wash" />
         <div className="boot-bg-grid" />
         <div className="boot-bg-scan" />
@@ -124,7 +124,7 @@ export default function Home() {
         <aside className="boot-operator" aria-label="Operator selection">
           <div className="boot-portrait">
             <img
-              src={`/avatars/0xAV00${selectedIndex + 1}s.jpeg`}
+              src={`${import.meta.env.BASE_URL}avatars/0xAV00${selectedIndex + 1}s.jpeg`}
               alt={selectedOp.name}
             />
             <div className="boot-portrait-shade" />
@@ -146,7 +146,7 @@ export default function Home() {
                 style={{ '--op-accent': op.accent } as React.CSSProperties}
                 aria-pressed={selectedIndex === i}
               >
-                <img src={`/avatars/0xAV00${i + 1}s.jpeg`} alt="" />
+                <img src={`${import.meta.env.BASE_URL}avatars/0xAV00${i + 1}s.jpeg`} alt="" />
                 <span>{op.num}</span>
                 <strong>{op.name}</strong>
               </button>
@@ -166,7 +166,7 @@ export default function Home() {
               onClick={() => launch(engine.route, engine.id)}
               style={{ '--engine-accent': engine.accent } as React.CSSProperties}
             >
-              <img src={`/manga/${enc(img)}`} alt="" />
+              <img src={`${import.meta.env.BASE_URL}manga/${enc(img)}`} alt="" />
               <span>{engine.num}</span>
               <strong>{engine.title}</strong>
               <small>{engine.label}</small>
@@ -185,7 +185,7 @@ export default function Home() {
       <div className="boot-strip" aria-hidden="true">
         <div className="boot-strip-track">
           {[...previewImages, ...previewImages].map((img, i) => (
-            <img key={`${img}-${i}`} src={`/manga/${enc(img)}`} alt="" loading="lazy" />
+            <img key={`${img}-${i}`} src={`${import.meta.env.BASE_URL}manga/${enc(img)}`} alt="" loading="lazy" />
           ))}
         </div>
       </div>

@@ -44,7 +44,7 @@ function NodeCard({ node, selected, hovered }) {
   return (
     <div className={`ngo-node-card${selected?' selected':''}${hovered?' hovered':''}${node.isMain?' is-main':''}`}>
       <div className="ngo-node-art">
-        <img src={`/manga/${ENC(img)}`} alt="" />
+        <img src={`${import.meta.env.BASE_URL}manga/${ENC(img)}`} alt="" />
         <div className="ngo-node-art-overlay" />
         <div className="ngo-node-art-scanlines" />
         <div className="ngo-node-type-badge" style={{ color, borderColor: color }}>
@@ -108,7 +108,7 @@ function CodePanel({ node, onChange }) {
     return (
       <div className="ngo-empty">
         <div className="ngo-empty-art">
-          <img src={`/manga/${ENC(emptyImg)}`} alt="" />
+          <img src={`${import.meta.env.BASE_URL}manga/${ENC(emptyImg)}`} alt="" />
           <div className="ngo-empty-art-overlay" />
           <div className="ngo-empty-scanlines" />
           <div className="ngo-empty-text">
@@ -166,7 +166,7 @@ function Inspector({ node }) {
   return (
     <div className="ngo-inspector">
       <div className="ngo-insp-art">
-        <img src={`/manga/${ENC(img)}`} alt="" />
+        <img src={`${import.meta.env.BASE_URL}manga/${ENC(img)}`} alt="" />
         <div className="ngo-insp-art-overlay" />
         <div className="ngo-insp-art-scanlines" />
         <div className="ngo-insp-art-info">
@@ -334,7 +334,7 @@ export default function IDEPage() {
                     <div key={node.id} className={`ngo-tl-item${selectedId===node.id?' active':''}`}
                       onClick={() => setSelectedId(node.id)}>
                       <div className="ngo-tl-thumb">
-                        <img src={`/manga/${ENC(img)}`} alt="" />
+                        <img src={`${import.meta.env.BASE_URL}manga/${ENC(img)}`} alt="" />
                       </div>
                       <div className="ngo-tl-content">
                         <div className="ngo-tl-tag" style={{ color }}>
