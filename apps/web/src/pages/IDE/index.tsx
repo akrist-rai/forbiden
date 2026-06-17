@@ -4,6 +4,11 @@ import './manga.css'
 import './ide-v2.css'
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { useWorkspace } from '../../hooks/useWorkspace'
+import {
+  detectLang, extractSymbols, generateImport, injectImport,
+  getDefaultCode, analyzeClass, langLabel, isCompiled,
+  runC, runCpp, runGo, GO_KW,
+} from '../../lib/engine'
 
 // ══════════════════════════════════════════════════════════════
 //  CONSTANTS
@@ -432,32 +437,39 @@ function getPanelImg(seed) {
   return `/manga/${encodeURIComponent(PANEL_IMGS[seed % PANEL_IMGS.length])}`
 }
 
-function highlightCode(code) {
+function highlightCode(code, lang = null) {
   if (!code) return ''
   // Language keywords
   const PY_KW   = /\b(def|class|import|from|return|if|elif|else|for|while|in|not|and|or|True|False|None|pass|break|continue|try|except|finally|with|as|yield|lambda|self|raise|del|global|nonlocal|assert|async|await)\b/g
   const JS_KW   = /\b(function|const|let|var|return|if|else|for|while|in|of|class|import|export|from|default|new|this|true|false|null|undefined|try|catch|finally|async|await|typeof|instanceof|break|continue|switch|case|throw|delete|void|static|extends|super)\b/g
-  const SYS_KW  = /\b(int|long|short|char|double|float|bool|void|unsigned|signed|struct|enum|union|typedef|public|private|protected|namespace|template|typename|auto|register|volatile|const|extern|static|inline|virtual|override|final|nullptr)\b/g
-  const BUILTINS = /\b(len|range|type|str|int|float|list|dict|set|tuple|map|filter|zip|enumerate|open|super|object|bool|abs|max|min|sum|sorted|reversed|console|Math|JSON|Array|Object|Promise|setTimeout|clearTimeout|setInterval|parseInt|parseFloat|isNaN|fetch|document|window|print|input|repr)\b/g
-  const STRINGS  = /("""[\s\S]*?"""|'''[\s\S]*?'''|"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|`(?:[^`\\]|\\.)*`)/g
+  const SYS_KW  = /\b(int|long|short|char|double|float|bool|void|unsigned|signed|struct|enum|union|typedef|public|private|protected|namespace|template|typename|auto|register|volatile|const|extern|static|inline|virtual|override|final|nullptr|printf|scanf|malloc|free|sizeof|NULL)\b/g
+  const GO_KW_RE = /\b(func|package|import|return|if|else|for|range|switch|case|default|break|continue|var|const|type|struct|interface|map|chan|go|defer|select|fallthrough|nil|true|false|make|new|len|cap|append|copy|delete|close|panic|recover|error|string|int|int8|int16|int32|int64|uint|uint8|uint16|uint32|uint64|float32|float64|bool|byte|rune|any|fmt|os|io)\b/g
+  const BUILTINS = /\b(len|range|type|str|int|float|list|dict|set|tuple|map|filter|zip|enumerate|open|super|object|bool|abs|max|min|sum|sorted|reversed|console|Math|JSON|Array|Object|Promise|setTimeout|clearTimeout|setInterval|parseInt|parseFloat|isNaN|fetch|document|window|print|input|repr|println|Println|Printf|Fprintf|Sprintf)\b/g
+  const STRINGS  = /("""[\s\S]*?"""|'''[\s\S]*?'''|`(?:[^`\\]|\\.)*`|"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')/g
   const COMMENTS = /(\/\/.*$|#.*$|\/\*[\s\S]*?\*\/)/gm
   const NUMBERS  = /(?<![a-zA-Z_$])\b(0x[\da-fA-F]+|0o[0-7]+|0b[01]+|\d+\.?\d*(?:[eE][+-]?\d+)?)\b(?![a-zA-Z_])/g
   const FUNCS    = /\b([a-zA-Z_$]\w*)(?=\s*\()/g
+  const PREPROC  = /^(#\s*(?:include|define|ifndef|ifdef|endif|pragma|undef|if|elif|else)\b.*)$/gm
 
   let html = code.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
   const stored:string[] = []
   const ph = (n:number) => '\x00P' + n + '\x01'
-  // Every step stores immediately → later regexes never see raw span tags in html
   const store = (cls:string, content:string) => { stored.push(`<span class="${cls}">${content}</span>`); return ph(stored.length-1) }
 
-  html = html.replace(COMMENTS, m  => store('syn-comment',  m))
-  html = html.replace(STRINGS,  m  => store('syn-string',   m))
-  html = html.replace(FUNCS,   (_,fn) => store('syn-function', fn))
-  html = html.replace(PY_KW,   m  => store('syn-keyword',  m))
-  html = html.replace(JS_KW,   m  => store('syn-keyword',  m))
-  html = html.replace(SYS_KW,  m  => store('syn-keyword',  m))
-  html = html.replace(BUILTINS, m  => store('syn-builtin',  m))
-  html = html.replace(NUMBERS,  m  => store('syn-number',   m))
+  html = html.replace(PREPROC,   m  => store('syn-builtin',  m))
+  html = html.replace(COMMENTS,  m  => store('syn-comment',  m))
+  html = html.replace(STRINGS,   m  => store('syn-string',   m))
+  html = html.replace(FUNCS,    (_,fn) => store('syn-function', fn))
+  if (lang === 'go') {
+    html = html.replace(GO_KW_RE, m => store('syn-keyword', m))
+  } else {
+    html = html.replace(PY_KW,   m  => store('syn-keyword',  m))
+    html = html.replace(JS_KW,   m  => store('syn-keyword',  m))
+    html = html.replace(SYS_KW,  m  => store('syn-keyword',  m))
+    html = html.replace(GO_KW_RE,m  => store('syn-keyword',  m))
+  }
+  html = html.replace(BUILTINS,  m  => store('syn-builtin',  m))
+  html = html.replace(NUMBERS,   m  => store('syn-number',   m))
   return html.replace(/\x00P(\d+)\x01/g, (_,i) => stored[+i])
 }
 
@@ -803,6 +815,7 @@ function CodeEditor({ node, onChange, externalPalette }) {
     if (overlayRef.current && textareaRef.current) overlayRef.current.style.transform = `translateY(-${textareaRef.current.scrollTop}px)`
   }
   const isJS = node.label?.match(/\.(js|ts|jsx|tsx|mjs)$/)
+  const nodeLang = detectLang(node.label || '')
 
   const AC_JS = ['function','const','let','var','return','if','else','for','while','switch','case',
     'class','import','export','from','default','new','this','typeof','instanceof','async','await',
@@ -934,7 +947,7 @@ function CodeEditor({ node, onChange, externalPalette }) {
   }
   const diffLines = useMemo(() => code.split('\n').map((line,i)=>({ type:i===1&&node.modified?'add':i===2&&node.modified?'del':'ctx', text:line, num:i+1 })), [code,node.modified])
   const cssVars = { '--syn-kw':palette.kw,'--syn-str':palette.str,'--syn-cmt':palette.cmt,'--syn-num':palette.num,'--syn-fn':palette.fn,'--syn-bi':palette.bi,'--syn-op':palette.op }
-  const highlighted = highlightCode(code)
+  const highlighted = highlightCode(code, nodeLang)
   const activeLineY = (cursor.line - 1) * lineH
   const minimapLines = useMemo(() => code.split('\n').slice(0,50).map(l=>({len:Math.min(l.length,80),indent:l.match(/^\s*/)[0].length})), [code])
   const LIGHT_IDS = ['github','gruvlight','papercolor','flexoki']
@@ -945,13 +958,16 @@ function CodeEditor({ node, onChange, externalPalette }) {
       {/* Toolbar */}
       <div className="ide-editor-toolbar">
         {/* Language pill */}
-        <span style={{padding:'1px 7px',fontSize:'9px',fontFamily:"'Oswald',sans-serif",fontWeight:700,letterSpacing:'.1em',
-          background: isJS ? 'rgba(242,193,46,.15)' : 'rgba(66,133,244,.15)',
-          color: isJS ? '#f2c12e' : '#4285f4',
-          border: `1px solid ${isJS?'rgba(242,193,46,.3)':'rgba(66,133,244,.3)'}`,
-        }}>
-          {isJS ? 'JS' : node.label?.endsWith('.md') ? 'MD' : 'PY'}
-        </span>
+        {(() => {
+          const langColors = { js:'#f2c12e', ts:'#4285f4', py:'#28f1c3', c:'#ff8080', cpp:'#ff8080', go:'#89ddff', md:'#c792ea', unknown:'#888' }
+          const lc = langColors[nodeLang] || '#888'
+          const ln = { js:'JS', ts:'TS', py:'PY', c:'C', cpp:'C++', go:'GO', md:'MD', unknown:'TXT' }[nodeLang] || nodeLang.toUpperCase()
+          return (
+            <span style={{padding:'1px 7px',fontSize:'9px',fontFamily:"'Oswald',sans-serif",fontWeight:700,letterSpacing:'.1em',
+              background:`${lc}18`, color:lc, border:`1px solid ${lc}44`,
+            }}>{ln}</span>
+          )
+        })()}
         <div className="ide-tb-sep"/>
         <button className="ide-tb-btn" onClick={handleCopy}><I.Copy/> COPY</button>
         <button className="ide-tb-btn" onClick={handleFormat}><I.Format/> FORMAT</button>
@@ -2956,11 +2972,34 @@ function IDE({ initialTheme = 'cyber', initialAvatar = 0 }) {
       const exists=edgesRef.current.find(e=>(e.source===joinFirstNode&&e.target===nodeId)||(e.source===nodeId&&e.target===joinFirstNode))
       if (!exists) {
         const tempEdge={id:'e'+Date.now(),source:joinFirstNode,target:nodeId}
-        edgesRef.current=[...edgesRef.current,tempEdge]; forceRender({})
-        const srcLabel=nodesRef.current.find(n=>n.id===joinFirstNode)?.label||joinFirstNode
-        const tgtLabel=nodesRef.current.find(n=>n.id===nodeId)?.label||nodeId
+        edgesRef.current=[...edgesRef.current,tempEdge]
+        const srcNode=nodesRef.current.find(n=>n.id===joinFirstNode)
+        const tgtNode=nodesRef.current.find(n=>n.id===nodeId)
+        const srcLabel=srcNode?.label||joinFirstNode
+        const tgtLabel=tgtNode?.label||nodeId
         addEvent('edge-add', `${srcLabel} → ${tgtLabel}`)
         wsHook.createEdge(joinFirstNode,nodeId).catch(()=>{})
+
+        // ── Engine: auto-inject import in target node ──
+        if (srcNode && tgtNode && srcNode.code !== undefined) {
+          const srcLang = detectLang(srcNode.label)
+          const tgtLang = detectLang(tgtNode.label)
+          if (tgtLang !== 'md' && tgtLang !== 'unknown' && srcLang !== 'md') {
+            const syms = extractSymbols(srcNode.code || '', srcLang)
+            const imp  = generateImport(srcNode.label, tgtLang, syms)
+            if (imp && tgtNode.code !== undefined) {
+              const injected = injectImport(tgtNode.code, imp, tgtLang)
+              if (injected !== tgtNode.code) {
+                nodesRef.current = nodesRef.current.map(n =>
+                  n.id === nodeId ? {...n, code: injected, modified: true} : n
+                )
+                addEvent('code-edit', `Auto-linked: ${imp}`)
+              }
+            }
+          }
+        }
+
+        forceRender({})
       }
       setJoinFirstNode(null)
     }
@@ -3007,11 +3046,20 @@ function IDE({ initialTheme = 'cyber', initialAvatar = 0 }) {
     const raw = newNodeName.trim()
     const hasExt = /\.\w{1,5}$/.test(raw)
     const isDocType = newNodeType === 'doc'
-    const label = hasExt ? raw.replace(/\s+/g,'_') : raw.replace(/\s+/g,'_') + (isDocType ? '.md' : '.js')
+    // Auto-pick extension if none provided
+    const extMap = { js:'.js', ts:'.ts', py:'.py', c:'.c', cpp:'.cpp', go:'.go', doc:'.md' }
+    const autoExt = extMap[newNodeType] || '.js'
+    const label = hasExt ? raw.replace(/\s+/g,'_') : raw.replace(/\s+/g,'_') + (isDocType ? '.md' : autoExt)
     const isMd = label.endsWith('.md')
-    const code = isMd
-      ? `# ${raw.replace(/\.\w+$/,'')}\n\n`
-      : `// ${label}\n\n`
+    const lang = detectLang(label)
+    // Use engine templates for compiled/known langs, fallback to simple comment
+    let code
+    if (isMd) {
+      code = `# ${raw.replace(/\.\w+$/,'')}\n\n`
+    } else {
+      const engineCode = getDefaultCode(lang, label, newNodeType)
+      code = engineCode || `// ${label}\n\n`
+    }
     const x=(Math.random()-.5)*300, y=(Math.random()-.5)*300
     const tempId='n'+Date.now()
     nodesRef.current=[...nodesRef.current,{id:tempId,label,filepath:label,type:isDocType||isMd?'doc':newNodeType,isMain:false,x,y,vx:0,vy:0,themeIdx:isDocType||isMd?11:newNodeColor,classId:null,code,modified:false}]
@@ -3184,17 +3232,26 @@ function IDE({ initialTheme = 'cyber', initialAvatar = 0 }) {
   const handleRunNode = async (nodeId) => {
     const node = nodesRef.current.find(n => n.id === nodeId)
     if (!node) return
-    const isPy = /\.py$/.test(node.label)
-    const isMd = /\.md$/.test(node.label)
-    if (isMd) return
+    const lang = detectLang(node.label || '')
+    if (lang === 'md' || lang === 'unknown') return
+    const isPy  = lang === 'py'
+    const isC   = lang === 'c'
+    const isCpp = lang === 'cpp'
+    const isGo  = lang === 'go'
     setNodeRunState(s => ({...s, [nodeId]: {status:'running', ms:0}}))
     setBottomTab('console')
     setJsLogs(l => {
       const header = [{type:'header', val:`▶  ${node.label}`, ts:Date.now(), nodeId}]
       if (isPy && !_pyW) header.push({type:'info', val:'⌛ Loading Python runtime (Pyodide, ~10 MB, first run only)…', ts:Date.now()})
+      if (isC || isCpp || isGo) header.push({type:'info', val:`⌛ Compiling via Wandbox… (requires internet)`, ts:Date.now()})
       return [...l, ...header]
     })
-    const result = isPy ? await runPython(node.code || '') : await runJS(node.code || '')
+    let result
+    if (isPy)       result = await runPython(node.code || '')
+    else if (isC)   result = await runC(node.code || '')
+    else if (isCpp) result = await runCpp(node.code || '')
+    else if (isGo)  result = await runGo(node.code || '')
+    else            result = await runJS(node.code || '')
     setNodeRunState(s => ({...s, [nodeId]: {status: result.error?'error':'ok', ms: result.ms}}))
     addEvent(result.error?'run-err':'run-ok', `${result.error?'✗':'✓'} ${node.label} (${result.ms}ms)`, {nodeId})
     setJsLogs(l => [
@@ -3710,13 +3767,17 @@ function IDE({ initialTheme = 'cyber', initialAvatar = 0 }) {
                         onMouseLeave={e=>(e.currentTarget.style.color='rgba(200,200,220,.4)')}>A+</button>
                     </>
                   ) : (
-                    <button onClick={()=>handleRunNode(activeTabId)} title="Run JS (Ctrl+Enter)"
+                    <button onClick={()=>handleRunNode(activeTabId)}
+                      title={`Run (Ctrl+Enter)${isCompiled(detectLang(activeTabNode?.label||''))?' via Wandbox':''}`}
                       style={{padding:'2px 10px',cursor:'pointer',fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:'9px',letterSpacing:'.1em',
                         background:nodeRunState[activeTabId]?.status==='ok'?'#10b981':nodeRunState[activeTabId]?.status==='error'?'#ff435a':'transparent',
-                        color:nodeRunState[activeTabId]?.status?'#000':brutal?'#f2c12e':'#ff2a38',
-                        border:`1px solid ${nodeRunState[activeTabId]?.status==='ok'?'#10b981':nodeRunState[activeTabId]?.status==='error'?'#ff435a':brutal?'#f2c12e':'rgba(255,42,56,.4)'}`,
+                        color:nodeRunState[activeTabId]?.status?'#000':isCompiled(detectLang(activeTabNode?.label||''))?'#ff8080':brutal?'#f2c12e':'#ff2a38',
+                        border:`1px solid ${nodeRunState[activeTabId]?.status==='ok'?'#10b981':nodeRunState[activeTabId]?.status==='error'?'#ff435a':isCompiled(detectLang(activeTabNode?.label||''))?'rgba(255,128,128,.4)':brutal?'#f2c12e':'rgba(255,42,56,.4)'}`,
                         transition:'all .15s'}}>
-                      {nodeRunState[activeTabId]?.status==='running'?'⋯':nodeRunState[activeTabId]?.status==='ok'?`✓ ${nodeRunState[activeTabId].ms}ms`:nodeRunState[activeTabId]?.status==='error'?'✗ ERROR':'▶ RUN'}
+                      {nodeRunState[activeTabId]?.status==='running'?'⋯'
+                        :nodeRunState[activeTabId]?.status==='ok'?`✓ ${nodeRunState[activeTabId].ms}ms`
+                        :nodeRunState[activeTabId]?.status==='error'?'✗ ERR'
+                        :isCompiled(detectLang(activeTabNode?.label||''))?`▶ ${detectLang(activeTabNode?.label||'').toUpperCase()}`:'▶ RUN'}
                     </button>
                   )}
                 </div>
@@ -4358,7 +4419,7 @@ function IDE({ initialTheme = 'cyber', initialAvatar = 0 }) {
         const accent = ACCENTS[node.themeIdx%ACCENTS.length]
         const items = [
           { label:'Open in Editor', icon:'✏', action:()=>{ openNodeInEditor(node.id); setNodeCtxMenu(null) } },
-          { label:'Run',            icon:'▶', action:()=>{ handleRunNode(node.id); setNodeCtxMenu(null) }, show:node.type==='js'||node.type==='function' },
+          { label:`Run (${langLabel(detectLang(node.label))})`, icon:'▶', action:()=>{ handleRunNode(node.id); setNodeCtxMenu(null) }, show: (() => { const l=detectLang(node.label); return l!=='md'&&l!=='unknown' })() },
           { sep:true },
           { label:'Rename',         icon:'Aa', action:()=>{ const name=prompt('Rename node:',node.label); if(name?.trim()){const n2=nodesRef.current.find(x=>x.id===node.id);if(n2){n2.label=name.trim();forceRender({})}} setNodeCtxMenu(null) } },
           { label:'Change Color',   icon:'◉', action:()=>{ const rect={left:nodeCtxMenu.x,bottom:nodeCtxMenu.y}; setNodeColorPicker({nodeId:node.id,x:nodeCtxMenu.x,y:nodeCtxMenu.y}); setNodeCtxMenu(null) } },
