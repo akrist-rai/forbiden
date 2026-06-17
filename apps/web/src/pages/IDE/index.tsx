@@ -433,27 +433,32 @@ function getPanelImg(seed) {
 }
 
 function highlightCode(code) {
-  const PY_KW = /\b(def|class|import|from|return|if|elif|else|for|while|in|not|and|or|True|False|None|pass|break|continue|try|except|finally|with|as|yield|lambda|self|print|raise|del|global|nonlocal|assert|async|await)\b/g
-  const JS_KW = /\b(function|const|let|var|return|if|else|for|while|in|of|class|import|export|from|default|new|this|true|false|null|undefined|try|catch|finally|async|await|typeof|instanceof|break|continue|switch|case|throw)\b/g
-  const BUILTINS = /\b(len|range|print|type|str|int|float|list|dict|set|tuple|map|filter|zip|enumerate|open|super|object|bool|abs|max|min|sum|sorted|reversed|console|Math|JSON|Array|Object|Promise|setTimeout|parseInt|parseFloat)\b/g
-  const STRINGS = /("""[\s\S]*?"""|'''[\s\S]*?'''|"[^"\\]*(?:\\.[^"\\]*)*"|'[^'\\]*(?:\\.[^'\\]*)*'|`[^`\\]*(?:\\.[^`\\]*)*`)/g
-  const COMMENTS = /(#.*$|\/\/.*$|\/\*[\s\S]*?\*\/)/gm
-  const NUMBERS = /\b(\d+\.?\d*(?:[eE][+-]?\d+)?)\b/g
-  const FUNCS = /\b([a-zA-Z_]\w*)(?=\s*\()/g
+  if (!code) return ''
+  // Language keywords
+  const PY_KW   = /\b(def|class|import|from|return|if|elif|else|for|while|in|not|and|or|True|False|None|pass|break|continue|try|except|finally|with|as|yield|lambda|self|raise|del|global|nonlocal|assert|async|await)\b/g
+  const JS_KW   = /\b(function|const|let|var|return|if|else|for|while|in|of|class|import|export|from|default|new|this|true|false|null|undefined|try|catch|finally|async|await|typeof|instanceof|break|continue|switch|case|throw|delete|void|static|extends|super)\b/g
+  const SYS_KW  = /\b(int|long|short|char|double|float|bool|void|unsigned|signed|struct|enum|union|typedef|public|private|protected|namespace|template|typename|auto|register|volatile|const|extern|static|inline|virtual|override|final|nullptr)\b/g
+  const BUILTINS = /\b(len|range|type|str|int|float|list|dict|set|tuple|map|filter|zip|enumerate|open|super|object|bool|abs|max|min|sum|sorted|reversed|console|Math|JSON|Array|Object|Promise|setTimeout|clearTimeout|setInterval|parseInt|parseFloat|isNaN|fetch|document|window|print|input|repr)\b/g
+  const STRINGS  = /("""[\s\S]*?"""|'''[\s\S]*?'''|"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|`(?:[^`\\]|\\.)*`)/g
+  const COMMENTS = /(\/\/.*$|#.*$|\/\*[\s\S]*?\*\/)/gm
+  const NUMBERS  = /(?<![a-zA-Z_$])\b(0x[\da-fA-F]+|0o[0-7]+|0b[01]+|\d+\.?\d*(?:[eE][+-]?\d+)?)\b(?![a-zA-Z_])/g
+  const FUNCS    = /\b([a-zA-Z_$]\w*)(?=\s*\()/g
+
   let html = code.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-  const stored = []
-  // Use \x00P…\x01 so the digit index is preceded by a word char (P),
-  // preventing the NUMBERS regex from matching it as a standalone number.
-  const ph = (n) => '\x00P' + n + '\x01'
-  html = html.replace(COMMENTS, m => { stored.push(`<span class="syn-comment">${m}</span>`); return ph(stored.length-1) })
-  html = html.replace(STRINGS,  m => { stored.push(`<span class="syn-string">${m}</span>`);  return ph(stored.length-1) })
-  html = html.replace(FUNCS,   (m,fn) => { stored.push(`<span class="syn-function">${fn}</span>`); return ph(stored.length-1) })
-  html = html.replace(PY_KW, '<span class="syn-keyword">$&</span>')
-  html = html.replace(JS_KW, '<span class="syn-keyword">$&</span>')
-  html = html.replace(BUILTINS, '<span class="syn-builtin">$&</span>')
-  html = html.replace(NUMBERS, '<span class="syn-number">$&</span>')
-  html = html.replace(/\x00P(\d+)\x01/g, (_, i) => stored[parseInt(i)])
-  return html
+  const stored:string[] = []
+  const ph = (n:number) => '\x00P' + n + '\x01'
+  // Every step stores immediately → later regexes never see raw span tags in html
+  const store = (cls:string, content:string) => { stored.push(`<span class="${cls}">${content}</span>`); return ph(stored.length-1) }
+
+  html = html.replace(COMMENTS, m  => store('syn-comment',  m))
+  html = html.replace(STRINGS,  m  => store('syn-string',   m))
+  html = html.replace(FUNCS,   (_,fn) => store('syn-function', fn))
+  html = html.replace(PY_KW,   m  => store('syn-keyword',  m))
+  html = html.replace(JS_KW,   m  => store('syn-keyword',  m))
+  html = html.replace(SYS_KW,  m  => store('syn-keyword',  m))
+  html = html.replace(BUILTINS, m  => store('syn-builtin',  m))
+  html = html.replace(NUMBERS,  m  => store('syn-number',   m))
+  return html.replace(/\x00P(\d+)\x01/g, (_,i) => stored[+i])
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -824,12 +829,12 @@ function CodeEditor({ node, onChange, externalPalette }) {
     const before = newCode.slice(0, pos)
     const m = before.match(/[\w.]+$/)
     const word = m ? m[0] : ''
-    if (word.length < 2) { setAcList([]); return }
+    if (!word) { setAcList([]); return }
     const base = isJS ? AC_JS : AC_PY
     const fileWords = [...new Set((newCode.match(/\b[a-zA-Z_]\w{2,}\b/g) || []))].filter(w => w !== word && w.length > 2)
     const all = [...base, ...fileWords]
     const wl = word.toLowerCase()
-    const matches = [...new Set(all.filter(s => s.toLowerCase().startsWith(wl) && s.toLowerCase() !== wl))].slice(0, 9)
+    const matches = [...new Set(all.filter(s => s.toLowerCase().startsWith(wl)))].slice(0, 9)
     setAcList(matches); setAcIdx(0)
   }
 
@@ -1029,8 +1034,8 @@ function CodeEditor({ node, onChange, externalPalette }) {
             onChange={e=>{onChange(e.target.value); computeAc(e.target.value, e.target.selectionStart)}}
             onScroll={handleScroll}
             onKeyDown={handleKeyDown}
-            onSelect={e=>{handleCursorUpdate(e); setAcList([])}}
-            onClick={e=>{handleCursorUpdate(e); setAcList([])}}
+            onSelect={e=>{handleCursorUpdate(e)}}
+            onClick={e=>{handleCursorUpdate(e)}}
             onBlur={()=>setTimeout(()=>setAcList([]),150)}
             spellCheck={false}
             style={{position:'absolute',inset:0,padding:`20px 14px`,fontFamily:"'JetBrains Mono',monospace",fontSize:fontSize+'px',lineHeight:lineH+'px',color:'transparent',caretColor:palette.fn,background:'transparent',border:'none',outline:'none',resize:'none',zIndex:2,whiteSpace:wordWrap?'pre-wrap':'pre',overflowWrap:wordWrap?'break-word':'normal',overflow:'auto'}}
@@ -1646,7 +1651,138 @@ function renderMd(raw) {
 //  PERSISTENCE
 // ══════════════════════════════════════════════════════════════
 
-const LS_KEY = 'forbiden-ide-v1'
+const LS_KEY    = 'forbiden-ide-v1'
+const NB_LS_KEY = 'forbiden-nb-v1'
+
+const NB_TEMPLATES = {
+  '🔐 Hash Toolkit': { lang:'python', code:
+`# Hash Toolkit — MD5 / SHA family
+import hashlib
+text = "hello world"          # ← change this
+for algo in ['md5','sha1','sha224','sha256','sha384','sha512']:
+    h = hashlib.new(algo, text.encode()).hexdigest()
+    print(f"{algo.upper():<10} {h}")` },
+  '🔐 Base64 / Hex': { lang:'python', code:
+`import base64, binascii
+data = "FORBIDEN_CTF_2025"    # ← change this
+b64  = base64.b64encode(data.encode()).decode()
+hx   = binascii.hexlify(data.encode()).decode()
+print("[Base64]  encode:", b64)
+print("[Base64]  decode:", base64.b64decode(b64).decode())
+print("[Hex]     encode:", hx)
+print("[Hex]     decode:", binascii.unhexlify(hx).decode())` },
+  '🔐 XOR Cipher': { lang:'python', code:
+`# XOR cipher — CTF staple
+def xor(data, key):
+    return bytes(b ^ key[i % len(key)] for i, b in enumerate(data))
+
+plaintext  = b"Hello, Operator!"
+key        = b"\\x2a\\x4f"          # ← change key
+ciphertext = xor(plaintext, key)
+print("Cipher (hex):", ciphertext.hex())
+print("Decrypted:   ", xor(ciphertext, key).decode())` },
+  '🔐 CIDR Calc': { lang:'python', code:
+`import ipaddress
+cidr = "10.0.0.0/8"           # ← change this
+net  = ipaddress.ip_network(cidr, strict=False)
+print(f"Network    {net.network_address}")
+print(f"Broadcast  {net.broadcast_address}")
+print(f"Netmask    {net.netmask}  /  Wildcard {net.hostmask}")
+print(f"Num hosts  {net.num_addresses - 2:,}")
+hosts = list(net.hosts())
+print(f"First 5:   {', '.join(str(h) for h in hosts[:5])}")
+print(f"Last  5:   {', '.join(str(h) for h in hosts[-5:])}")` },
+  '🤖 Token Counter': { lang:'js', code:
+`// Rough token estimator (GPT BPE ≈ 4 chars/token)
+const text = \`Paste your prompt here to estimate tokens and cost.\`
+const chars  = text.length
+const words  = text.trim().split(/\\s+/).length
+const tokens = Math.ceil(chars / 4)
+console.log(\`Words:     \${words}\`)
+console.log(\`Chars:     \${chars}\`)
+console.log(\`~Tokens:   \${tokens}\`)
+console.log(\`GPT-4o in  $\${(tokens/1e6*5).toFixed(4)}\`)
+console.log(\`GPT-4o out $\${(tokens/1e6*15).toFixed(4)}\`)
+console.log(\`Claude S   $\${(tokens/1e6*3).toFixed(4)}\`)` },
+  '🤖 Cosine Sim': { lang:'python', code:
+`# Cosine similarity — quick embedding sanity check
+import math
+def cosine(a, b):
+    dot = sum(x*y for x,y in zip(a,b))
+    na  = math.sqrt(sum(x*x for x in a))
+    nb  = math.sqrt(sum(x*x for x in b))
+    return dot / (na * nb) if na and nb else 0.0
+
+# Replace with real embedding vectors
+v1 = [1, 0, 1, 0, 1, 0, 1, 0]
+v2 = [1, 1, 0, 0, 1, 0, 0, 1]
+print(f"Cosine similarity: {cosine(v1, v2):.4f}")
+print("(1.0 = identical, 0.0 = orthogonal)")` },
+  '🤖 JSON Extract': { lang:'js', code:
+`// JSON path extractor — parse API responses
+const json = {
+  status: "ok",
+  data: { user: { id: 42, role: "admin" }, items: [1,2,3] }
+}
+const get = (o, path) => path.split('.').reduce((x,k) => x?.[k], o)
+console.log(JSON.stringify(json, null, 2))
+console.log("---")
+console.log("data.user.role →", get(json, "data.user.role"))
+console.log("data.items     →", get(json, "data.items"))` },
+  '🐳 Log Parser': { lang:'python', code:
+`import re
+logs = """2024-01-15 12:34:56 ERROR [auth] Failed login: admin from 10.0.0.5
+2024-01-15 12:34:57 WARN  [auth] Rate limit: 10.0.0.5 (5 req/s)
+2024-01-15 12:35:01 INFO  [app]  Service started port 8080
+2024-01-15 12:35:10 ERROR [db]   Connection timeout postgresql://localhost:5432"""
+pat = r'(\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}) (\\w+)\\s+\\[(\\w+)\\] (.+)'
+for line in logs.strip().split('\\n'):
+    m = re.match(pat, line)
+    if m:
+        ts, lvl, mod, msg = m.groups()
+        print(f"[{lvl:5}] {mod:6} | {ts} | {msg[:55]}")` },
+  '🐳 Cron Explainer': { lang:'js', code:
+`// Cron expression decoder
+const explain = expr => {
+  const [min,hr,dom,mon,dow] = expr.split(' ')
+  const H  = hr ==='*'?'every hour':\`at \${hr}:00\`
+  const M  = min==='*'?'every minute':min.startsWith('*/')?\`every \${min.slice(2)}min\`:\`min \${min}\`
+  const D  = dow==='*'?'daily':{0:'Sunday',1:'Monday',2:'Tuesday',3:'Wednesday',4:'Thursday',5:'Friday',6:'Saturday','1-5':'weekdays','0,6':'weekends'}[dow]||dow
+  return \`\${M}, \${H}, \${D}\`
+}
+const crons = ['0 * * * *','0 9 * * 1-5','*/5 * * * *','0 0 1 * *','0 2 * * 0','30 6 * * *']
+crons.forEach(c => console.log(c.padEnd(17), '→', explain(c)))` },
+  '🐳 ENV Redactor': { lang:'python', code:
+`# Extract + redact env vars / config files
+import re
+config = """
+DATABASE_URL=postgresql://admin:s3cr3t@db:5432/prod
+REDIS_URL=redis://localhost:6379
+API_KEY=sk-proj-abc123def456ghi789
+DEBUG=false
+MAX_POOL=20
+JWT_SECRET=my-super-secret-key
+"""
+SECRETS = {'KEY','SECRET','PASSWORD','TOKEN','PASS','AUTH','CRED'}
+for line in config.strip().split('\\n'):
+    if '=' not in line: continue
+    key, _, val = line.partition('=')
+    if any(s in key.upper() for s in SECRETS):
+        val = val[:3] + '···' + val[-3:] if len(val) > 6 else '···'
+    print(f"{key:<25} = {val}")` },
+}
+
+function loadNB() {
+  try {
+    const d = JSON.parse(localStorage.getItem(NB_LS_KEY) || 'null')
+    if (d?.cells?.length) return d.cells
+  } catch {}
+  return [
+    { id:'nb1', lang:'python', code: NB_TEMPLATES['🔐 Hash Toolkit'].code,  output:[], status:'idle' },
+    { id:'nb2', lang:'js',     code: NB_TEMPLATES['🤖 Token Counter'].code,  output:[], status:'idle' },
+    { id:'nb3', lang:'python', code: NB_TEMPLATES['🐳 Log Parser'].code,     output:[], status:'idle' },
+  ]
+}
 
 function loadSaved() {
   try {
@@ -1742,6 +1878,256 @@ async function parseFolderToGraph(fileList) {
     })
   })
   return { nodes, edges, groups:[] }
+}
+
+// ══════════════════════════════════════════════════════════════
+//  NOTEBOOK — Jupyter-style cell runner
+// ══════════════════════════════════════════════════════════════
+
+const _nbBtnS:any = {
+  background:'transparent', border:'1px solid rgba(255,255,255,.1)', cursor:'pointer',
+  fontFamily:"'Oswald',sans-serif", fontWeight:700, fontSize:'9px', letterSpacing:'.1em',
+  padding:'2px 7px', color:'rgba(200,200,220,.6)', lineHeight:1.6,
+}
+
+function NoteCell({ cell, idx, brutal, onRun, onDelete, onCodeChange, onLangChange, onMoveUp, onMoveDown, onDuplicate }:any) {
+  const taRef = useRef<any>(null)
+  const statusColor = { idle:'rgba(200,200,220,.2)', running:'#ffc410', ok:'#10b981', error:'#ff435a' }[cell.status] || '#888'
+  const langColor   = { js:'#ffc410', python:'#4285f4', markdown:'#bb9af7' }[cell.lang] || '#c792ea'
+  const codeBg = brutal ? '#f2eed8' : '#0a0a16'
+
+  const handleKeyDown = (e:any) => {
+    if (e.key === 'Enter' && e.shiftKey) { e.preventDefault(); onRun() }
+    if (e.key === 'Tab') {
+      e.preventDefault()
+      const ta = e.target, s = ta.selectionStart
+      const newCode = cell.code.slice(0,s) + '  ' + cell.code.slice(ta.selectionEnd)
+      onCodeChange(newCode)
+      setTimeout(() => { ta.selectionStart = ta.selectionEnd = s + 2 }, 0)
+    }
+  }
+
+  const lines = (cell.code || '').split('\n').length
+
+  return (
+    <div style={{ borderBottom: brutal ? '2px solid #1a1a1a' : '1px solid rgba(255,255,255,.06)' }}>
+      {/* Header */}
+      <div style={{ display:'flex', alignItems:'center', gap:5, padding:'2px 8px',
+        background: brutal ? '#1a1a1a' : 'rgba(0,0,0,.45)', flexShrink:0 }}>
+        <div style={{ width:6, height:6, borderRadius:'50%', background:statusColor, flexShrink:0 }}/>
+        <span style={{ fontFamily:"'JetBrains Mono',monospace", fontSize:'9px', color:'rgba(200,200,220,.3)', letterSpacing:'.06em' }}>
+          [{String(idx+1).padStart(2,'0')}]
+        </span>
+        <select value={cell.lang} onChange={(e:any)=>onLangChange(e.target.value)}
+          style={{ background:'transparent', border:'none', color:langColor, fontFamily:"'Oswald',sans-serif",
+            fontWeight:700, fontSize:'9px', letterSpacing:'.1em', cursor:'pointer', outline:'none' }}>
+          <option value="js">JS</option>
+          <option value="python">PYTHON</option>
+          <option value="markdown">MARKDOWN</option>
+        </select>
+        <div style={{ flex:1 }}/>
+        {cell.status === 'running' && (
+          <span style={{ fontSize:'9px', color:'#ffc410', opacity:.8, fontFamily:"'Share Tech Mono',monospace" }}>RUNNING…</span>
+        )}
+        <button onClick={onMoveUp} title="Move up" style={{ background:'transparent', border:'none', cursor:'pointer', color:'rgba(200,200,220,.2)', fontSize:'11px', lineHeight:1, padding:'1px 3px' }}>↑</button>
+        <button onClick={onMoveDown} title="Move down" style={{ background:'transparent', border:'none', cursor:'pointer', color:'rgba(200,200,220,.2)', fontSize:'11px', lineHeight:1, padding:'1px 3px' }}>↓</button>
+        <button onClick={onDuplicate} title="Duplicate cell" style={{ background:'transparent', border:'none', cursor:'pointer', color:'rgba(200,200,220,.2)', fontSize:'10px', lineHeight:1, padding:'1px 4px' }}>⧉</button>
+        <button onClick={onRun} title="Run (Shift+Enter)"
+          style={{ background:'transparent', border:'none', cursor:'pointer', color:'#10b981', fontSize:'13px', lineHeight:1, padding:'1px 4px', transition:'color .12s' }}>▶</button>
+        <button onClick={onDelete} title="Delete cell"
+          style={{ background:'transparent', border:'none', cursor:'pointer', color:'rgba(200,200,220,.2)', fontSize:'12px', lineHeight:1, padding:'1px 4px', transition:'color .12s' }}>×</button>
+      </div>
+
+      {/* Code area */}
+      {cell.lang === 'markdown' ? (
+        <div style={{ display:'flex', flexDirection:'column' }}>
+          <textarea
+            value={cell.code}
+            onChange={(e:any) => onCodeChange(e.target.value)}
+            onKeyDown={handleKeyDown}
+            rows={Math.max(3, lines)}
+            spellCheck={false}
+            style={{ width:'100%', boxSizing:'border-box', background:codeBg, border:'none', outline:'none', resize:'none',
+              fontFamily:"'JetBrains Mono',monospace", fontSize:'12px', lineHeight:1.6,
+              color: brutal ? '#1a1a1a' : '#c0c8d8', padding:'6px 8px', caretColor:'#bb9af7' }}
+          />
+          {cell.output.length === 0 && (
+            <div className="md-preview" style={{ padding:'6px 10px', background: brutal ? '#ede8d5' : '#0b0b14', fontSize:'12px' }}
+              dangerouslySetInnerHTML={{ __html: renderMd(cell.code) }}/>
+          )}
+        </div>
+      ) : (
+        <textarea ref={taRef}
+          value={cell.code}
+          onChange={(e:any) => onCodeChange(e.target.value)}
+          onKeyDown={handleKeyDown}
+          rows={Math.max(3, lines)}
+          spellCheck={false}
+          style={{ width:'100%', boxSizing:'border-box', background:codeBg, border:'none', outline:'none', resize:'none',
+            fontFamily:"'JetBrains Mono',monospace", fontSize:'12px', lineHeight:1.6,
+            color: brutal ? '#1a1a1a' : '#c0c8d8', padding:'6px 8px 6px 36px', caretColor:'#ff2a38' }}
+        />
+      )}
+
+      {/* Output */}
+      {cell.output.length > 0 && (
+        <div style={{ background: brutal ? '#0f0f0f' : '#03030a', padding:'5px 8px 5px 36px',
+          fontFamily:"'JetBrains Mono',monospace", fontSize:'11px', lineHeight:1.65,
+          borderTop: brutal ? '1px solid #2a2a2a' : '1px solid rgba(255,255,255,.04)', position:'relative' }}>
+          <button onClick={()=>navigator.clipboard.writeText(cell.output.map((e:any)=>e.val).join('\n')).catch(()=>{})}
+            title="Copy output" style={{ position:'absolute', top:4, right:6, background:'transparent', border:'none',
+              cursor:'pointer', color:'rgba(200,200,220,.2)', fontSize:'10px', transition:'color .12s' }}
+            onMouseEnter={e=>(e.currentTarget.style.color='#10b981')}
+            onMouseLeave={e=>(e.currentTarget.style.color='rgba(200,200,220,.2)')}>⎘</button>
+          {cell.output.map((entry:any,i:number) => {
+            const col:any = { log:'#c0c8d8', warn:'#ffc410', error:'#ff435a', info:'#4285f4', return:'#c792ea' }[entry.type] || '#c0c8d8'
+            return <div key={i} style={{ color:col, whiteSpace:'pre-wrap', wordBreak:'break-all' }}>{entry.val}</div>
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function NotebookPanel({ brutal }:any) {
+  const [cells, setCells] = useState<any[]>(() => loadNB())
+  const [showTemplates, setShowTemplates] = useState(false)
+
+  useEffect(() => {
+    try { localStorage.setItem(NB_LS_KEY, JSON.stringify({ cells })) } catch {}
+  }, [cells])
+
+  const runCell = useCallback(async (cellId:string) => {
+    const cell = cells.find((c:any) => c.id === cellId)
+    if (!cell || cell.lang === 'markdown') {
+      setCells(cs => cs.map((c:any) => c.id === cellId ? { ...c, output:[], status:'ok' } : c))
+      return
+    }
+    setCells(cs => cs.map((c:any) => c.id === cellId ? { ...c, status:'running', output:[] } : c))
+    const result = cell.lang === 'python' ? await runPython(cell.code) : await runJS(cell.code)
+    setCells(cs => cs.map((c:any) => c.id === cellId ? { ...c, status: result.error ? 'error' : 'ok', output: result.logs } : c))
+  }, [cells])
+
+  const runAll = async () => {
+    for (const cell of cells) await runCell(cell.id)
+  }
+
+  const addCell = (lang = 'js', code = '') => {
+    const id = 'nb' + Date.now()
+    const defaultCode = lang === 'python' ? '# New cell\n' : lang === 'markdown' ? '## Notes\n\n' : '// New cell\n'
+    setCells((cs:any) => [...cs, { id, lang, code: code || defaultCode, output:[], status:'idle' }])
+    setShowTemplates(false)
+  }
+
+  const insertTemplate = (name:string) => {
+    const t = (NB_TEMPLATES as any)[name]
+    if (t) addCell(t.lang, t.code)
+  }
+
+  const moveCell = (idx:number, dir:-1|1) => {
+    setCells((cs:any) => {
+      const next = [...cs]
+      const target = idx + dir
+      if (target < 0 || target >= next.length) return cs
+      ;[next[idx], next[target]] = [next[target], next[idx]]
+      return next
+    })
+  }
+
+  const bg0 = brutal ? '#ede8d5' : '#05050f'
+  const domainGroups = [
+    { label:'🔐 CYBERSEC',  keys:['🔐 Hash Toolkit','🔐 Base64 / Hex','🔐 XOR Cipher','🔐 CIDR Calc'] },
+    { label:'🤖 AI / ML',   keys:['🤖 Token Counter','🤖 Cosine Sim','🤖 JSON Extract'] },
+    { label:'🐳 DEVOPS',    keys:['🐳 Log Parser','🐳 Cron Explainer','🐳 ENV Redactor'] },
+  ]
+
+  return (
+    <div style={{ flex:1, display:'flex', flexDirection:'column', background:bg0, overflow:'hidden' }}>
+      {/* Toolbar */}
+      <div style={{ display:'flex', alignItems:'center', gap:4, padding:'3px 8px', flexShrink:0,
+        borderBottom: brutal ? '2px solid #1a1a1a' : '1px solid rgba(255,255,255,.06)',
+        background: brutal ? '#1a1a1a' : 'rgba(0,0,0,.5)', position:'relative' }}>
+        <span style={{ fontFamily:"'Oswald',sans-serif", fontWeight:700, fontSize:'9px', letterSpacing:'.14em', opacity:.4, color: brutal ? '#f0ece0' : '#c0c8d8' }}>
+          NOTEBOOK · {cells.length} CELLS
+        </span>
+        <div style={{ flex:1 }}/>
+        <button onClick={() => addCell('js')}       style={{ ..._nbBtnS, color:'#ffc410',  borderColor:'#ffc41040'  }}>+ JS</button>
+        <button onClick={() => addCell('python')}   style={{ ..._nbBtnS, color:'#4285f4',  borderColor:'#4285f440'  }}>+ PY</button>
+        <button onClick={() => addCell('markdown')} style={{ ..._nbBtnS, color:'#bb9af7',  borderColor:'#bb9af740'  }}>+ MD</button>
+        {/* Templates */}
+        <button onClick={() => setShowTemplates(s=>!s)}
+          style={{ ..._nbBtnS, color:'#ff2a38', borderColor:'#ff2a3840', background: showTemplates ? 'rgba(255,42,56,.12)':undefined }}>
+          TEMPLATES ▾
+        </button>
+        {showTemplates && (
+          <div style={{ position:'absolute', top:'100%', right:0, zIndex:200, minWidth:240,
+            background: brutal?'#1a1a1a':'#0a0a14', border:'1px solid rgba(255,42,56,.25)',
+            boxShadow:'0 8px 32px rgba(0,0,0,.8)' }}
+            onMouseLeave={()=>setShowTemplates(false)}>
+            {domainGroups.map(grp=>(
+              <div key={grp.label}>
+                <div style={{ padding:'4px 10px', fontFamily:"'Oswald',sans-serif", fontWeight:700, fontSize:'9px', letterSpacing:'.14em', color:'#ff2a38', borderBottom:'1px solid rgba(255,255,255,.06)', opacity:.7 }}>
+                  {grp.label}
+                </div>
+                {grp.keys.map(k=>(
+                  <div key={k} onClick={()=>insertTemplate(k)}
+                    style={{ padding:'5px 14px', fontFamily:"'Share Tech Mono',monospace", fontSize:'11px', color:'#c0c8d8', cursor:'pointer' }}
+                    onMouseEnter={e=>(e.currentTarget.style.background='rgba(255,255,255,.05)')}
+                    onMouseLeave={e=>(e.currentTarget.style.background='transparent')}>
+                    {k}
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+        )}
+        <div style={{ width:1, height:14, background:'rgba(255,255,255,.1)', margin:'0 2px' }}/>
+        <button onClick={runAll}
+          style={{ ..._nbBtnS, color:'#10b981', borderColor:'#10b98140', background:'rgba(16,185,129,.1)' }}>▶ RUN ALL</button>
+        <button onClick={() => setCells((cs:any) => cs.map((c:any) => ({ ...c, output:[], status:'idle' })))}
+          style={{ ..._nbBtnS, opacity:.35 }}>CLR OUT</button>
+        <button onClick={() => {
+          const lines = cells.map((c:any) => {
+            if (c.lang === 'python') return `# ── Cell [${c.lang.toUpperCase()}] ──\n${c.code}`
+            if (c.lang === 'markdown') return `<!-- Cell [MD] -->\n${c.code}`
+            return `// ── Cell [${c.lang.toUpperCase()}] ──\n${c.code}`
+          }).join('\n\n')
+          const ext = cells.some((c:any)=>c.lang==='python') ? '.py' : '.js'
+          const blob = new Blob([lines], { type:'text/plain' })
+          const a = document.createElement('a'); a.href = URL.createObjectURL(blob)
+          a.download = 'notebook' + ext; a.click()
+        }} style={{ ..._nbBtnS, color:'#4285f4', borderColor:'#4285f440' }} title="Download cells as file">⬇ EXPORT</button>
+        <button onClick={() => { if (confirm('Clear all cells?')) setCells([]); }}
+          style={{ ..._nbBtnS, color:'#ff435a', opacity:.4, borderColor:'transparent' }}>⊖ CLEAR ALL</button>
+      </div>
+
+      {/* Cells */}
+      <div style={{ flex:1, overflowY:'auto', scrollbarWidth:'thin', scrollbarColor:'rgba(255,255,255,.08) transparent' }}>
+        {cells.map((cell:any, idx:number) => (
+          <NoteCell
+            key={cell.id}
+            cell={cell} idx={idx} brutal={brutal}
+            onRun={() => runCell(cell.id)}
+            onDelete={() => setCells((cs:any) => cs.filter((c:any) => c.id !== cell.id))}
+            onCodeChange={(code:string) => setCells((cs:any) => cs.map((c:any) => c.id === cell.id ? { ...c, code } : c))}
+            onLangChange={(lang:string) => setCells((cs:any) => cs.map((c:any) => c.id === cell.id ? { ...c, lang, output:[], status:'idle' } : c))}
+            onMoveUp={() => moveCell(idx, -1)}
+            onMoveDown={() => moveCell(idx, 1)}
+            onDuplicate={() => {
+              const dup = { ...cell, id:'nb'+Date.now(), output:[], status:'idle' }
+              setCells((cs:any) => { const next=[...cs]; next.splice(idx+1,0,dup); return next })
+            }}
+          />
+        ))}
+        {cells.length === 0 && (
+          <div style={{ padding:'40px', textAlign:'center', opacity:.2, fontFamily:"'Share Tech Mono',monospace", fontSize:'11px', color: brutal ? '#0f0f0f' : '#c0c8d8' }}>
+            NO CELLS — add JS, Python or Markdown cells above
+          </div>
+        )}
+        <div style={{ height:20 }}/>
+      </div>
+    </div>
+  )
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -1841,40 +2227,28 @@ function IDE({ initialTheme = 'cyber', initialAvatar = 0 }) {
   const [gitCommitMsg, setGitCommitMsg] = useState('')
   const [gitLoading, setGitLoading]     = useState(false)
 
-  const wsId = wsHook.workspace?.id
-  const refreshGit = useCallback(async () => {
-    if (!wsId) return
-    setGitLoading(true)
-    try {
-      const [status, log, branches] = await Promise.all([
-        fetch(`/api/workspaces/${wsId}/git/status`).then(r=>r.json()).catch(()=>null),
-        fetch(`/api/workspaces/${wsId}/git/log?limit=30`).then(r=>r.json()).catch(()=>[]),
-        fetch(`/api/workspaces/${wsId}/git/branches`).then(r=>r.json()).catch(()=>[]),
-      ])
-      setGitStatus(status)
-      setGitLog(Array.isArray(log) ? log : log?.commits || [])
-      const cur = Array.isArray(branches) ? branches.find((b:any)=>b.current) : null
-      setGitBranch(cur?.name || 'main')
-    } catch {}
-    setGitLoading(false)
-  }, [wsId])
+  const refreshGit = useCallback(() => {
+    const modNodes = nodesRef.current.filter((n:any) => n.modified)
+    setGitStatus({ modified: modNodes.map((n:any) => n.label) })
+    setGitLog(eventLog.filter((e:any) => e.type==='commit').slice(0,30).map((e:any) => ({
+      hash: e.id.toString(16).slice(0,7),
+      message: e.label,
+      author: 'Operator',
+      date: new Date(e.ts).toISOString(),
+    })))
+    setGitBranch('main')
+  }, [eventLog])
 
-  // Load git when bottom panel git tab is opened
   useEffect(() => {
-    if (bottomOpen && bottomTab === 'git' && wsId && !gitLog.length) refreshGit()
-  }, [bottomOpen, bottomTab, wsId])
+    if (bottomOpen && bottomTab === 'git') refreshGit()
+  }, [bottomOpen, bottomTab])
 
-  const handleGitCommit = async () => {
-    if (!gitCommitMsg.trim() || !wsId) return
-    setGitLoading(true)
-    try {
-      await fetch(`/api/workspaces/${wsId}/git/stage`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({files:['.']})})
-      await fetch(`/api/workspaces/${wsId}/git/commit`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({message:gitCommitMsg})})
-      addEvent('commit', `Commit: ${gitCommitMsg.slice(0,40)}`)
-      setGitCommitMsg('')
-      await refreshGit()
-    } catch(e:any) {}
-    setGitLoading(false)
+  const handleGitCommit = () => {
+    if (!gitCommitMsg.trim()) return
+    addEvent('commit', `Commit: ${gitCommitMsg.slice(0,40)}`)
+    nodesRef.current = nodesRef.current.map(n=>({...n,modified:false}))
+    setGitCommitMsg('')
+    forceRender({})
   }
 
   // ── Legacy compat shims ─────────────────────────────────────
@@ -1956,6 +2330,14 @@ function IDE({ initialTheme = 'cyber', initialAvatar = 0 }) {
 
   // Markdown
   const [mdPreviewMode, setMdPreviewMode] = useState('preview')
+  const [mdFontSize,    setMdFontSize]    = useState(16)
+
+  // Floating notebook panel
+  const [notebookFloating, setNotebookFloating] = useState(false)
+
+  // File drop
+  const [dragOver, setDragOver] = useState(false)
+  const dragDepthRef = useRef(0)
 
   // Chat & Notes
   const [chatInput, setChatInput] = useState('')
@@ -2230,6 +2612,97 @@ function IDE({ initialTheme = 'cyber', initialAvatar = 0 }) {
     if (wsHook.workspace) wsHook.createGroup(groupName.trim(),groupColor,[...groupSelected]).catch(()=>{})
   }
 
+  // ── FILE DROP ──
+  const handleDragEnter = (e:any) => {
+    e.preventDefault()
+    dragDepthRef.current++
+    setDragOver(true)
+  }
+  const handleDragOver = (e:any) => { e.preventDefault(); e.dataTransfer.dropEffect = 'copy' }
+  const handleDragLeave = (e:any) => {
+    // Only hide the overlay when truly leaving the canvas (not entering a child element)
+    dragDepthRef.current--
+    if (dragDepthRef.current <= 0) { dragDepthRef.current = 0; setDragOver(false) }
+  }
+
+  const handleFileDrop = async (e:any) => {
+    e.preventDefault()
+    dragDepthRef.current = 0
+    setDragOver(false)
+    const files = [...e.dataTransfer.files]
+    if (!files.length) return
+
+    const newNodes:any[] = []
+    for (const file of files) {
+      const ext = (file.name.split('.').pop() || '').toLowerCase()
+      const isText = /^(js|ts|jsx|tsx|mjs|cjs|py|md|txt|json|csv|html|htm|css|yaml|yml|sh|bash|xml|toml|rs|go|java|c|cpp|h|rb|php|lua|zig|kt|swift|cs|fs)$/.test(ext)
+      const isImg  = /^(png|jpg|jpeg|gif|webp|svg|avif|bmp)$/.test(ext)
+
+      if (isText) {
+        let text = await file.text()
+
+        // Format JSON nicely on drop
+        if (ext === 'json') {
+          try { text = JSON.stringify(JSON.parse(text), null, 2) } catch {}
+        }
+
+        // For YAML/TOML/CSV/HTML — wrap in a doc with info header so it renders usefully
+        if (/^(yaml|yml)$/.test(ext)) {
+          text = `<!-- YAML: ${file.name} -->\n\`\`\`yaml\n${text}\n\`\`\``
+        }
+        if (ext === 'csv') {
+          const rows = text.trim().split('\n').slice(0, 20)
+          const mdTable = rows[0]
+            ? rows[0].split(',').join(' | ') + '\n' + rows[0].split(',').map(() => '---').join(' | ') + '\n' +
+              rows.slice(1).map(r => r.split(',').join(' | ')).join('\n')
+            : text
+          text = `# ${file.name}\n\n${mdTable}`
+        }
+
+        const isMd   = /^(md|txt)$/.test(ext)
+        const isPy   = ext === 'py'
+        const isCode = /^(js|ts|jsx|tsx|mjs|cjs)$/.test(ext)
+        const isDoc  = isMd || /^(json|yaml|yml|toml|csv|html|htm)$/.test(ext)
+
+        const type = isMd ? 'doc'
+          : isDoc ? 'doc'
+          : isPy  ? 'function'
+          : isCode ? _guessType(file.name, text)
+          : 'function'
+
+        const themeIdx = isPy ? 4 : isDoc ? 11 : _TYPE_THEME[type] ?? 1
+
+        newNodes.push({
+          id: 'f' + Date.now() + Math.random().toString(36).slice(2,5),
+          label: file.name, filepath: file.name, type,
+          isMain: /^(index|main)\.(j|t)sx?$/.test(file.name),
+          x: (Math.random()-.5)*400, y: (Math.random()-.5)*300,
+          vx:0, vy:0, themeIdx, classId:null, code:text, modified:false,
+        })
+      } else if (isImg) {
+        const url  = URL.createObjectURL(file)
+        const code = `# ${file.name}\n\n![${file.name}](${url})`
+        newNodes.push({
+          id: 'f' + Date.now() + Math.random().toString(36).slice(2,5),
+          label: file.name, filepath: file.name, type:'doc',
+          isMain: false, x:(Math.random()-.5)*400, y:(Math.random()-.5)*300,
+          vx:0, vy:0, themeIdx:11, classId:null, code, modified:false,
+        })
+      }
+    }
+
+    if (newNodes.length) {
+      nodesRef.current = [...nodesRef.current, ...newNodes]
+      forceRender({})
+      addEvent('import', `Dropped ${newNodes.length} file${newNodes.length>1?'s':''}: ${newNodes.map((n:any)=>n.label).join(', ')}`)
+      // Open single file drop immediately; for .md auto-switch to preview
+      if (newNodes.length === 1) {
+        openNodeInEditor(newNodes[0].id)
+        if (newNodes[0].type === 'doc') setMdPreviewMode('preview')
+      }
+    }
+  }
+
   // ── BOARD ──
   const addCard = colId => {
     if (!newCardTitle.trim()) return
@@ -2403,16 +2876,18 @@ function IDE({ initialTheme = 'cyber', initialAvatar = 0 }) {
             <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:'11px',letterSpacing:'.14em',padding:'2px 8px',color:brutal?'rgba(240,236,224,.35)':'rgba(200,200,220,.3)',border:brutal?'2px solid rgba(255,255,255,.12)':'1px solid rgba(255,255,255,.07)'}}>NO FILE OPEN</div>
           )}
         </div>
-        {/* Stats */}
-        <div style={{display:'flex',gap:'4px',alignItems:'center',flexShrink:0}}>
-          <div style={{background:brutal?'#c8001a':'rgba(255,42,56,.12)',color:brutal?'#f4f0e8':'#ff2a38',fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:'11px',letterSpacing:'.12em',padding:'2px 7px',border:brutal?'2px solid #c8001a':'1px solid rgba(255,42,56,.25)'}}>{nodeCount} NODES</div>
-          <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:'11px',letterSpacing:'.12em',padding:'2px 7px',opacity:.5,border:brutal?'2px solid rgba(255,255,255,.12)':'1px solid rgba(255,255,255,.07)'}}>{edgeCount} EDGES</div>
-          {modifiedNodes.length>0 && <div style={{background:'#f2c12e',color:'#0f0f0f',fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:'11px',letterSpacing:'.12em',padding:'2px 7px'}}>{modifiedNodes.length} UNSAVED</div>}
-        </div>
+        {/* Unsaved indicator */}
+        {modifiedNodes.length>0 && (
+          <div style={{background:'#f2c12e',color:'#0f0f0f',fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:'10px',letterSpacing:'.12em',padding:'2px 7px',flexShrink:0,transition:'all .2s'}}>{modifiedNodes.length} UNSAVED</div>
+        )}
         <div className="ide-topbar-sep"/>
         {/* Actions */}
+        <button className="ide-topbar-btn" onClick={()=>setNotebookFloating(f=>!f)}
+          style={{color:notebookFloating?'#c792ea':'',borderColor:notebookFloating?'rgba(199,146,234,.4)':'',transition:'all .15s',fontWeight:700}}>
+          ◎ NOTEBOOK
+        </button>
         <button className="ide-topbar-btn primary" onClick={()=>setShowCreateNode(true)}>+ NODE</button>
-        <button className="ide-topbar-btn" onClick={()=>folderInputRef.current?.click()} title="Upload a folder — reads all imports/exports and builds the graph">⬆ FOLDER</button>
+        <button className="ide-topbar-btn" onClick={()=>folderInputRef.current?.click()} title="Upload a folder">⬆ FOLDER</button>
         <input ref={folderInputRef} type="file" multiple {...{'webkitdirectory':''}} style={{display:'none'}} onChange={handleFolderUpload}/>
         <button className="ide-topbar-btn" onClick={()=>{
           const x=(Math.random()-.5)*300, y=(Math.random()-.5)*300
@@ -2422,9 +2897,6 @@ function IDE({ initialTheme = 'cyber', initialAvatar = 0 }) {
           openNodeInEditor(tempId)
         }}>+ DOC</button>
         <button className="ide-topbar-btn" onClick={()=>setShowCmd(true)}>⌘P</button>
-        <button className="ide-topbar-btn" onClick={()=>setThemeMode(t=>t==='cyber'?'brutal':'cyber')} style={{minWidth:'58px'}}>
-          {brutal?'BRUTAL':'CYBER'}
-        </button>
         {/* Avatar */}
         <div onClick={()=>setSidebarMode(s=>s==='settings'?null:'settings')}
           style={{cursor:'pointer',width:'32px',height:'32px',border:`2px solid ${sidebarMode==='settings'?'#ff2a38':'rgba(255,255,255,.12)'}`,overflow:'hidden',flexShrink:0,transition:'border-color .15s'}}>
@@ -2453,7 +2925,10 @@ function IDE({ initialTheme = 'cyber', initialAvatar = 0 }) {
           <div title="Timeline" className={`ide-icon-btn ${bottomOpen&&bottomTab==='timeline'?'active':''}`} onClick={()=>{ if(bottomOpen&&bottomTab==='timeline'){setBottomOpen(false)}else{setBottomTab('timeline');setBottomOpen(true)} }}>
             <I.Timeline/>
           </div>
-          <div title="Git" className={`ide-icon-btn ${bottomOpen&&bottomTab==='git'?'active':''}`} onClick={()=>{ if(bottomOpen&&bottomTab==='git'){setBottomOpen(false)}else{setBottomTab('git');setBottomOpen(true);refreshGit()} }}>
+          <div title="Notebook (Jupyter-style)" className={`ide-icon-btn ${bottomOpen&&bottomTab==='notebook'?'active':''}`} onClick={()=>{ if(bottomOpen&&bottomTab==='notebook'){setBottomOpen(false)}else{setBottomTab('notebook');setBottomOpen(true)} }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
+          </div>
+          <div title="Git Snapshots" className={`ide-icon-btn ${bottomOpen&&bottomTab==='git'?'active':''}`} onClick={()=>{ if(bottomOpen&&bottomTab==='git'){setBottomOpen(false)}else{setBottomTab('git');setBottomOpen(true);refreshGit()} }}>
             <I.Git/>
           </div>
           <div title="JS Console" className={`ide-icon-btn ${bottomOpen&&bottomTab==='console'?'active':''}`} onClick={()=>{ if(bottomOpen&&bottomTab==='console'){setBottomOpen(false)}else{setBottomTab('console');setBottomOpen(true)} }}>
@@ -2557,7 +3032,25 @@ function IDE({ initialTheme = 'cyber', initialAvatar = 0 }) {
         </>)}
 
         {/* ── CANVAS ── */}
-        <div className="ide-canvas-wrap" style={{flex:1}}>
+        <div className="ide-canvas-wrap" style={{flex:1, position:'relative'}}
+          onDragEnter={handleDragEnter}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleFileDrop}
+        >
+          {dragOver && (
+            <div style={{
+              position:'absolute', inset:0, zIndex:9999, pointerEvents:'none',
+              background:'rgba(16,185,129,.07)', border:'2px dashed #10b981',
+              display:'flex', alignItems:'center', justifyContent:'center',
+              flexDirection:'column', gap:8,
+            }}>
+              <div style={{fontFamily:"'Bangers',sans-serif", fontSize:'2rem', letterSpacing:'.1em', color:'#10b981'}}>DROP FILES</div>
+              <div style={{fontFamily:"'Share Tech Mono',monospace", fontSize:'11px', color:'#10b981', opacity:.7}}>
+                .py · .js · .ts · .md · .json · .csv · .html · images…
+              </div>
+            </div>
+          )}
           {/* Mode bar */}
           <div className="ide-mode-bar">
             <div style={{fontFamily:"'Bangers',sans-serif",fontSize:'13px',letterSpacing:'.12em',opacity:.5}}>{brutal?'MANGA // BRUTAL':'MANGA // CYBER'}</div>
@@ -2775,14 +3268,28 @@ function IDE({ initialTheme = 'cyber', initialAvatar = 0 }) {
                 <div style={{marginLeft:'auto',display:'flex',alignItems:'center',gap:4,padding:'0 6px',flexShrink:0}}>
                   {activeTabNode?.type==='doc' ? (
                     <>
-                      <button onClick={()=>setMdPreviewMode('edit')}
-                        style={{padding:'2px 7px',cursor:'pointer',fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:'9px',letterSpacing:'.1em',background:mdPreviewMode==='edit'?'#c792ea':'transparent',color:mdPreviewMode==='edit'?'#000':'rgba(200,200,220,.4)',border:'1px solid rgba(200,100,255,.25)'}}>
-                        EDIT
-                      </button>
-                      <button onClick={()=>setMdPreviewMode('preview')}
-                        style={{padding:'2px 7px',cursor:'pointer',fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:'9px',letterSpacing:'.1em',background:mdPreviewMode==='preview'?'#c792ea':'transparent',color:mdPreviewMode==='preview'?'#000':'rgba(200,200,220,.4)',border:'1px solid rgba(200,100,255,.25)'}}>
-                        PREVIEW
-                      </button>
+                      {['edit','split','preview'].map(m=>(
+                        <button key={m} onClick={()=>setMdPreviewMode(m)}
+                          style={{padding:'2px 7px',cursor:'pointer',fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:'9px',letterSpacing:'.1em',
+                            background:mdPreviewMode===m?'#c792ea':'transparent',
+                            color:mdPreviewMode===m?'#000':'rgba(200,200,220,.4)',
+                            border:'1px solid rgba(200,100,255,.25)',transition:'all .12s'}}>
+                          {m.toUpperCase()}
+                        </button>
+                      ))}
+                      <div style={{width:1,height:12,background:'rgba(255,255,255,.1)',margin:'0 3px'}}/>
+                      <button onClick={()=>setMdFontSize(s=>Math.max(11,s-1))} title="Decrease text size"
+                        style={{padding:'1px 6px',cursor:'pointer',fontFamily:"'JetBrains Mono',monospace",fontSize:'11px',
+                          background:'transparent',color:'rgba(200,200,220,.4)',border:'1px solid rgba(255,255,255,.1)',
+                          lineHeight:1.4,transition:'all .12s'}}
+                        onMouseEnter={e=>(e.currentTarget.style.color='#c792ea')}
+                        onMouseLeave={e=>(e.currentTarget.style.color='rgba(200,200,220,.4)')}>A-</button>
+                      <button onClick={()=>setMdFontSize(s=>Math.min(26,s+1))} title="Increase text size"
+                        style={{padding:'1px 6px',cursor:'pointer',fontFamily:"'JetBrains Mono',monospace",fontSize:'13px',
+                          background:'transparent',color:'rgba(200,200,220,.4)',border:'1px solid rgba(255,255,255,.1)',
+                          lineHeight:1.4,transition:'all .12s'}}
+                        onMouseEnter={e=>(e.currentTarget.style.color='#c792ea')}
+                        onMouseLeave={e=>(e.currentTarget.style.color='rgba(200,200,220,.4)')}>A+</button>
                     </>
                   ) : (
                     <button onClick={()=>handleRunNode(activeTabId)} title="Run JS (Ctrl+Enter)"
@@ -2798,8 +3305,16 @@ function IDE({ initialTheme = 'cyber', initialAvatar = 0 }) {
               </div>
               {/* Editor / Markdown Preview */}
               <div className="ide-code-wrap" onKeyDown={e=>{if(e.ctrlKey&&e.key==='Enter'){e.preventDefault();handleRunNode(activeTabId)}}}>
-                {activeTabNode?.type==='doc' && mdPreviewMode==='preview' ? (
-                  <div className="md-preview" dangerouslySetInnerHTML={{__html: renderMd(activeTabNode.code||'')}}/>
+                {activeTabNode?.type==='doc' && mdPreviewMode==='split' ? (
+                  <div style={{display:'flex',height:'100%',overflow:'hidden'}}>
+                    <div style={{flex:1,overflow:'hidden',borderRight:'1px solid rgba(255,255,255,.08)'}}>
+                      <CodeEditor key={activeTabId+'_s'} node={activeTabNode} onChange={code=>updateNodeCode(activeTabId,code)} externalPalette={globalEditorPalette}/>
+                    </div>
+                    <div style={{flex:1,overflow:'auto',padding:'12px 16px',fontSize:mdFontSize+'px'}} className="md-preview"
+                      dangerouslySetInnerHTML={{__html: renderMd(activeTabNode.code||'')}}/>
+                  </div>
+                ) : activeTabNode?.type==='doc' && mdPreviewMode==='preview' ? (
+                  <div className="md-preview" style={{fontSize:mdFontSize+'px'}} dangerouslySetInnerHTML={{__html: renderMd(activeTabNode.code||'')}}/>
                 ) : (
                   <CodeEditor
                     key={activeTabId}
@@ -2843,6 +3358,10 @@ function IDE({ initialTheme = 'cyber', initialAvatar = 0 }) {
                 <div className="ide-welcome-cta">
                   <button className="ide-btn primary" onClick={()=>setShowCreateNode(true)}>+ NEW NODE</button>
                   <button className="ide-btn" onClick={()=>setSidebarMode('files')}>BROWSE FILES</button>
+                  <button className="ide-btn" onClick={()=>{setBottomTab('notebook');setBottomOpen(true)}}>◎ NOTEBOOK</button>
+                </div>
+                <div style={{marginTop:8,fontFamily:"'Share Tech Mono',monospace",fontSize:'10px',opacity:.25,textAlign:'center'}}>
+                  DROP .py · .js · .md · .json · .csv · images onto canvas
                 </div>
               </div>
             </div>
@@ -2852,6 +3371,35 @@ function IDE({ initialTheme = 'cyber', initialAvatar = 0 }) {
       </div>
 
       </div>{/* ide-main-row */}
+
+      {/* ── FLOATING NOTEBOOK PANEL ── */}
+      {notebookFloating && (
+        <div style={{
+          position:'fixed', top:'36px', right:0, bottom:'22px', zIndex:100,
+          width: Math.min(460, typeof window!=='undefined'?window.innerWidth*0.38:460),
+          display:'flex', flexDirection:'column', overflow:'hidden',
+          background:'#05050f', borderLeft:'1px solid rgba(199,146,234,.18)',
+          boxShadow:'-12px 0 40px rgba(0,0,0,.7)',
+          animation:'nbSlideIn .18s cubic-bezier(.2,.8,.4,1)',
+        }}>
+          <div style={{display:'flex',alignItems:'center',gap:7,padding:'5px 10px',flexShrink:0,
+            borderBottom:'1px solid rgba(255,255,255,.07)',background:'rgba(0,0,0,.55)'}}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#c792ea" strokeWidth="2">
+              <rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/>
+              <line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/>
+            </svg>
+            <span style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:'10px',letterSpacing:'.15em',color:'#c792ea'}}>NOTEBOOK</span>
+            <span style={{opacity:.25,fontSize:'9px',fontFamily:"'Share Tech Mono',monospace"}}>Shift+Enter runs · Tab indents</span>
+            <button onClick={()=>setNotebookFloating(false)}
+              style={{marginLeft:'auto',background:'transparent',border:'none',cursor:'pointer',
+                color:'rgba(200,200,220,.35)',fontSize:'15px',lineHeight:1,padding:'2px 6px',
+                transition:'color .12s'}}
+              onMouseEnter={e=>(e.currentTarget.style.color='#ff435a')}
+              onMouseLeave={e=>(e.currentTarget.style.color='rgba(200,200,220,.35)')}>✕</button>
+          </div>
+          <NotebookPanel brutal={false}/>
+        </div>
+      )}
 
       {/* ── BOTTOM PANEL (Timeline / Console / Git) ── */}
       {bottomOpen && (
@@ -2865,7 +3413,8 @@ function IDE({ initialTheme = 'cyber', initialAvatar = 0 }) {
             {[
               {key:'timeline', label:'◈ TIMELINE'},
               {key:'console',  label:'>_ CONSOLE'},
-              {key:'git',      label:'◆ GIT  ·  '+gitBranch},
+              {key:'notebook', label:'◎ NOTEBOOK'},
+              {key:'git',      label:'◆ SNAPSHOTS'},
             ].map(t=>(
               <button key={t.key}
                 className={`ide-bottom-tab ${bottomTab===t.key?'active':''}`}
@@ -2879,6 +3428,7 @@ function IDE({ initialTheme = 'cyber', initialAvatar = 0 }) {
           {/* Content */}
           <div style={{flex:1,overflow:'hidden',display:'flex',flexDirection:'column',minHeight:0}}>
             {bottomTab==='timeline' && <TimelinePanel eventLog={eventLog} brutal={brutal}/>}
+            {bottomTab==='notebook' && <NotebookPanel brutal={brutal}/>}
             {bottomTab==='console' && (<>
 
         <div style={{flex:1,overflowY:'auto',padding:'6px 10px',fontFamily:"'JetBrains Mono',monospace",fontSize:'11px',lineHeight:1.7,scrollbarWidth:'thin',scrollbarColor:'rgba(255,255,255,.1) transparent'}}>
@@ -2905,36 +3455,39 @@ function IDE({ initialTheme = 'cyber', initialAvatar = 0 }) {
             {bottomTab==='git' && (
               <div style={{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}}>
                 <div style={{padding:'7px 10px',borderBottom:'1px solid rgba(255,255,255,.07)',flexShrink:0}}>
+                  <div style={{padding:'2px 0 5px',opacity:.3,fontSize:'9px',fontFamily:"'Share Tech Mono',monospace",color:'#ffc410'}}>
+                    LOCAL SNAPSHOTS — no GitHub connection · use terminal for real git
+                  </div>
                   <div style={{display:'flex',gap:6}}>
                     <input value={gitCommitMsg} onChange={e=>setGitCommitMsg(e.target.value)}
                       onKeyDown={e=>{ if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();handleGitCommit()} }}
-                      placeholder="Commit message…"
+                      placeholder="Snapshot message…"
                       style={{flex:1,background:'rgba(255,255,255,.04)',border:'1px solid rgba(255,255,255,.1)',outline:'none',padding:'4px 8px',fontFamily:"'Share Tech Mono',monospace",fontSize:'11px',color:'#c0c8d8',borderRadius:2}}/>
-                    <button onClick={handleGitCommit} disabled={!gitCommitMsg.trim()||gitLoading}
-                      style={{padding:'4px 10px',fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:'9px',letterSpacing:'.1em',background:'#ff2a38',color:'#fff',border:'none',cursor:'pointer',opacity:gitLoading?.5:1}}>
-                      {gitLoading?'…':'COMMIT'}
+                    <button onClick={handleGitCommit} disabled={!gitCommitMsg.trim()}
+                      style={{padding:'4px 10px',fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:'9px',letterSpacing:'.1em',background:'#ff2a38',color:'#fff',border:'none',cursor:'pointer'}}>
+                      SNAP
                     </button>
-                    <button onClick={refreshGit} style={{padding:'4px 8px',background:'transparent',border:'1px solid rgba(255,255,255,.1)',color:'#c0c8d8',cursor:'pointer',fontSize:'11px'}} title="Refresh">↻</button>
                   </div>
-                  {gitStatus?.modified?.length>0 && (
+                  {modifiedNodes.length>0 && (
                     <div style={{marginTop:5,display:'flex',flexWrap:'wrap',gap:3}}>
-                      {gitStatus.modified.map((f,i)=>(
-                        <span key={i} style={{fontSize:'9px',padding:'1px 5px',background:'#ffc41018',border:'1px solid #ffc41040',color:'#ffc410',fontFamily:"'JetBrains Mono',monospace"}}>{f}</span>
+                      {modifiedNodes.map((n,i)=>(
+                        <span key={i} style={{fontSize:'9px',padding:'1px 5px',background:'#ffc41018',border:'1px solid #ffc41040',color:'#ffc410',fontFamily:"'JetBrains Mono',monospace"}}>{n.label}</span>
                       ))}
                     </div>
                   )}
                 </div>
                 <div style={{flex:1,overflowY:'auto',scrollbarWidth:'thin',scrollbarColor:'rgba(255,255,255,.1) transparent'}}>
-                  {gitLoading && <div style={{padding:'12px',opacity:.4,textAlign:'center',fontSize:'11px'}}>Loading…</div>}
-                  {!gitLoading&&gitLog.length===0 && <div style={{padding:'16px',opacity:.25,textAlign:'center',fontFamily:"'Share Tech Mono',monospace",fontSize:'11px'}}>No commits yet</div>}
-                  {gitLog.map((c,i)=>(
-                    <div key={c.hash||i} style={{padding:'5px 10px',borderBottom:'1px solid rgba(255,255,255,.04)',display:'flex',gap:8,alignItems:'flex-start'}}>
+                  {eventLog.filter(e=>e.type==='commit').length===0 && (
+                    <div style={{padding:'16px',opacity:.25,textAlign:'center',fontFamily:"'Share Tech Mono',monospace",fontSize:'11px'}}>No snapshots yet — type a message and hit SNAP</div>
+                  )}
+                  {eventLog.filter(e=>e.type==='commit').map((ev:any,i:number)=>(
+                    <div key={ev.id||i} style={{padding:'5px 10px',borderBottom:'1px solid rgba(255,255,255,.04)',display:'flex',gap:8,alignItems:'flex-start'}}>
                       <div style={{width:5,height:5,borderRadius:'50%',background:'#ff2a38',flexShrink:0,marginTop:5}}/>
                       <div style={{flex:1,minWidth:0}}>
-                        <div style={{fontFamily:"'Share Tech Mono',monospace",fontSize:'11px',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',color:'#c0c8d8'}}>{c.message||c.subject||'(no message)'}</div>
+                        <div style={{fontFamily:"'Share Tech Mono',monospace",fontSize:'11px',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',color:'#c0c8d8'}}>{ev.label}</div>
                         <div style={{fontFamily:"'Share Tech Mono',monospace",fontSize:'9px',opacity:.4,marginTop:1}}>
-                          <span style={{color:'#ff2a38',fontFamily:"'JetBrains Mono',monospace"}}>{(c.hash||'').slice(0,7)}</span>
-                          {' · '}{c.author?.name||c.author||''}{c.date?' · '+new Date(c.date).toLocaleDateString():''}
+                          <span style={{color:'#ff2a38',fontFamily:"'JetBrains Mono',monospace"}}>{ev.id?.toString(16)?.slice(0,7)||'·······'}</span>
+                          {' · Operator · '}{new Date(ev.ts).toLocaleString()}
                         </div>
                       </div>
                     </div>
@@ -2952,14 +3505,13 @@ function IDE({ initialTheme = 'cyber', initialAvatar = 0 }) {
       {/* ═══════ STATUS BAR ═══════ */}
       <div className="ide-status-bar">
         <div className="ide-status-badge" style={{background:brutal?'#c8001a':'#ff2a38',color:'#fff'}}>FORBIDEN</div>
-        <span style={{color:'#10b981'}}>● ONLINE</span>
+        <span style={{color:'#10b981'}}>● LOCAL</span>
+        <span style={{opacity:.3,fontSize:'9px',fontFamily:"'Share Tech Mono',monospace"}}>WASM</span>
         <span style={{opacity:.2}}>|</span>
         <span>{nodeCount} nodes · {edgeCount} edges</span>
         {groupsRef.current.length>0 && <><span style={{opacity:.2}}>|</span><span>{groupsRef.current.length} classes</span></>}
         {edgeMode && <><span style={{opacity:.2}}>|</span><span style={{color:edgeMode==='join'?'#10b981':'#ff435a'}}>{edgeMode==='join'?'JOIN MODE':'CUT MODE'}</span></>}
         <span style={{marginLeft:'auto',opacity:.3}}>⌘P · N NEW · J JOIN · X CUT · ` TERMINAL</span>
-        <span style={{opacity:.2}}>|</span>
-        <span style={{color:brutal?'#f2c12e':'#ff2a38'}}>{brutal?'BRUTAL':'CYBER'}</span>
       </div>
 
       {/* ═══════ OVERLAYS ═══════ */}
