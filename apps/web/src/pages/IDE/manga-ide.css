@@ -602,3 +602,286 @@
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--surface3); border-radius: 2px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--cyan); }
+
+/* ══════════════════════════════════════════════════════════
+   NEW IDE ADDITIONS — terminal, connect, exec states, search
+   ══════════════════════════════════════════════════════════ */
+
+/* ── Node execution states ── */
+.ngo-node-card.running {
+  border-color: var(--cyan) !important;
+  box-shadow: 0 0 0 2px rgba(0,229,255,0.35), var(--glow-cyan) !important;
+  animation: pulse-running 0.8s ease-in-out infinite alternate;
+}
+.ngo-node-card.success {
+  border-color: var(--green) !important;
+  box-shadow: 0 0 0 2px rgba(0,230,118,0.35), 0 0 24px rgba(0,230,118,0.15) !important;
+}
+.ngo-node-card.error {
+  border-color: var(--red) !important;
+  box-shadow: 0 0 0 2px rgba(255,23,68,0.35), var(--glow-red) !important;
+}
+
+@keyframes pulse-running {
+  from { box-shadow: 0 0 0 2px rgba(0,229,255,0.2), 0 0 12px rgba(0,229,255,0.1); }
+  to   { box-shadow: 0 0 0 3px rgba(0,229,255,0.55), 0 0 32px rgba(0,229,255,0.3); }
+}
+
+/* ── Node hover actions (Run button on art) ── */
+.ngo-node-actions {
+  position: absolute; inset: 0;
+  display: flex; align-items: flex-end; justify-content: flex-end;
+  padding: 6px;
+  opacity: 0; transition: opacity 0.18s;
+}
+.ngo-node-card:hover .ngo-node-actions { opacity: 1; }
+
+.ngo-node-run-btn {
+  width: 26px; height: 26px; border-radius: 50%;
+  background: rgba(0,230,118,0.2); border: 1.5px solid rgba(0,230,118,0.6);
+  color: var(--green); font-size: 0.65rem;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: all 0.15s;
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+.ngo-node-run-btn:hover {
+  background: var(--green); color: #000;
+  box-shadow: 0 0 12px rgba(0,230,118,0.5);
+  transform: scale(1.1);
+}
+
+/* ── Node symbol list in info ── */
+.ngo-node-syms {
+  color: var(--cyan); font-size: 0.58rem;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  max-width: 120px; opacity: 0.8;
+}
+
+/* ── Node last-output preview ── */
+.ngo-node-output-preview {
+  margin-top: 4px; padding: 3px 6px;
+  font-size: 0.6rem; font-family: var(--mono);
+  border-radius: 3px; overflow: hidden;
+  text-overflow: ellipsis; white-space: nowrap;
+  border-left: 2px solid;
+}
+.ngo-node-output-preview.success { color: var(--green); background: rgba(0,230,118,0.06); border-color: var(--green); }
+.ngo-node-output-preview.error   { color: var(--red);   background: rgba(255,23,68,0.06);  border-color: var(--red); }
+.ngo-node-output-preview.running { color: var(--cyan);  background: rgba(0,229,255,0.06);  border-color: var(--cyan); }
+
+/* ── Port handles (connection dots) ── */
+.ngo-port {
+  position: absolute; left: 50%;
+  width: 10px; height: 10px; border-radius: 50%;
+  border: 2px solid rgba(0,0,0,0.6);
+  transform: translateX(-50%);
+  opacity: 0; transition: opacity 0.15s, transform 0.15s;
+  z-index: 20; cursor: crosshair;
+}
+.ngo-port-out { bottom: -5px; }
+.ngo-port-in  { top: -5px; }
+.ngo-port.visible { opacity: 1; }
+.ngo-port:hover { transform: translateX(-50%) scale(1.4); opacity: 1 !important; }
+
+/* ── Code footer ── */
+.ngo-code-footer {
+  height: 24px; flex-shrink: 0;
+  padding: 0 14px;
+  display: flex; align-items: center; justify-content: space-between;
+  border-top: 1px solid var(--border);
+  font-size: 0.6rem; font-family: var(--mono);
+  color: var(--text-dim);
+}
+.ngo-code-lang-label {
+  font-size: 0.6rem; font-family: var(--mono);
+  color: var(--text-dim); letter-spacing: 0.1em;
+}
+.ngo-code-hint { font-size: 0.6rem; color: var(--text-dim); opacity: 0.6; }
+.ngo-code-expand-btn {
+  margin-left: auto; background: transparent; border: none;
+  cursor: pointer; color: var(--text-dim); font-size: 0.9rem;
+  padding: 0 4px; transition: color 0.15s;
+}
+.ngo-code-expand-btn:hover { color: var(--cyan); }
+
+/* ── File list exec state badges ── */
+.ngo-file-exec {
+  width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
+}
+.ngo-file-exec.running { background: var(--cyan); animation: pulse-running 0.8s ease-in-out infinite alternate; }
+.ngo-file-exec.success { background: var(--green); }
+.ngo-file-exec.error   { background: var(--red); }
+
+/* ── Terminal Drawer ── */
+.ngo-terminal-drawer {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  height: 260px; z-index: 100;
+  background: rgba(6,6,15,0.98);
+  border-top: 1px solid var(--border2);
+  display: flex; flex-direction: column;
+  transform: translateY(100%);
+  transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+}
+.ngo-terminal-drawer.open { transform: translateY(0); }
+
+.ngo-term-header {
+  height: 36px; flex-shrink: 0;
+  display: flex; align-items: center; gap: 8px;
+  padding: 0 14px;
+  border-bottom: 1px solid var(--border);
+}
+.ngo-term-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; transition: background 0.3s; }
+.ngo-term-title { font-size: 0.7rem; font-family: var(--mono); color: var(--text-mid); letter-spacing: 0.08em; }
+
+.ngo-term-btn {
+  background: transparent; border: none; cursor: pointer;
+  color: var(--text-dim); font-size: 0.8rem; padding: 4px 6px;
+  border-radius: 3px; transition: all 0.12s;
+}
+.ngo-term-btn:hover { background: var(--surface3); color: var(--text); }
+
+.ngo-term-body {
+  flex: 1; overflow-y: auto; padding: 8px 14px;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.ngo-term-empty {
+  font-size: 0.7rem; color: var(--text-dim); font-family: var(--mono);
+  text-align: center; padding: 24px 0; opacity: 0.5;
+}
+.ngo-term-line {
+  display: flex; align-items: baseline; gap: 8px;
+  font-family: var(--mono); font-size: 11.5px; line-height: 1.6;
+}
+.ngo-term-ts   { color: var(--text-dim); opacity: 0.4; font-size: 10px; flex-shrink: 0; }
+.ngo-term-type { flex-shrink: 0; width: 14px; text-align: center; }
+.ngo-term-val  { flex: 1; word-break: break-all; white-space: pre-wrap; }
+
+.ngo-term-spinner {
+  font-family: var(--mono); font-size: 11px;
+  color: var(--cyan); opacity: 0.7; padding: 4px 0;
+  animation: blink 1s step-end infinite;
+}
+@keyframes blink { 50% { opacity: 0.2; } }
+
+/* ── Code Modal (full-screen) ── */
+.ngo-code-modal {
+  position: fixed; inset: 0; z-index: 600;
+  background: var(--void);
+  display: flex; flex-direction: column;
+  animation: fade-in 0.12s ease;
+}
+@keyframes fade-in { from { opacity: 0; transform: scale(0.985); } to { opacity: 1; transform: scale(1); } }
+
+.ngo-code-modal-header {
+  height: 48px; flex-shrink: 0;
+  display: flex; align-items: center; gap: 10px;
+  padding: 0 18px;
+  background: rgba(13,13,28,0.97);
+  border-bottom: 1px solid var(--border2);
+}
+.ngo-code-modal-title {
+  font-family: var(--mono); font-size: 0.85rem; color: var(--text);
+}
+.ngo-code-modal-body {
+  flex: 1; overflow: hidden;
+  display: flex;
+}
+.ngo-modal-textarea {
+  font-size: 13px !important;
+  padding: 16px 20px !important;
+}
+
+/* ── Search Modal ── */
+.ngo-search-modal {
+  width: 520px; max-width: 90vw;
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 32px 80px rgba(0,0,0,0.85), 0 0 0 1px rgba(0,229,255,0.1);
+  animation: fade-in 0.12s ease;
+}
+.ngo-search-header {
+  display: flex; align-items: center; gap: 10px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.ngo-search-icon { font-size: 1rem; color: var(--cyan); }
+.ngo-search-input {
+  flex: 1; background: transparent; border: none; outline: none;
+  font-family: var(--mono); font-size: 0.88rem; color: var(--text);
+  caret-color: var(--cyan);
+}
+.ngo-search-hint {
+  font-size: 0.62rem; font-family: var(--mono); color: var(--text-dim);
+  padding: 2px 6px; border: 1px solid var(--border); border-radius: 3px;
+}
+.ngo-search-results {
+  max-height: 380px; overflow-y: auto; padding: 6px 0;
+}
+.ngo-search-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 16px; cursor: pointer;
+  transition: background 0.1s;
+}
+.ngo-search-item:hover { background: var(--surface3); }
+.ngo-search-pip { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.ngo-search-item-info { flex: 1; min-width: 0; }
+.ngo-search-item-name {
+  font-size: 0.78rem; font-family: var(--mono); color: var(--text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.ngo-search-item-syms {
+  font-size: 0.62rem; color: var(--text-dim); font-family: var(--mono);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.ngo-search-item-type {
+  font-size: 0.62rem; font-family: var(--mono); opacity: 0.75;
+  flex-shrink: 0;
+}
+.ngo-search-empty {
+  padding: 24px 16px; text-align: center;
+  font-size: 0.72rem; color: var(--text-dim); font-family: var(--mono);
+}
+
+/* ── Toast Notifications ── */
+.ngo-toast-container {
+  position: fixed; bottom: 36px; left: 50%; transform: translateX(-50%);
+  z-index: 9000; display: flex; flex-direction: column-reverse; gap: 8px;
+  pointer-events: none;
+}
+.ngo-toast {
+  padding: 8px 18px;
+  border-radius: 6px;
+  font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.06em;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+  animation: toast-in 0.2s ease, toast-out 0.3s ease 2.7s forwards;
+  white-space: nowrap;
+}
+.ngo-toast-info    { background: var(--surface); border: 1px solid var(--border2); color: var(--text-mid); }
+.ngo-toast-success { background: rgba(0,230,118,0.12); border: 1px solid rgba(0,230,118,0.4); color: var(--green); }
+.ngo-toast-error   { background: rgba(255,23,68,0.12); border: 1px solid rgba(255,23,68,0.4); color: var(--red); }
+
+@keyframes toast-in  { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes toast-out { from { opacity: 1; } to { opacity: 0; } }
+
+/* ── Connect hint bar ── */
+.ngo-connect-hint {
+  position: absolute; top: 56px; left: 50%; transform: translateX(-50%);
+  z-index: 60;
+  padding: 6px 16px; border-radius: 20px;
+  background: rgba(187,154,247,0.12);
+  border: 1px solid rgba(187,154,247,0.4);
+  font-family: var(--mono); font-size: 0.68rem; color: var(--purple);
+  pointer-events: none; letter-spacing: 0.06em;
+  animation: fade-in 0.2s ease;
+}
+
+/* ── Canvas toolbar separator ── */
+.ngo-tool-sep { width: 1px; height: 14px; background: var(--border); margin: 0 2px; }
+
+/* ── Active tool button ── */
+.ngo-tool-btn.active { color: var(--cyan); background: var(--cyan-dim); border-radius: 4px; }
