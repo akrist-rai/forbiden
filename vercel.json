@@ -1,5 +1,15 @@
 {
-  "buildCommand": "bun install --cwd apps/web && bun --cwd apps/web run build",
+  "installCommand": "bun install --cwd apps/web",
+  "buildCommand": "bun --cwd apps/web run build",
   "outputDirectory": "apps/web/dist",
-  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "Cross-Origin-Opener-Policy", "value": "same-origin" },
+        { "key": "Cross-Origin-Embedder-Policy", "value": "require-corp" }
+      ]
+    }
+  ]
 }

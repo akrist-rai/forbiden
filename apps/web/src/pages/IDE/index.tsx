@@ -1087,7 +1087,7 @@ function CodeEditor({ node, onChange, externalPalette }) {
         <span style={{color:palette.fn,opacity:.7}}>{node.type}</span>
         {node.modified && <><span style={{opacity:.2}}>|</span><span style={{color:'#ffc410',fontSize:'8px'}}>● MOD</span></>}
         <span style={{opacity:.2}}>|</span>
-        <span style={{opacity:.22,fontSize:'8px'}}>^Enter RUN · ^/ CMT · ^F FIND · Tab INDENT</span>
+        <span style={{opacity:.22,fontSize:'11px'}}>^Enter RUN · ^/ CMT · ^F FIND · Tab INDENT</span>
         <span style={{marginLeft:'auto',opacity:.35}}>{palette.name}</span>
       </div>
       {toastMsg && <div className="copy-toast">{toastMsg}</div>}
@@ -2492,6 +2492,60 @@ function NotebookPanel({ brutal }:any) {
 }
 
 // ══════════════════════════════════════════════════════════════
+//  WELCOME PANEL — NODE ROW
+// ══════════════════════════════════════════════════════════════
+
+function WelcomeNodeRow({ n, active, onClick, groups, searchQuery = '' }:any) {
+  const grp = groups.find((g:any) => g.nodeIds.includes(n.id))
+  const acc = grp ? grp.color : ACCENTS[n.themeIdx % ACCENTS.length]
+  const typeCol:any = { entry:'#ff2a38', function:'#ffc410', class:'#10b981', module:'#4285f4', doc:'#c792ea' }
+  const tCol = typeCol[n.type] || '#888'
+  const label:string = n.label
+  let labelEl:any = label
+  if (searchQuery) {
+    const idx = label.toLowerCase().indexOf(searchQuery)
+    if (idx >= 0) {
+      labelEl = <>{label.slice(0,idx)}<span style={{background:'rgba(255,196,16,.25)',color:'#ffc410'}}>{label.slice(idx,idx+searchQuery.length)}</span>{label.slice(idx+searchQuery.length)}</>
+    }
+  }
+  const ctxLine = searchQuery && n.code
+    ? n.code.split('\n').find((l:string)=>l.toLowerCase().includes(searchQuery)) || ''
+    : ''
+
+  return (
+    <div onClick={onClick}
+      style={{
+        display:'flex', alignItems:'center', gap:8, padding:'6px 12px',
+        cursor:'pointer', borderLeft:`2px solid transparent`,
+        background: active ? 'rgba(255,255,255,.05)' : 'transparent',
+        transition:'all .1s',
+      }}
+      onMouseEnter={(e:any)=>{e.currentTarget.style.background='rgba(255,255,255,.05)';e.currentTarget.style.borderLeftColor=acc}}
+      onMouseLeave={(e:any)=>{e.currentTarget.style.background=active?'rgba(255,255,255,.05)':'transparent';e.currentTarget.style.borderLeftColor='transparent'}}>
+      <div style={{width:6,height:6,borderRadius:'50%',background:acc,flexShrink:0}}/>
+      <div style={{flex:1,minWidth:0}}>
+        <div style={{fontFamily:"'Share Tech Mono',monospace",fontSize:'13px',color:'#c0c8d8',
+          overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',display:'flex',alignItems:'center',gap:6}}>
+          {labelEl}
+          {n.modified && <span style={{color:'#ffc410',fontSize:'11px',flexShrink:0}}>●</span>}
+          {n.isMain && <span style={{color:acc,fontSize:'10px',fontFamily:"'Oswald',sans-serif",fontWeight:700,flexShrink:0}}>MAIN</span>}
+        </div>
+        {ctxLine && (
+          <div style={{fontFamily:"'JetBrains Mono',monospace",fontSize:'11px',color:'rgba(200,200,220,.3)',
+            overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',marginTop:1}}>
+            {ctxLine.trim().slice(0,55)}
+          </div>
+        )}
+      </div>
+      <span style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:'10px',letterSpacing:'.08em',
+        color:tCol,opacity:.6,flexShrink:0}}>
+        {n.type.slice(0,3).toUpperCase()}
+      </span>
+    </div>
+  )
+}
+
+// ══════════════════════════════════════════════════════════════
 //  MAIN IDE COMPONENT
 // ══════════════════════════════════════════════════════════════
 
@@ -2535,7 +2589,7 @@ function IDE({ initialTheme = 'cyber', initialAvatar = 0 }) {
   const W = typeof window!=='undefined' ? window.innerWidth  : 1400
   const H = typeof window!=='undefined' ? window.innerHeight : 900
   const [editorOpen,  setEditorOpen]  = useState(true)
-  const [editorW,     setEditorW]     = useState(480)
+  const [editorW,     setEditorW]     = useState(() => Math.round(window.innerWidth * 0.68))
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [sidebarW,    setSidebarW]    = useState(240)
   const [bottomOpen,  setBottomOpen]  = useState(false)
@@ -2550,7 +2604,7 @@ function IDE({ initialTheme = 'cyber', initialAvatar = 0 }) {
     const onMove = (e) => {
       const d = splitDragRef.current; if (!d) return
       const dx = e.clientX - d.sx
-      if (d.side === 'editor')  setEditorW(w  => Math.max(280, Math.min(window.innerWidth*0.7, d.startW - dx)))
+      if (d.side === 'editor')  setEditorW(w  => Math.max(240, Math.min(window.innerWidth*0.85, d.startW - dx)))
       if (d.side === 'sidebar') setSidebarW(w => Math.max(160, Math.min(480, d.startW + dx)))
     }
     const onUp = () => { splitDragRef.current=null; document.body.style.userSelect=''; document.body.style.cursor='' }
@@ -2709,6 +2763,8 @@ function IDE({ initialTheme = 'cyber', initialAvatar = 0 }) {
   ])
   const [notesText, setNotesText] = useState('// OPERATOR NOTES\n// Sprint-01 planning\n\nTODO:\n- Finish graph force simulation\n- Wire WebSocket protocol\n- Add color palette persistence\n')
   const [searchQuery, setSearchQuery] = useState('')
+  const [welcomeSearch, setWelcomeSearch] = useState('')
+  const [welcomeFilter, setWelcomeFilter] = useState('all')
   const [avatarIndex, setAvatarIndex] = useState(initialAvatar)
   const chatEndRef = useRef(null)
 
@@ -3346,7 +3402,7 @@ function IDE({ initialTheme = 'cyber', initialAvatar = 0 }) {
                       <div style={{width:6,height:6,borderRadius:'50%',background:accent,flexShrink:0,marginTop:2}}/>
                       <div className="ide-toc-info">
                         <div className="ide-toc-name">{node.label}{node.modified&&<span className="modified-dot"/>}</div>
-                        {ctx&&<div style={{fontSize:'9px',opacity:.4,fontFamily:"'JetBrains Mono',monospace",overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{ctx.trim()}</div>}
+                        {ctx&&<div style={{fontSize:'11px',opacity:.4,fontFamily:"'JetBrains Mono',monospace",overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{ctx.trim()}</div>}
                         <div className="ide-toc-type" style={{color:accent}}>{node.type}</div>
                       </div>
                     </div>
@@ -3701,31 +3757,194 @@ function IDE({ initialTheme = 'cyber', initialAvatar = 0 }) {
                   <div className="ide-welcome-sub">Each panel is a chapter.</div>
                 </div>
               </div>
-              {/* Right: info + grid + cta */}
-              <div className="ide-welcome-right">
-                <div className="ide-welcome-sys">
-                  <div className="ide-welcome-sys-line" style={{color:brutal?'#f2c12e':'#ff2a38'}}>GRAPH IDE // ACTIVE</div>
-                  <div className="ide-welcome-sys-line">{nodeCount} NODES · {edgeCount} EDGES</div>
-                </div>
-                <div className="ide-welcome-grid">
-                  {[5,11,19,31,47,71].map(idx=>(
-                    <div key={idx} className="ide-welcome-grid-item" onClick={()=>{
-                      const n=nodesRef.current[idx%nodesRef.current.length]
-                      if(n) openNodeInEditor(n.id)
-                    }}>
-                      <img src={getPanelImg(idx)} alt="" loading="lazy"/>
+              {/* Right: Node Browser Panel */}
+              {(() => {
+                const allTypes = ['all','entry','function','class','module','doc']
+                const typeColors:any = {entry:'#ff2a38',function:'#ffc410',class:'#10b981',module:'#4285f4',doc:'#c792ea',default:'#888'}
+                const wq = welcomeSearch.trim().toLowerCase()
+                const allNodes = nodesRef.current
+                const typeFiltered = welcomeFilter==='all' ? allNodes : allNodes.filter((n:any)=>n.type===welcomeFilter)
+                const displayNodes = wq
+                  ? typeFiltered.filter((n:any)=>n.label.toLowerCase().includes(wq)||(n.code||'').toLowerCase().includes(wq))
+                  : typeFiltered
+                const typeCounts:any = {}
+                allNodes.forEach((n:any)=>{ typeCounts[n.type]=(typeCounts[n.type]||0)+1 })
+                const usedTypes = allTypes.filter(t=>t==='all'||(typeCounts[t]||0)>0)
+                // Group breakdown
+                const grouped = groupsRef.current.length>0 && !wq && welcomeFilter==='all'
+                const ungroupedNodes = grouped ? displayNodes.filter((n:any)=>!groupsRef.current.some((g:any)=>g.nodeIds.includes(n.id))) : []
+                return (
+                <div className="ide-welcome-right" style={{display:'flex',flexDirection:'column',overflow:'hidden',gap:0,padding:0}}>
+
+                  {/* ── Top status bar ── */}
+                  <div style={{padding:'10px 14px 8px',flexShrink:0,borderBottom:'1px solid rgba(255,255,255,.06)'}}>
+                    <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:6}}>
+                      <span style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:'10px',letterSpacing:'.18em',color:brutal?'#f2c12e':'#ff2a38'}}>
+                        GRAPH IDE // ACTIVE
+                      </span>
+                      <div style={{flex:1}}/>
+                      <button className="ide-btn ide-btn-sm" onClick={()=>setShowCreateNode(true)}>+ NODE</button>
+                      <button className="ide-btn ide-btn-sm" onClick={()=>folderInputRef.current?.click()}>⬆ IMPORT</button>
                     </div>
-                  ))}
+                    <div style={{display:'flex',alignItems:'center',gap:8,fontFamily:"'Share Tech Mono',monospace",fontSize:'11px'}}>
+                      <span style={{color:'rgba(200,200,220,.5)'}}>{nodeCount} NODES</span>
+                      <span style={{color:'rgba(255,255,255,.12)'}}>·</span>
+                      <span style={{color:'rgba(200,200,220,.5)'}}>{edgeCount} EDGES</span>
+                      {groupsRef.current.length>0&&<><span style={{color:'rgba(255,255,255,.12)'}}>·</span><span style={{color:'rgba(200,200,220,.5)'}}>{groupsRef.current.length} GROUPS</span></>}
+                      <div style={{flex:1}}/>
+                      {modifiedNodes.length>0&&<span style={{color:'#ffc410'}}>{modifiedNodes.length} UNSAVED</span>}
+                    </div>
+                  </div>
+
+                  {/* ── Search bar ── */}
+                  <div style={{padding:'7px 10px 4px',flexShrink:0}}>
+                    <div style={{position:'relative'}}>
+                      <span style={{position:'absolute',left:8,top:'50%',transform:'translateY(-50%)',fontSize:'10px',opacity:.3,pointerEvents:'none'}}>⌕</span>
+                      <input
+                        value={welcomeSearch}
+                        onChange={(e:any)=>setWelcomeSearch(e.target.value)}
+                        placeholder="Search files and code…"
+                        style={{
+                          width:'100%',boxSizing:'border-box',background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.08)',
+                          outline:'none',color:'#c0c8d8',fontFamily:"'Share Tech Mono',monospace",fontSize:'11px',
+                          padding:'5px 8px 5px 24px',transition:'border-color .15s',
+                        }}
+                        onFocus={(e:any)=>(e.target.style.borderColor='rgba(255,42,56,.4)')}
+                        onBlur={(e:any)=>(e.target.style.borderColor='rgba(255,255,255,.08)')}
+                      />
+                      {welcomeSearch&&(
+                        <button onClick={()=>setWelcomeSearch('')} style={{position:'absolute',right:6,top:'50%',transform:'translateY(-50%)',background:'transparent',border:'none',cursor:'pointer',color:'rgba(200,200,220,.3)',fontSize:'12px',lineHeight:1}}>×</button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* ── Type filter chips ── */}
+                  {!wq && (
+                    <div style={{display:'flex',gap:3,padding:'3px 10px 6px',flexShrink:0,flexWrap:'wrap'}}>
+                      {usedTypes.map(t=>{
+                        const active = welcomeFilter===t
+                        const col = typeColors[t]||typeColors.default
+                        return (
+                          <button key={t} onClick={()=>setWelcomeFilter(t)}
+                            style={{
+                              background: active?`${col}22`:'transparent',
+                              border:`1px solid ${active?col:`${col}30`}`,
+                              color: active?col:`rgba(200,200,220,.3)`,
+                              fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:'10px',letterSpacing:'.08em',
+                              padding:'3px 8px',cursor:'pointer',transition:'all .12s',
+                            }}>
+                            {t==='all'?`ALL (${allNodes.length})`:t.toUpperCase()+(typeCounts[t]?` (${typeCounts[t]})`:'') }
+                          </button>
+                        )
+                      })}
+                    </div>
+                  )}
+
+                  {/* ── Node list (scrollable) ── */}
+                  <div style={{flex:1,overflowY:'auto',scrollbarWidth:'thin',scrollbarColor:'rgba(255,255,255,.07) transparent'}}>
+
+                    {/* Recent tabs */}
+                    {!wq && openTabs.length>0 && welcomeFilter==='all' && (
+                      <>
+                        <div style={{padding:'4px 10px',fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:'10px',letterSpacing:'.14em',color:'rgba(200,200,220,.35)',borderBottom:'1px solid rgba(255,255,255,.04)'}}>
+                          RECENT
+                        </div>
+                        {openTabs.slice(0,4).map((tid:any)=>{
+                          const n=nodesRef.current.find((n:any)=>n.id===tid)
+                          if(!n) return null
+                          const grp=groupsRef.current.find((g:any)=>g.nodeIds.includes(n.id))
+                          const acc=grp?grp.color:ACCENTS[n.themeIdx%ACCENTS.length]
+                          return (
+                            <div key={n.id} onClick={()=>openNodeInEditor(n.id)}
+                              style={{display:'flex',alignItems:'center',gap:8,padding:'5px 12px',cursor:'pointer',
+                                background:activeTabId===n.id?'rgba(255,255,255,.05)':'transparent',
+                                transition:'background .1s'}}
+                              onMouseEnter={(e:any)=>(e.currentTarget.style.background='rgba(255,255,255,.05)')}
+                              onMouseLeave={(e:any)=>(e.currentTarget.style.background=activeTabId===n.id?'rgba(255,255,255,.05)':'transparent')}>
+                              <div style={{width:5,height:5,borderRadius:'50%',background:acc,flexShrink:0}}/>
+                              <span style={{flex:1,fontFamily:"'Share Tech Mono',monospace",fontSize:'13px',color:'#c0c8d8',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+                                {n.label}{n.modified&&<span style={{color:'#ffc410',marginLeft:4}}>●</span>}
+                              </span>
+                              <span style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:'10px',color:acc,opacity:.55,letterSpacing:'.07em',flexShrink:0}}>
+                                {n.type.slice(0,3).toUpperCase()}
+                              </span>
+                            </div>
+                          )
+                        })}
+                      </>
+                    )}
+
+                    {/* Search results header */}
+                    {wq && (
+                      <div style={{padding:'3px 10px',fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:'8px',letterSpacing:'.16em',color:'rgba(200,200,220,.28)',borderBottom:'1px solid rgba(255,255,255,.04)'}}>
+                        {displayNodes.length} RESULTS FOR "{wq.toUpperCase()}"
+                      </div>
+                    )}
+
+                    {/* Grouped view */}
+                    {grouped ? (<>
+                      {groupsRef.current.map((g:any)=>{
+                        const gNodes=displayNodes.filter((n:any)=>g.nodeIds.includes(n.id))
+                        if(!gNodes.length) return null
+                        return (
+                          <div key={g.id}>
+                            <div style={{padding:'5px 10px',fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:'11px',letterSpacing:'.12em',
+                              color:g.color,borderBottom:'1px solid rgba(255,255,255,.04)',display:'flex',alignItems:'center',gap:6}}>
+                              <div style={{width:4,height:4,borderRadius:'50%',background:g.color}}/>
+                              {g.name.toUpperCase()}
+                              <span style={{opacity:.4,fontWeight:400,marginLeft:'auto'}}>{gNodes.length}</span>
+                            </div>
+                            {gNodes.map((n:any)=><WelcomeNodeRow key={n.id} n={n} active={activeTabId===n.id} onClick={()=>openNodeInEditor(n.id)} groups={groupsRef.current}/>)}
+                          </div>
+                        )
+                      })}
+                      {ungroupedNodes.length>0&&(<>
+                        <div style={{padding:'4px 10px',fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:'8px',letterSpacing:'.14em',
+                          color:'rgba(200,200,220,.28)',borderBottom:'1px solid rgba(255,255,255,.04)',display:'flex',alignItems:'center',gap:6}}>
+                          UNGROUPED <span style={{opacity:.4,fontWeight:400,marginLeft:'auto'}}>{ungroupedNodes.length}</span>
+                        </div>
+                        {ungroupedNodes.map((n:any)=><WelcomeNodeRow key={n.id} n={n} active={activeTabId===n.id} onClick={()=>openNodeInEditor(n.id)} groups={groupsRef.current}/>)}
+                      </>)}
+                    </>) : (
+                      /* Flat list */
+                      <>
+                        {!wq&&(
+                          <div style={{padding:'4px 10px',fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:'10px',letterSpacing:'.14em',color:'rgba(200,200,220,.35)',borderBottom:'1px solid rgba(255,255,255,.04)'}}>
+                            {welcomeFilter==='all'?`ALL FILES (${displayNodes.length})`:welcomeFilter.toUpperCase()+` (${displayNodes.length})`}
+                          </div>
+                        )}
+                        {displayNodes.map((n:any)=><WelcomeNodeRow key={n.id} n={n} active={activeTabId===n.id} onClick={()=>openNodeInEditor(n.id)} groups={groupsRef.current} searchQuery={wq}/>)}
+                      </>
+                    )}
+
+                    {/* Empty state */}
+                    {displayNodes.length===0&&(
+                      <div style={{padding:'32px 16px',textAlign:'center',opacity:.2,fontFamily:"'Share Tech Mono',monospace",fontSize:'11px',lineHeight:2}}>
+                        {wq?'NO MATCHES':'NO NODES YET'}<br/>
+                        <span style={{fontSize:'9px',opacity:.6}}>
+                          {wq?'try a different search':'+NODE · ⬆ FOLDER · DROP FILES ON CANVAS'}
+                        </span>
+                      </div>
+                    )}
+                    <div style={{height:12}}/>
+                  </div>
+
+                  {/* ── Bottom bar ── */}
+                  <div style={{padding:'6px 10px',flexShrink:0,borderTop:'1px solid rgba(255,255,255,.06)',
+                    display:'flex',alignItems:'center',gap:5,background:'rgba(0,0,0,.3)'}}>
+                    <button className="ide-btn ide-btn-sm" onClick={()=>setNotebookFloating(f=>!f)}
+                      style={{color:notebookFloating?'#c792ea':'',borderColor:notebookFloating?'rgba(199,146,234,.3)':''}}>
+                      ◎ NOTEBOOK
+                    </button>
+                    <button className="ide-btn ide-btn-sm" onClick={()=>{setBottomTab('timeline');setBottomOpen(true)}}>⎔ TIMELINE</button>
+                    <div style={{flex:1}}/>
+                    <span style={{fontFamily:"'Share Tech Mono',monospace",fontSize:'8px',opacity:.2}}>
+                      DROP FILES ON CANVAS
+                    </span>
+                  </div>
                 </div>
-                <div className="ide-welcome-cta">
-                  <button className="ide-btn primary" onClick={()=>setShowCreateNode(true)}>+ NEW NODE</button>
-                  <button className="ide-btn" onClick={()=>setSidebarMode('files')}>BROWSE FILES</button>
-                  <button className="ide-btn" onClick={()=>{setBottomTab('notebook');setBottomOpen(true)}}>◎ NOTEBOOK</button>
-                </div>
-                <div style={{marginTop:8,fontFamily:"'Share Tech Mono',monospace",fontSize:'10px',opacity:.25,textAlign:'center'}}>
-                  DROP .py · .js · .md · .json · .csv · images onto canvas
-                </div>
-              </div>
+                )
+              })()}
             </div>
           )}
           </div>
