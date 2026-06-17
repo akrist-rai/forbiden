@@ -1,0 +1,159 @@
+{
+  "name": "forbiden",
+  "displayName": "FORBIDEN — Graph IDE",
+  "description": "Graph-based collaborative code IDE with visual node canvas, real-time collab, and manga-inspired UI.",
+  "version": "0.1.0",
+  "publisher": "forbiden",
+  "engines": { "vscode": "^1.85.0" },
+  "categories": ["Other", "Visualization"],
+  "activationEvents": ["onStartupFinished"],
+  "icon": "media/icon.png",
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "forbiden.openCanvas",
+        "title": "FORBIDEN: Open Graph Canvas",
+        "icon": "$(type-hierarchy)"
+      },
+      {
+        "command": "forbiden.addNode",
+        "title": "FORBIDEN: Add Node to Graph",
+        "icon": "$(add)"
+      },
+      {
+        "command": "forbiden.openNode",
+        "title": "FORBIDEN: Open Node in Editor",
+        "icon": "$(go-to-file)"
+      },
+      {
+        "command": "forbiden.deleteNode",
+        "title": "FORBIDEN: Delete Node",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "forbiden.refreshTree",
+        "title": "FORBIDEN: Refresh Graph",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "forbiden.scanWorkspace",
+        "title": "FORBIDEN: Scan Workspace — Auto-build Graph from Code",
+        "icon": "$(search)"
+      },
+      {
+        "command": "forbiden.exportGraph",
+        "title": "FORBIDEN: Export Graph as JSON",
+        "icon": "$(export)"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "forbiden-panel",
+          "title": "FORBIDEN Graph IDE",
+          "icon": "media/icon-activity.svg"
+        }
+      ]
+    },
+    "views": {
+      "forbiden-panel": [
+        {
+          "id": "forbidenGraphTree",
+          "name": "Graph Nodes",
+          "icon": "media/icon-activity.svg",
+          "contextualTitle": "FORBIDEN"
+        }
+      ]
+    },
+    "menus": {
+      "view/title": [
+        {
+          "command": "forbiden.openCanvas",
+          "when": "view == forbidenGraphTree",
+          "group": "navigation@1"
+        },
+        {
+          "command": "forbiden.addNode",
+          "when": "view == forbidenGraphTree",
+          "group": "navigation@2"
+        },
+        {
+          "command": "forbiden.refreshTree",
+          "when": "view == forbidenGraphTree",
+          "group": "navigation@3"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "forbiden.openNode",
+          "when": "view == forbidenGraphTree && viewItem == graphNode",
+          "group": "inline@1"
+        },
+        {
+          "command": "forbiden.deleteNode",
+          "when": "view == forbidenGraphTree && viewItem == graphNode",
+          "group": "inline@2"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "FORBIDEN",
+      "properties": {
+        "forbiden.apiUrl": {
+          "type": "string",
+          "default": "http://localhost:3001",
+          "description": "FORBIDEN API server URL for real-time collaboration"
+        },
+        "forbiden.wsUrl": {
+          "type": "string",
+          "default": "ws://localhost:3001/ws",
+          "description": "FORBIDEN WebSocket URL for real-time collaboration"
+        },
+        "forbiden.graphFile": {
+          "type": "string",
+          "default": ".forbiden/graph.json",
+          "description": "Relative path to graph state file within workspace"
+        },
+        "forbiden.autoSave": {
+          "type": "boolean",
+          "default": true,
+          "description": "Auto-save graph state when files change"
+        }
+      }
+    },
+    "keybindings": [
+      {
+        "command": "forbiden.openCanvas",
+        "key": "ctrl+shift+g",
+        "mac": "cmd+shift+g"
+      },
+      {
+        "command": "forbiden.addNode",
+        "key": "ctrl+shift+n",
+        "when": "view == forbidenGraphTree"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run build:all",
+    "build:ext": "esbuild src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node --minify",
+    "build:webview": "cd webview && npm run build",
+    "build:all": "npm run build:ext && npm run build:webview",
+    "watch:ext": "esbuild src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node --sourcemap --watch",
+    "watch": "concurrently \"npm run watch:ext\" \"cd webview && npm run dev\"",
+    "package": "vsce package",
+    "lint": "eslint src --ext ts"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.85.0",
+    "@typescript-eslint/eslint-plugin": "^7.0.0",
+    "@typescript-eslint/parser": "^7.0.0",
+    "@vscode/vsce": "^2.24.0",
+    "concurrently": "^8.2.2",
+    "esbuild": "^0.20.0",
+    "eslint": "^8.57.0",
+    "typescript": "^5.3.0"
+  }
+}

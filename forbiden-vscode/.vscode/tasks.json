@@ -1,0 +1,26 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "build-ext",
+      "type": "shell",
+      "command": "npm run build:ext",
+      "options": { "cwd": "${workspaceFolder}" },
+      "group": { "kind": "build", "isDefault": true },
+      "presentation": { "reveal": "silent" },
+      "problemMatcher": ["$esbuild-watch"]
+    },
+    {
+      "label": "watch-ext",
+      "type": "shell",
+      "command": "npm run watch:ext",
+      "options": { "cwd": "${workspaceFolder}" },
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "esbuild",
+        "pattern": { "regexp": "^(.*):(\\d+):(\\d+): (error|warning): (.*)$", "file": 1, "line": 2, "column": 3, "severity": 4, "message": 5 },
+        "background": { "activeOnStart": true, "beginsPattern": "^\\[watch\\]", "endsPattern": "^⚡" }
+      }
+    }
+  ]
+}
