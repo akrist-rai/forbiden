@@ -3,9 +3,10 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { Suspense, lazy } from 'react'
 
 // Lazy-load pages for proper code-splitting
-const LoginPage  = lazy(() => import('@/pages/Login/index'))
-const HomePage   = lazy(() => import('@/pages/Home/index'))
-const IDEPage    = lazy(() => import('@/pages/IDE/index'))
+const LoginPage    = lazy(() => import('@/pages/Login/index'))
+const HomePage     = lazy(() => import('@/pages/Home/index'))
+const IDEPage      = lazy(() => import('@/pages/IDE/index'))
+const MangaIDEPage = lazy(() => import('@/pages/IDE/new_ide'))
 
 function PageLoader() {
   return (
@@ -34,6 +35,9 @@ export default function App() {
 
           {/* Graph IDE — the full workstation */}
           <Route path="/ide" element={<IDEPage />} />
+
+          {/* Manga Panel IDE — alternative editor */}
+          <Route path="/manga-ide" element={<MangaIDEPage />} />
 
           {/* Catch-all: send back home */}
           <Route path="*" element={<Navigate to="/" replace />} />

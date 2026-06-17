@@ -25,8 +25,8 @@ const OPERATORS = [
 ]
 
 const ENGINES = [
-  { id: 'cyber',  num: '01', title: 'Cyber Graph',  label: 'Void workspace',  detail: 'Dark canvas · red signal · focused node work.', accent: '#ff2a38', imageOffset: 0 },
-  { id: 'brutal', num: '02', title: 'Ink Graph',    label: 'Paper workspace', detail: 'High contrast manga panels · blunt controls.',    accent: '#f2c12e', imageOffset: 8 },
+  { id: 'cyber',  num: '01', title: 'Cyber Graph',   label: 'Void workspace',   detail: 'Dark canvas · red signal · focused node work.',         accent: '#ff2a38', imageOffset: 0,  route: '/ide'       },
+  { id: 'manga',  num: '02', title: 'Manga Studio',  label: 'Panel workspace',  detail: 'Panel-driven graph IDE · chapter timeline · ink nodes.', accent: '#f5c518', imageOffset: 4,  route: '/manga-ide' },
 ]
 
 const enc = (f: string) => encodeURIComponent(f)
@@ -50,9 +50,9 @@ export default function Home() {
     return () => clearInterval(t)
   }, [])
 
-  function launch(theme: string) {
+  function launch(route: string, theme: string) {
     const chosenAvatar = avatar ?? 0
-    nav('/ide', { state: { theme, avatar: chosenAvatar } })
+    nav(route, { state: { theme, avatar: chosenAvatar } })
   }
 
   const selectedIndex   = avatar ?? 0
@@ -105,7 +105,7 @@ export default function Home() {
           </p>
 
           <div className="boot-actions">
-            <button className="boot-action-primary" onClick={() => launch('cyber')}>
+            <button className="boot-action-primary" onClick={() => launch('/ide', 'cyber')}>
               Launch workspace
             </button>
             <button className="boot-action-secondary" onClick={() => setAvatar((selectedIndex + 1) % OPERATORS.length)}>
@@ -163,7 +163,7 @@ export default function Home() {
             <button
               key={engine.id}
               className={`boot-engine boot-engine-${engine.id}`}
-              onClick={() => launch(engine.id)}
+              onClick={() => launch(engine.route, engine.id)}
               style={{ '--engine-accent': engine.accent } as React.CSSProperties}
             >
               <img src={`/manga/${enc(img)}`} alt="" />
