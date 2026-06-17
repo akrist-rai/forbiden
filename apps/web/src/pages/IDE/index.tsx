@@ -2030,11 +2030,7 @@ function loadNB() {
     const d = JSON.parse(localStorage.getItem(NB_LS_KEY) || 'null')
     if (d?.cells?.length) return d.cells
   } catch {}
-  return [
-    { id:'nb1', lang:'python', code: NB_TEMPLATES['🔐 Hash Toolkit'].code,  output:[], status:'idle', execCount:null, execMs:null },
-    { id:'nb2', lang:'js',     code: NB_TEMPLATES['🤖 Token Counter'].code,  output:[], status:'idle', execCount:null, execMs:null },
-    { id:'nb3', lang:'python', code: NB_TEMPLATES['🐳 Log Parser'].code,     output:[], status:'idle', execCount:null, execMs:null },
-  ]
+  return []
 }
 
 function loadSaved() {
@@ -2174,14 +2170,26 @@ function _renderCellOutput(output:any[]) {
   })
 }
 
+const NB_LANG_META:any = {
+  js:       { color:'#ffc410', bg:'rgba(255,196,16,.08)',  border:'rgba(255,196,16,.25)',  label:'JS',     caret:'#ffc410' },
+  python:   { color:'#4fc3f7', bg:'rgba(79,195,247,.08)', border:'rgba(79,195,247,.25)',  label:'PYTHON', caret:'#4fc3f7' },
+  markdown: { color:'#ce93d8', bg:'rgba(206,147,216,.08)',border:'rgba(206,147,216,.25)', label:'MD',     caret:'#ce93d8' },
+}
+
 function NoteCell({ cell, idx, brutal, onRun, onDelete, onCodeChange, onLangChange, onMoveUp, onMoveDown, onDuplicate }:any) {
   const taRef = useRef<any>(null)
   const [collapsed, setCollapsed] = useState(false)
 
-  const statusColor = { idle:'rgba(200,200,220,.12)', running:'#ffc410', ok:'#10b981', error:'#ff435a' }[cell.status] || '#888'
-  const langColor   = { js:'#ffc410', python:'#4285f4', markdown:'#bb9af7' }[cell.lang] || '#c792ea'
-  const lineCount   = (cell.code || '').split('\n').length
-  const LH = 19.2  // 12px * 1.6
+  const meta = NB_LANG_META[cell.lang] || NB_LANG_META.js
+  const LH = 19.2
+
+  const statusAccent = cell.status === 'running' ? '#ffc410'
+    : cell.status === 'ok'    ? '#10b981'
+    : cell.status === 'error' ? '#ff435a'
+    : meta.color
+
+  const lineCount = (cell.code || '').split('\n').length
+  const codeRows  = Math.max(3, lineCount)
 
   const handleKeyDown = (e:any) => {
     if (e.key === 'Enter' && e.shiftKey) { e.preventDefault(); onRun() }
@@ -2193,147 +2201,151 @@ function NoteCell({ cell, idx, brutal, onRun, onDelete, onCodeChange, onLangChan
     }
   }
 
-  const btnStyle:any = { background:'transparent', border:'none', cursor:'pointer', color:'rgba(200,200,220,.22)', fontSize:'11px', lineHeight:1, padding:'2px 4px', transition:'color .12s' }
-  const hoverGreen = (e:any) => { e.currentTarget.style.color='#10b981' }
-  const hoverReset = (e:any) => { e.currentTarget.style.color='rgba(200,200,220,.22)' }
-
-  const codeRows = Math.max(3, lineCount)
+  const iconBtn = (icon:string, title:string, onClick:any, hoverColor = meta.color) => (
+    <button key={title} title={title} onClick={onClick}
+      style={{ background:'transparent', border:'none', cursor:'pointer',
+        color:'rgba(200,200,220,.18)', fontSize:'11px', padding:'2px 3px', lineHeight:1,
+        transition:'color .12s' }}
+      onMouseEnter={e=>(e.currentTarget.style.color=hoverColor)}
+      onMouseLeave={e=>(e.currentTarget.style.color='rgba(200,200,220,.18)')}>
+      {icon}
+    </button>
+  )
 
   return (
-    <div style={{ borderBottom:'1px solid rgba(255,255,255,.05)', transition:'background .2s',
-      background: cell.status === 'running' ? 'rgba(255,196,16,.015)' : 'transparent' }}>
+    <div style={{
+      borderBottom:'1px solid rgba(255,255,255,.05)',
+      borderLeft:`3px solid ${statusAccent}`,
+      transition:'border-color .25s, background .2s',
+      background: cell.status==='running' ? 'rgba(255,196,16,.018)'
+        : cell.status==='error' ? 'rgba(255,67,90,.018)'
+        : cell.status==='ok'   ? 'rgba(16,185,129,.012)' : 'transparent',
+    }}>
 
       {/* ── Header ── */}
-      <div style={{ display:'flex', alignItems:'center', gap:4, padding:'3px 8px',
-        background:'rgba(0,0,0,.5)', borderLeft:`2px solid ${statusColor}`,
-        cursor:'pointer', userSelect:'none' }}
+      <div style={{ display:'flex', alignItems:'center', gap:5, padding:'5px 10px',
+        background:'rgba(0,0,0,.5)', cursor:'pointer', userSelect:'none' }}
         onClick={() => setCollapsed(c => !c)}>
-        {/* Exec counter */}
-        <span style={{ fontFamily:"'JetBrains Mono',monospace", fontSize:'9px', minWidth:28,
-          color: cell.execCount ? '#c792ea' : 'rgba(200,200,220,.15)', letterSpacing:'.04em' }}>
-          [{cell.execCount ?? ' '}]
+
+        <span style={{ fontFamily:"'JetBrains Mono',monospace", fontSize:'9px', minWidth:32,
+          color: cell.execCount ? meta.color : 'rgba(200,200,220,.18)', letterSpacing:'.04em' }}>
+          In[{cell.execCount ?? ' '}]
         </span>
-        {/* Lang selector */}
+
         <select value={cell.lang}
           onChange={(e:any) => { e.stopPropagation(); onLangChange(e.target.value) }}
           onClick={(e:any) => e.stopPropagation()}
-          style={{ background:'transparent', border:'none', color:langColor, fontFamily:"'Oswald',sans-serif",
-            fontWeight:700, fontSize:'9px', letterSpacing:'.12em', cursor:'pointer', outline:'none' }}>
+          style={{ background:meta.bg, border:`1px solid ${meta.border}`, color:meta.color,
+            fontFamily:"'Oswald',sans-serif", fontWeight:700, fontSize:'8px',
+            letterSpacing:'.14em', cursor:'pointer', outline:'none',
+            padding:'1px 6px', borderRadius:2 }}>
           <option value="js">JS</option>
           <option value="python">PYTHON</option>
           <option value="markdown">MARKDOWN</option>
         </select>
-        {/* Collapse arrow */}
-        <span style={{ fontSize:'8px', color:'rgba(200,200,220,.2)', transition:'transform .12s',
+
+        <span style={{ fontSize:'7px', color:'rgba(200,200,220,.18)', transition:'transform .12s',
           transform: collapsed ? 'rotate(-90deg)' : 'rotate(0)' }}>▼</span>
         <div style={{ flex:1 }}/>
-        {/* Timing */}
-        {cell.execMs != null && cell.status !== 'idle' && (
+
+        {cell.status === 'running' && (
+          <span style={{ fontSize:'8px', color:'#ffc410', fontFamily:"'Share Tech Mono',monospace",
+            letterSpacing:'.1em' }}>RUNNING…</span>
+        )}
+        {cell.execMs != null && cell.status !== 'idle' && cell.status !== 'running' && (
           <span style={{ fontFamily:"'JetBrains Mono',monospace", fontSize:'8px',
             color: cell.status==='error' ? '#ff435a' : 'rgba(200,200,220,.22)' }}>
-            {cell.status === 'running' ? '…' : `${cell.execMs}ms`}
+            {cell.execMs}ms
           </span>
         )}
-        {cell.status === 'running' && (
-          <span style={{ fontSize:'9px', color:'#ffc410', fontFamily:"'Share Tech Mono',monospace", letterSpacing:'.08em' }}>
-            RUNNING
-          </span>
-        )}
-        {/* Actions */}
-        <button onClick={(e:any)=>{e.stopPropagation();onMoveUp()}} title="Move up" style={btnStyle}
-          onMouseEnter={hoverGreen} onMouseLeave={hoverReset}>↑</button>
-        <button onClick={(e:any)=>{e.stopPropagation();onMoveDown()}} title="Move down" style={btnStyle}
-          onMouseEnter={hoverGreen} onMouseLeave={hoverReset}>↓</button>
-        <button onClick={(e:any)=>{e.stopPropagation();onDuplicate()}} title="Duplicate" style={btnStyle}
-          onMouseEnter={hoverGreen} onMouseLeave={hoverReset}>⧉</button>
+
+        {iconBtn('↑', 'Move up',   (e:any)=>{e.stopPropagation();onMoveUp()})}
+        {iconBtn('↓', 'Move down', (e:any)=>{e.stopPropagation();onMoveDown()})}
+        {iconBtn('⧉', 'Duplicate', (e:any)=>{e.stopPropagation();onDuplicate()})}
+
         <button onClick={(e:any)=>{e.stopPropagation();onRun()}} title="Run (Shift+Enter)"
-          style={{...btnStyle, color:'#10b981', fontSize:'13px'}}
-          onMouseEnter={e=>(e.currentTarget.style.color='#34d399')}
-          onMouseLeave={e=>(e.currentTarget.style.color='#10b981')}>▶</button>
-        <button onClick={(e:any)=>{e.stopPropagation();onDelete()}} title="Delete"
-          style={{...btnStyle, fontSize:'13px'}}
-          onMouseEnter={e=>(e.currentTarget.style.color='#ff435a')}
-          onMouseLeave={hoverReset}>×</button>
+          style={{ background:meta.bg, border:`1px solid ${meta.border}`, cursor:'pointer',
+            color:meta.color, fontSize:'9px', padding:'2px 9px',
+            fontFamily:"'Oswald',sans-serif", fontWeight:700, letterSpacing:'.1em',
+            transition:'background .12s' }}
+          onMouseEnter={e=>(e.currentTarget.style.background=`${meta.color}28`)}
+          onMouseLeave={e=>(e.currentTarget.style.background=meta.bg)}>
+          ▶ RUN
+        </button>
+
+        {iconBtn('×', 'Delete', (e:any)=>{e.stopPropagation();onDelete()}, '#ff435a')}
       </div>
 
-      {/* ── Body (collapsible) ── */}
+      {/* ── Body ── */}
       {!collapsed && (
         <>
-          {/* Code area */}
           {cell.lang === 'markdown' ? (
             <div style={{ display:'flex', flexDirection:'column' }}>
-              <textarea
-                value={cell.code}
-                onChange={(e:any) => onCodeChange(e.target.value)}
-                onKeyDown={handleKeyDown}
-                rows={Math.max(3, lineCount)}
-                spellCheck={false}
+              <textarea value={cell.code} onChange={(e:any)=>onCodeChange(e.target.value)}
+                onKeyDown={handleKeyDown} rows={Math.max(3, lineCount)} spellCheck={false}
                 placeholder="# Markdown — live preview below"
-                style={{ width:'100%', boxSizing:'border-box', background:'#070710', border:'none', outline:'none', resize:'none',
+                style={{ width:'100%', boxSizing:'border-box', background:'#060613',
+                  border:'none', outline:'none', resize:'none',
                   fontFamily:"'JetBrains Mono',monospace", fontSize:'12px', lineHeight:'1.6',
-                  color:'#9ba8c4', padding:'7px 10px', caretColor:'#bb9af7' }}
-              />
-              <div className="md-preview" style={{ padding:'8px 14px', borderTop:'1px solid rgba(255,255,255,.05)',
-                background:'#050510', fontSize:'13px', minHeight:36 }}
+                  color:'#9ba8c4', padding:'8px 12px 8px 14px', caretColor:meta.caret }}/>
+              <div className="md-preview" style={{ padding:'10px 16px',
+                borderTop:`1px solid ${meta.color}18`, background:'#040410',
+                fontSize:'13px', minHeight:36 }}
                 dangerouslySetInnerHTML={{ __html: renderMd(cell.code || '') }}/>
             </div>
           ) : (
-            // Code cell — syntax-highlighted overlay + line numbers
-            <div style={{ position:'relative', background:'#06060f' }}>
+            <div style={{ position:'relative', background:'#05050e' }}>
               {/* Line numbers */}
               <div aria-hidden style={{
-                position:'absolute', left:0, top:0, bottom:0, width:28,
-                fontFamily:"'JetBrains Mono',monospace", fontSize:'11px',
-                lineHeight: LH + 'px',
-                color:'rgba(200,200,220,.15)', textAlign:'right',
-                padding:`7px 4px 7px 0`,
-                userSelect:'none', pointerEvents:'none', overflow:'hidden',
-                background:'rgba(0,0,0,.18)', borderRight:'1px solid rgba(255,255,255,.03)',
+                position:'absolute', left:0, top:0, bottom:0, width:32,
+                fontFamily:"'JetBrains Mono',monospace", fontSize:'10px',
+                lineHeight:LH+'px', color:`${meta.color}30`, textAlign:'right',
+                padding:'8px 5px 8px 0', userSelect:'none', pointerEvents:'none', overflow:'hidden',
+                background:'rgba(0,0,0,.2)', borderRight:`1px solid ${meta.color}15`,
               }}>
-                {(cell.code || ' ').split('\n').map((_:any, i:number) => (
-                  <div key={i}>{i + 1}</div>
-                ))}
+                {(cell.code || ' ').split('\n').map((_:any, i:number) => <div key={i}>{i+1}</div>)}
               </div>
-              {/* Syntax highlight overlay */}
+              {/* Highlight overlay */}
               <pre aria-hidden style={{
-                position:'absolute', inset:0, margin:0,
-                padding:`7px 8px 7px 36px`,
-                fontFamily:"'JetBrains Mono',monospace", fontSize:'12px',
-                lineHeight: LH + 'px',
+                position:'absolute', inset:0, margin:0, padding:'8px 10px 8px 42px',
+                fontFamily:"'JetBrains Mono',monospace", fontSize:'12px', lineHeight:LH+'px',
                 color:'#c0c8d8', pointerEvents:'none', overflow:'hidden',
                 whiteSpace:'pre-wrap', wordBreak:'break-word',
               }} dangerouslySetInnerHTML={{ __html: highlightCode(cell.code || '') }}/>
-              {/* Transparent textarea on top */}
-              <textarea ref={taRef}
-                value={cell.code}
-                onChange={(e:any) => onCodeChange(e.target.value)}
-                onKeyDown={handleKeyDown}
-                rows={codeRows}
-                spellCheck={false}
+              {/* Textarea */}
+              <textarea ref={taRef} value={cell.code} onChange={(e:any)=>onCodeChange(e.target.value)}
+                onKeyDown={handleKeyDown} rows={codeRows} spellCheck={false}
                 style={{
                   display:'block', width:'100%', boxSizing:'border-box',
                   background:'transparent', border:'none', outline:'none', resize:'none',
-                  fontFamily:"'JetBrains Mono',monospace", fontSize:'12px',
-                  lineHeight: LH + 'px',
-                  color:'transparent', caretColor: cell.lang === 'python' ? '#4285f4' : '#ffc410',
-                  padding:`7px 8px 7px 36px`,
-                  minHeight: codeRows * LH + 14 + 'px',
-                }}
-              />
+                  fontFamily:"'JetBrains Mono',monospace", fontSize:'12px', lineHeight:LH+'px',
+                  color:'transparent', caretColor:meta.caret,
+                  padding:'8px 10px 8px 42px', minHeight:codeRows*LH+16+'px',
+                }}/>
             </div>
           )}
 
           {/* Output */}
           {cell.output.length > 0 && (
-            <div style={{ background:'#030309', borderTop:'1px solid rgba(255,255,255,.04)', position:'relative' }}>
-              <button
-                onClick={() => navigator.clipboard.writeText(cell.output.map((e:any)=>e.val).join('\n')).catch(()=>{})}
-                title="Copy output"
-                style={{ position:'absolute', top:4, right:6, background:'transparent', border:'none',
-                  cursor:'pointer', color:'rgba(200,200,220,.15)', fontSize:'10px', transition:'color .12s', zIndex:1 }}
-                onMouseEnter={e=>(e.currentTarget.style.color='#10b981')}
-                onMouseLeave={e=>(e.currentTarget.style.color='rgba(200,200,220,.15)')}>⎘</button>
-              <div style={{ padding:'6px 8px 6px 36px', maxHeight:240, overflowY:'auto',
+            <div style={{
+              background:'#020208',
+              borderTop:`1px solid ${cell.status==='error' ? 'rgba(255,67,90,.2)' : `${meta.color}18`}`,
+            }}>
+              <div style={{ display:'flex', alignItems:'center', gap:6, padding:'4px 10px',
+                borderBottom:'1px solid rgba(255,255,255,.04)' }}>
+                <span style={{ fontFamily:"'Oswald',sans-serif", fontSize:'8px', fontWeight:700,
+                  letterSpacing:'.12em',
+                  color: cell.status==='error' ? '#ff435a' : '#10b981', opacity:.7 }}>
+                  Out[{cell.execCount}]
+                </span>
+                <div style={{flex:1}}/>
+                <button onClick={()=>navigator.clipboard.writeText(cell.output.map((e:any)=>e.val).join('\n')).catch(()=>{})}
+                  title="Copy" style={{ background:'transparent', border:'none', cursor:'pointer',
+                    color:'rgba(200,200,220,.15)', fontSize:'10px', transition:'color .12s' }}
+                  onMouseEnter={e=>(e.currentTarget.style.color='#10b981')}
+                  onMouseLeave={e=>(e.currentTarget.style.color='rgba(200,200,220,.15)')}>⎘</button>
+              </div>
+              <div style={{ padding:'6px 12px 8px 14px', maxHeight:200, overflowY:'auto',
                 fontFamily:"'JetBrains Mono',monospace", fontSize:'11px',
                 scrollbarWidth:'thin', scrollbarColor:'rgba(255,255,255,.06) transparent' }}>
                 {_renderCellOutput(cell.output)}

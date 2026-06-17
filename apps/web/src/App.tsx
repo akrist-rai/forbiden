@@ -1,5 +1,5 @@
 // src/App.tsx — Router root with lazy-loaded pages
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { Suspense, lazy } from 'react'
 
 // Lazy-load pages for proper code-splitting
@@ -24,7 +24,7 @@ function PageLoader() {
 
 export default function App() {
   return (
-    <BrowserRouter>
+    <HashRouter>
       <Suspense fallback={<PageLoader />}>
         <Routes>
           {/* Graph IDE — the full workstation (default landing) */}
@@ -37,6 +37,6 @@ export default function App() {
           <Route path="*" element={<Navigate to="/ide" replace />} />
         </Routes>
       </Suspense>
-    </BrowserRouter>
+    </HashRouter>
   )
 }
