@@ -10,6 +10,7 @@ import { useWorkspace } from '../../hooks/useWorkspace'
 // ══════════════════════════════════════════════════════════════
 
 const MANGA_RAW = [
+  // named art
   'Guts.jpeg','Guts And Zodd, DON.jpeg','Killua.jpeg','Inumaki.jpeg',
   'Monster.jpeg','Whitebeard.jpeg','Roronoa Zoro.jpeg','Reze.jpeg',
   'Soul King Brook.jpeg','Fire Punch.jpeg','PANTHEON.jpeg','CHAOS SMILE.jpeg',
@@ -33,8 +34,8 @@ const MANGA_RAW = [
   'Poster One Piece - Wanted Whitebeard 61x91,5cm _ bol.jpeg',
   'aki hayakawa.jpeg','choujin x tokio.jpeg','choujin x.jpeg','csm.jpeg',
   'ddd.jpeg','denji starboy album cover.jpeg','kizaru.jpeg',
-  'litterally chainsaw man.jpeg','mob psycho 100.jpeg',
-  'Korean Edition Manga [phantom Busters] 팜텀 버스터즈 (jmanga227).jpeg',
+  'litterally chainsaw man.jpeg','mob psycho 100.jpeg','Mob psycho 100.jpeg',
+  'Korean Edition Manga [phantom Busters] 팬텀 버스터즈 (jmanga227).jpeg',
   'SONS OF THE DEVIL Covers 1-5 - toni infante.jpeg',
   'One piece wano x Gta.jpeg','yhwach god of the Quincy.jpeg',
   'Credit_ Twitter @avenoirn.jpeg',
@@ -42,27 +43,251 @@ const MANGA_RAW = [
   'Dandadan _ @lihaolow • tw ☆.jpeg',
   'Makimq is listening 🤫_ Social Poster design #Anime #Poster.jpeg',
   'Corazon 💔.jpeg','move! move! just like mob!💥.jpeg',
-  '1997_ The start of an adventure ☠️🏕.jpeg',
+  '1997_ The start of an adventure ☠️🏝.jpeg',
   'ishigori ryu _ @neggi_ on X.jpeg','zzyzzyy on X.jpeg',
-  'Sukuna".jpeg','Hoạt - Poster  _ Facebook.jpeg',
+  'Sukuna”.jpeg','Hoạt - Poster  _ Facebook.jpeg',
   'AdriGold 🍊 (@GoldDAdri_) on X.jpeg',
   'Ai, Feel free to use.jpeg','fashionstation 230226x778.jpeg',
   'Best _GOODNIGHT PUNPUN_ Fan Graphic Cover _ Poster💪.jpeg',
   'Makima! 🩸__#Makima #ChainsawMan_#ChainsawManFanart #AnimeArt_#DigitalPainting.jpeg',
   'Mess🌿 (@Messcult) on X.jpeg','チェンソーマン ＃１.jpeg',
-  '𝓕𝓼𝓸𝓹𝓹.jpeg','🍀.jpeg',
+  '𝐔𝐬𝐨𝐩𝐩.jpeg','🥀.jpeg',
+  // additional art
+  '@Zuuhl82.jpeg','@jshdirk on X.jpeg',
+  'Anime Posters Online - Shop Unique Metal Prints, Pictures, Paintings _ Displate.jpeg',
+  'COMICリュエル&COMICジャルダン｜実業之日本社のwebコミックサイト -COMICリュエルVeil-.jpeg',
+  "Goodbye Merry _ @IfihasR5 • tw _').jpeg",
+  'Haunting HypatiaThe Literary Lunacy of a Geeky Librarian.jpeg',
+  'Instagram (1).jpeg',
+  "I’LL TAKE CARE OF YOU _ TYLER THE CREATOR _ DON’T TAP THE GLASS _ FLOWER BOY.jpeg",
+  'One piece “NAKAMAS”.jpeg',
+  'Post by @plankos · 1 image.jpeg',
+  'Rym 🏴_☠️ (@miu_wallp) on X.jpeg',
+  'X (1).jpeg','X (2).jpeg',
+  'credit_@sotoko3924 (tw).jpeg',
+  'https___twitter_com_7a99och_status_1797239183561396317.jpeg',
+  'https___x_com_7a99o__status_1952800016587968865.jpeg',
+  'kawaii_cute food – marker style drawing.jpeg',
+  'twitter_ @jin__nai.jpeg',
+  '_For me especially I had given gift to own my self a new heart.jpeg',
+  '_𝐈𝐜𝐨𝐧𝐬.jpeg',
+  '˙⊹ ੈ✰┆𝑨𝒚𝒂𝒔𝒆 𝒎𝒐𝒎𝒐.jpeg',
+  'Пин от пользователя Toyo Veronica на доске photography _ Концептуальная.jpeg',
+  '✧Sanji✧_•One Piece•_ Art by X@_—aywakutakuay_#anime #animeicons #fanarts #onepiece #onepieceart #onepiecefanarts #Sanji #BlacklegSanji #Sanjiart #Sanjifanart_.jpeg',
+  '✰.jpeg',
+  '大叔控 海王 (@EnPo31Sla) on X.jpeg',
+  '楽天ブックス_ onBLUE　vol．48 - 紀伊 カンナ - 9784396785086 _ 本.jpeg',
+  '𝑊𝑎𝑙𝑙𝑝𝑎𝑝𝑒𝑟 _ 𝐿𝑜𝑐𝑘𝑠𝑐𝑟𝑒𝑒𝑛 _ One piece tattoos, One piece wallpaper iphone, One piece pictures.jpeg',
+  '𝒱𝑒il  #_𝑎𝑟𝑡_ 𝑠𝑎𝑠ℎ𝑖𝑜𝑠 𝑜𝑛 𝑖𝑛𝑠𝑡𝑎.jpeg',
+  '𝘽𝙚𝙧𝙨𝙚𝙧𝙠𝙚𝙧.jpeg',
+  // numbered sets
+  '_ (70).jpeg','_ (71).jpeg','_ (72).jpeg','_ (73).jpeg','_ (74).jpeg',
+  '_ (75).jpeg','_ (76).jpeg','_ (77).jpeg','_ (78).jpeg','_ (79).jpeg',
+  '_ (80).jpeg','_ (81).jpeg','_ (82).jpeg','_ (83).jpeg','_ (84).jpeg',
+  '_ (85).jpeg','_ (86).jpeg','_ (87).jpeg','_ (88).jpeg','_ (89).jpeg',
+  '_ (90).jpeg','_ (91).jpeg','_ (92).jpeg','_ (93).jpeg','_ (94).jpeg',
+  '_ (95).jpeg','_ (96).jpeg','_ (97).jpeg','_ (98).jpeg','_ (99).jpeg',
+  '_ (100).jpeg',
+  // timestamped downloads
+  '_ - 2026-05-28T234730.748.jpeg','_ - 2026-05-28T234740.487.jpeg',
+  '_ - 2026-05-28T234749.500.jpeg','_ - 2026-05-28T234756.088.jpeg',
+  '_ - 2026-05-28T234828.372.jpeg','_ - 2026-05-28T234849.394.jpeg',
+  '_ - 2026-05-28T234900.142.jpeg','_ - 2026-05-28T234904.526.jpeg',
+  '_ - 2026-05-28T234910.002.jpeg','_ - 2026-05-28T234915.158.jpeg',
+  '_ - 2026-05-28T234939.640.jpeg',
+  '_ - 2026-05-29T231447.811.jpeg','_ - 2026-05-29T231539.607.jpeg',
+  '_ - 2026-05-29T231555.908.jpeg','_ - 2026-05-29T231644.203.jpeg',
+  '_ - 2026-05-29T231656.649.jpeg','_ - 2026-05-29T231703.415.jpeg',
+  '_ - 2026-05-29T231708.893.jpeg','_ - 2026-05-29T231715.319.jpeg',
+  '_ - 2026-05-29T231755.962.jpeg','_ - 2026-05-29T231811.533.jpeg',
+  '_ - 2026-05-29T231819.897.jpeg','_ - 2026-05-29T231922.068.jpeg',
+  '_ - 2026-05-29T231930.881.jpeg','_ - 2026-05-29T231937.728.jpeg',
+  '_ - 2026-05-29T232009.086.jpeg',
+  '_ - 2026-05-30T130648.150.jpeg','_ - 2026-05-30T130737.964.jpeg',
+  '_ - 2026-05-30T130745.408.jpeg','_ - 2026-05-30T130801.464.jpeg',
+  '_ - 2026-05-30T130808.357.jpeg','_ - 2026-05-30T130816.426.jpeg',
+  '_ - 2026-05-30T130830.481.jpeg','_ - 2026-05-30T131211.782.jpeg',
+  '_ - 2026-05-30T131223.285.jpeg','_ - 2026-05-30T131505.407.jpeg',
+  '_ - 2026-05-30T131624.759.jpeg','_ - 2026-05-30T131710.853.jpeg',
+  '_ - 2026-05-30T131737.641.jpeg','_ - 2026-05-30T131744.658.jpeg',
+  '_ - 2026-05-30T131759.220.jpeg','_ - 2026-05-30T131820.703.jpeg',
+  '_ - 2026-05-30T131906.423.jpeg','_ - 2026-05-30T131924.233.jpeg',
+  '_ - 2026-05-30T131932.734.jpeg',
+  '_ - 2026-05-31T130615.354.jpeg','_ - 2026-05-31T130636.435.jpeg',
+  '_ - 2026-05-31T130801.754.jpeg','_ - 2026-05-31T130815.461.jpeg',
+  '_ - 2026-05-31T130830.194.jpeg','_ - 2026-05-31T130836.546.jpeg',
+  '_ - 2026-05-31T130945.568.jpeg','_ - 2026-05-31T130950.347.jpeg',
+  '_ - 2026-05-31T131014.641.jpeg','_ - 2026-05-31T131051.078.jpeg',
+  '_ - 2026-05-31T131107.348.jpeg','_ - 2026-05-31T131125.626.jpeg',
+  '_ - 2026-05-31T131141.190.jpeg','_ - 2026-05-31T131206.047.jpeg',
+  '_ - 2026-05-31T131218.140.jpeg','_ - 2026-05-31T131226.941.jpeg',
+  '_ - 2026-05-31T131253.042.jpeg','_ - 2026-05-31T131257.339.jpeg',
+  '_ - 2026-05-31T131301.974.jpeg','_ - 2026-05-31T131326.211.jpeg',
+  '_ - 2026-05-31T131344.330.jpeg','_ - 2026-05-31T131416.234.jpeg',
+  '_ - 2026-05-31T131422.564.jpeg','_ - 2026-05-31T131434.054.jpeg',
+  '_ - 2026-05-31T131451.282.jpeg','_ - 2026-05-31T131459.279.jpeg',
+  '_ - 2026-05-31T131513.539.jpeg','_ - 2026-05-31T131537.760.jpeg',
+  '_ - 2026-05-31T131631.516.jpeg','_ - 2026-05-31T131644.791.jpeg',
+  '_ - 2026-05-31T131656.608.jpeg','_ - 2026-05-31T131700.836.jpeg',
+  '_ - 2026-05-31T131728.989.jpeg','_ - 2026-05-31T131837.480.jpeg',
+  '_ - 2026-05-31T132255.092.jpeg','_ - 2026-05-31T132329.820.jpeg',
+  '_ - 2026-05-31T132335.835.jpeg','_ - 2026-05-31T132342.326.jpeg',
+  '_ - 2026-05-31T132359.945.jpeg','_ - 2026-05-31T132653.514.jpeg',
+  '_ - 2026-05-31T132658.752.jpeg','_ - 2026-05-31T132705.495.jpeg',
+  '_ - 2026-05-31T132800.833.jpeg','_ - 2026-05-31T132805.967.jpeg',
+  '_ - 2026-05-31T132813.262.jpeg','_ - 2026-05-31T132817.838.jpeg',
+  '_ - 2026-05-31T132826.765.jpeg','_ - 2026-05-31T132831.736.jpeg',
+  '_ - 2026-05-31T132839.273.jpeg','_ - 2026-05-31T132846.887.jpeg',
+  '_ - 2026-05-31T132915.229.jpeg','_ - 2026-05-31T132920.961.jpeg',
+  '_ - 2026-05-31T132928.096.jpeg',
+  '_ - 2026-06-03T092949.691.jpeg','_ - 2026-06-03T092959.566.jpeg',
+  '_ - 2026-06-03T093010.915.jpeg','_ - 2026-06-03T093024.426.jpeg',
+  '_ - 2026-06-03T093047.226.jpeg','_ - 2026-06-03T093229.296.jpeg',
+  '_ - 2026-06-03T093238.561.jpeg','_ - 2026-06-03T093332.447.jpeg',
+  '_ - 2026-06-03T093405.223.jpeg','_ - 2026-06-03T093413.621.jpeg',
+  '_ - 2026-06-03T093425.249.jpeg','_ - 2026-06-03T093430.872.jpeg',
+  '_ - 2026-06-03T162046.346.jpeg','_ - 2026-06-03T162211.269.jpeg',
+  '_ - 2026-06-03T162239.214.jpeg','_ - 2026-06-03T162248.466.jpeg',
+  '_ - 2026-06-03T162349.199.jpeg','_ - 2026-06-03T162405.945.jpeg',
 ]
 
 const ACCENTS = ['#10b981','#ff435a','#ffc410','#4285f4','#28f1c3','#bb9af7','#ff1650','#5ccfe6','#ffbd5e','#e36209','#72f1b8','#ff8080','#89ddff','#e5c07b','#4ec9b0','#c792ea']
 
 const INITIAL_NODES = [
-  { id:'n1', type:'entry', label:'core_sys.py', isMain:true, x:0, y:0, vx:0, vy:0, themeIdx:0, code:'import torch\nimport sys\n\nprint("Central Architecture Booted")\n\ndef init_sequence():\n    # Core logic entry\n    pass\n\nif __name__ == "__main__":\n    init_sequence()', modified:false },
-  { id:'n2', type:'function', label:'load_network.py', isMain:false, x:140, y:-130, vx:0, vy:0, themeIdx:5, classId:'g1', code:'def load_network(config=None):\n    """Load the neural network."""\n    loader = DataLoader(config)\n    loader.init()\n    return loader\n\nDEFAULT_LR = 0.001\nDEFAULT_BATCH = 32', modified:true },
-  { id:'n3', type:'class', label:'DataMatrix.py', isMain:false, x:-100, y:150, vx:0, vy:0, themeIdx:6, code:'class DataMatrix:\n    """Core data matrix handler."""\n\n    def __init__(self, size=128):\n        self.active = True\n        self.buffer = []\n        self.size = size\n\n    def push(self, data):\n        if len(self.buffer) < self.size:\n            self.buffer.append(data)\n            return True\n        return False\n\n    def flush(self):\n        self.buffer = []\n        return self', modified:false, classId:'g1' },
-  { id:'n4', type:'function', label:'preprocess.py', isMain:false, x:60, y:180, vx:0, vy:0, themeIdx:4, classId:null, code:'def preprocess(data):\n    return data', modified:false },
+  { id:'n1', type:'entry', label:'main.js', isMain:true, x:0, y:0, vx:0, vy:0, themeIdx:0, modified:false, code:
+`// FORBIDEN — Main entry point
+const PROJECT = 'FORBIDEN NGO'
+const VERSION  = '2.1.0'
+const MODULES  = ['utils', 'DataPipeline', 'graph']
+
+console.log(\`[BOOT] \${PROJECT} v\${VERSION}\`)
+MODULES.forEach(m => console.log(\`  ↳ loading: \${m}\`))
+
+const uptime = performance.now().toFixed(2)
+console.log(\`[READY] Runtime up — \${uptime}ms\`)
+
+return { project: PROJECT, version: VERSION, modules: MODULES, uptime }`
+  },
+  { id:'n2', type:'function', label:'utils.js', isMain:false, x:150, y:-140, vx:0, vy:0, themeIdx:5, classId:'g1', modified:true, code:
+`// Utility helpers
+function capitalize(str) {
+  return str.charAt(0).toUpperCase() + str.slice(1)
+}
+
+function randomId(len = 8) {
+  return Math.random().toString(36).slice(2, 2 + len).toUpperCase()
+}
+
+function clamp(n, min, max) {
+  return Math.min(Math.max(n, min), max)
+}
+
+function debounce(fn, delay) {
+  let t
+  return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), delay) }
+}
+
+// Smoke test
+console.log(capitalize('forbiden'))
+console.log('ID:', randomId())
+console.log('clamp(15, 0, 10):', clamp(15, 0, 10))
+
+return { capitalize, randomId, clamp, debounce }`
+  },
+  { id:'n3', type:'class', label:'DataPipeline.js', isMain:false, x:-110, y:160, vx:0, vy:0, themeIdx:6, classId:'g1', modified:false, code:
+`// Composable data pipeline
+class DataPipeline {
+  constructor(name) {
+    this.name = name
+    this.stages = []
+    this.runs = 0
+  }
+
+  pipe(fn) {
+    this.stages.push(fn)
+    return this // chainable
+  }
+
+  run(input) {
+    this.runs++
+    return this.stages.reduce((acc, fn) => fn(acc), input)
+  }
+}
+
+// Demo — process an array of numbers
+const pipeline = new DataPipeline('demo')
+  .pipe(data => data.map(x => x * 2))
+  .pipe(data => data.filter(x => x > 4))
+  .pipe(data => ({
+    values: data,
+    sum: data.reduce((a, b) => a + b, 0),
+    avg: data.reduce((a, b) => a + b, 0) / data.length
+  }))
+
+const result = pipeline.run([1, 2, 3, 4, 5])
+console.log('Pipeline:', pipeline.name)
+console.log('Result:', result)
+console.warn('Runs so far:', pipeline.runs)
+
+return result`
+  },
+  { id:'n4', type:'function', label:'graph.js', isMain:false, x:70, y:190, vx:0, vy:0, themeIdx:4, classId:null, modified:false, code:
+`// Graph traversal utilities
+function buildGraph(edges) {
+  const g = {}
+  for (const [from, to] of edges) {
+    ;(g[from] ??= []).push(to)
+    ;(g[to]   ??= [])
+  }
+  return g
+}
+
+function bfs(graph, start) {
+  const visited = new Set([start])
+  const queue = [start]
+  const order = []
+  while (queue.length) {
+    const node = queue.shift()
+    order.push(node)
+    for (const nb of (graph[node] || [])) {
+      if (!visited.has(nb)) { visited.add(nb); queue.push(nb) }
+    }
+  }
+  return order
+}
+
+function pageRank(graph, iters = 20, d = 0.85) {
+  const nodes = Object.keys(graph)
+  const N = nodes.length
+  const rank = Object.fromEntries(nodes.map(n => [n, 1 / N]))
+  for (let i = 0; i < iters; i++) {
+    const next = Object.fromEntries(nodes.map(n => [n, (1 - d) / N]))
+    for (const [src, dsts] of Object.entries(graph)) {
+      for (const dst of dsts) {
+        next[dst] = (next[dst] || 0) + d * (rank[src] / (dsts.length || 1))
+      }
+    }
+    Object.assign(rank, next)
+  }
+  return rank
+}
+
+const edges = [
+  ['main', 'utils'], ['main', 'DataPipeline'],
+  ['utils', 'graph'], ['DataPipeline', 'graph'],
 ]
-const INITIAL_EDGES = [{id:'e1',source:'n1',target:'n2'},{id:'e2',source:'n1',target:'n3'},{id:'e3',source:'n2',target:'n4'}]
-const INITIAL_GROUPS = [{id:'g1',name:'NetworkLayer',color:'#10b981',nodeIds:['n2','n3']}]
+const G = buildGraph(edges)
+const traversal = bfs(G, 'main')
+const ranks = pageRank(G)
+
+console.log('BFS from main:', traversal)
+console.table(Object.entries(ranks).map(([n,r]) => ({ node:n, rank: r.toFixed(4) })))
+
+return { graph: G, traversal, ranks }`
+  },
+]
+const INITIAL_EDGES = [{id:'e1',source:'n1',target:'n2'},{id:'e2',source:'n1',target:'n3'},{id:'e3',source:'n2',target:'n4'},{id:'e4',source:'n3',target:'n4'}]
+const INITIAL_GROUPS = [{id:'g1',name:'CoreLayer',color:'#10b981',nodeIds:['n2','n3']}]
 const INITIAL_BOARD = {
   cols:[{id:'c1',title:'BACKLOG',color:'#4a4a6a'},{id:'c2',title:'TO DO',color:'#4285f4'},{id:'c3',title:'IN PROGRESS',color:'#ffc410'},{id:'c4',title:'REVIEW',color:'#ff435a'},{id:'c5',title:'DONE',color:'#10b981'}],
   cards:[
@@ -78,9 +303,12 @@ const INITIAL_BOARD = {
 
 const CMD_ITEMS = [
   { icon:'F', label:'New file node', hint:'N' },
+  { icon:'D', label:'New doc node (.md)', hint:'' },
   { icon:'G', label:'New class group', hint:'G' },
   { icon:'J', label:'Join nodes (add edge)', hint:'J' },
   { icon:'X', label:'Cut edge', hint:'X' },
+  { icon:'▶', label:'Run current file (JS)', hint:'Ctrl+Enter' },
+  { icon:'>', label:'Open JS console', hint:'' },
   { icon:'/', label:'Toggle comment', hint:'Ctrl+/' },
   { icon:'T', label:'Open terminal', hint:'`' },
   { icon:'B', label:'Open board', hint:'' },
@@ -143,10 +371,50 @@ const VERSIONS = [
 //  UTILITIES
 // ══════════════════════════════════════════════════════════════
 
+const PANEL_IMGS = [
+  // Curated manga/art posters
+  'Guts.jpeg','Whitebeard.jpeg','Roronoa Zoro.jpeg','PANTHEON.jpeg',
+  'Thorfinn _ Vinland saga.jpeg','Choujin X.jpeg','THE CONTROL DEVIL _ GRAPHIC DESIGN.jpeg',
+  'God Valley.jpeg','MATT TAYLOR.jpeg','SUBWAY DIMENSIONS.jpeg',
+  'Queen Marika the Eternal.jpeg','VOGUE.jpeg','Sight - SKJEGG.jpeg',
+  'Poster - Veil.jpeg','SONS OF THE DEVIL Covers 1-5 - toni infante.jpeg',
+  'denji starboy album cover.jpeg','yhwach god of the Quincy.jpeg',
+  'Makima! 🩸__#Makima #ChainsawMan_#ChainsawManFanart #AnimeArt_#DigitalPainting.jpeg',
+  'チェンソーマン ＃１.jpeg','𝐔𝐬𝐨𝐩𝐩.jpeg','Poster One Piece - Wanted Whitebeard 61x91,5cm _ bol.jpeg',
+  'CHAOS SMILE.jpeg','Fire Punch.jpeg','Nelliel Brutalism.jpeg',
+  // New additions from not-used folder
+  '#chainsawman.jpeg',
+  'Burning - Inspired by Van Gogh.jpeg',
+  'I\'LL TAKE CARE OF YOU _ TYLER THE CREATOR _ DON\'T TAP THE GLASS _ FLOWER BOY.jpeg',
+  'Kagurabachi X Bleach.jpeg','Kyora Sazanami Poster.jpeg',
+  '0xMC001x.jpeg','0xMC002x.jpeg','0xMC003x.jpeg',
+  // Episode art panels
+  '0xEP001p.jpeg','0xEP002p.jpeg','0xEP003p.jpeg','0xEP004p.jpeg','0xEP005p.jpeg',
+  '0xEP006p.jpeg','0xEP007p.jpeg','0xEP008p.jpeg','0xEP009p.jpeg','0xEP010p.jpeg',
+  '0xEP011p.jpeg','0xEP012p.jpeg','0xEP013p.jpeg','0xEP014p.jpeg','0xEP015p.jpeg',
+  '0xEP016p.jpeg','0xEP017p.jpeg','0xEP018p.jpeg','0xEP019p.jpeg','0xEP020p.jpeg',
+  '0xEP021p.jpeg','0xEP022p.jpeg','0xEP023p.jpeg','0xEP024p.jpeg','0xEP025p.jpeg',
+  '0xEP026p.jpeg','0xEP027p.jpeg','0xEP028p.jpeg','0xEP029p.jpeg','0xEP030p.jpeg',
+  '0xEP031p.jpeg','0xEP032p.jpeg','0xEP033p.jpeg','0xEP034p.jpeg','0xEP035p.jpeg',
+  '0xEP036p.jpeg','0xEP037p.jpeg','0xEP038p.jpeg','0xEP039p.jpeg','0xEP040p.jpeg',
+  '0xEP041p.jpeg','0xEP042p.jpeg','0xEP043p.jpeg','0xEP044p.jpeg','0xEP045p.jpeg',
+  '0xEP046p.jpeg','0xEP047p.jpeg','0xEP048p.jpeg','0xEP049p.jpeg','0xEP050p.jpeg',
+  '0xEP051p.jpeg','0xEP052p.jpeg','0xEP053p.jpeg','0xEP054p.jpeg','0xEP055p.jpeg',
+  '0xEP056p.jpeg','0xEP057p.jpeg','0xEP058p.jpeg','0xEP059p.jpeg','0xEP060p.jpeg',
+  '0xEP061p.jpeg','0xEP062p.jpeg','0xEP069p.jpeg','0xEP070p.jpeg','0xEP071p.jpeg',
+  '0xEP072p.jpeg','0xEP073p.jpeg','0xEP074p.jpeg','0xEP075p.jpeg','0xEP076t.jpeg',
+  '0xEP077t.jpeg','0xEP078t.jpeg','0xEP079t.jpeg','0xEP080t.jpeg','0xEP081t.jpeg',
+  '0xEP082t.jpeg','0xEP083t.jpeg',
+]
+
 function getMangaImgSrc(node) {
   const numId = parseInt((node.id || '').replace(/\D/g,'')) || 0
-  const idx = ((node.themeIdx || 0) * 13 + numId * 7) % MANGA_RAW.length
-  return `/manga/${encodeURIComponent(MANGA_RAW[idx])}`
+  const idx = (numId * 11 + (node.themeIdx || 0) * 7) % PANEL_IMGS.length
+  return `/manga/${encodeURIComponent(PANEL_IMGS[idx])}`
+}
+
+function getPanelImg(seed) {
+  return `/manga/${encodeURIComponent(PANEL_IMGS[seed % PANEL_IMGS.length])}`
 }
 
 function highlightCode(code) {
@@ -156,18 +424,20 @@ function highlightCode(code) {
   const STRINGS = /("""[\s\S]*?"""|'''[\s\S]*?'''|"[^"\\]*(?:\\.[^"\\]*)*"|'[^'\\]*(?:\\.[^'\\]*)*'|`[^`\\]*(?:\\.[^`\\]*)*`)/g
   const COMMENTS = /(#.*$|\/\/.*$|\/\*[\s\S]*?\*\/)/gm
   const NUMBERS = /\b(\d+\.?\d*(?:[eE][+-]?\d+)?)\b/g
-  const FUNCS = /\b([a-zA-Z_]\w*)\s*(?=\()/g
+  const FUNCS = /\b([a-zA-Z_]\w*)(?=\s*\()/g
   let html = code.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
   const stored = []
-  const PH='\x00', PE='\x01'
-  html = html.replace(COMMENTS, m => { stored.push(`<span class="syn-comment">${m}</span>`); return PH+(stored.length-1)+PE })
-  html = html.replace(STRINGS, m => { stored.push(`<span class="syn-string">${m}</span>`); return PH+(stored.length-1)+PE })
-  html = html.replace(FUNCS, (m,fn) => { stored.push(`<span class="syn-function">${fn}</span>`); return PH+(stored.length-1)+PE+'(' })
+  // Use \x00P…\x01 so the digit index is preceded by a word char (P),
+  // preventing the NUMBERS regex from matching it as a standalone number.
+  const ph = (n) => '\x00P' + n + '\x01'
+  html = html.replace(COMMENTS, m => { stored.push(`<span class="syn-comment">${m}</span>`); return ph(stored.length-1) })
+  html = html.replace(STRINGS,  m => { stored.push(`<span class="syn-string">${m}</span>`);  return ph(stored.length-1) })
+  html = html.replace(FUNCS,   (m,fn) => { stored.push(`<span class="syn-function">${fn}</span>`); return ph(stored.length-1) })
   html = html.replace(PY_KW, '<span class="syn-keyword">$&</span>')
   html = html.replace(JS_KW, '<span class="syn-keyword">$&</span>')
   html = html.replace(BUILTINS, '<span class="syn-builtin">$&</span>')
   html = html.replace(NUMBERS, '<span class="syn-number">$&</span>')
-  html = html.replace(/\x00(\d+)\x01/g, (_, i) => stored[parseInt(i)])
+  html = html.replace(/\x00P(\d+)\x01/g, (_, i) => stored[parseInt(i)])
   return html
 }
 
@@ -223,11 +493,48 @@ function CodeEditor({ node, onChange, externalPalette }) {
     if (lineNumRef.current && textareaRef.current) lineNumRef.current.scrollTop = textareaRef.current.scrollTop
     if (overlayRef.current && textareaRef.current) overlayRef.current.style.transform = `translateY(-${textareaRef.current.scrollTop}px)`
   }
+  const isJS = node.label?.match(/\.(js|ts|jsx|tsx|mjs)$/)
+  const tabStr = '  ' // 2 spaces
+
   const handleKeyDown = (e) => {
-    if (e.key==='Tab') { e.preventDefault(); const s=e.target.selectionStart,en=e.target.selectionEnd; const nCode=code.substring(0,s)+'  '+code.substring(en); onChange(nCode); setTimeout(()=>{e.target.selectionStart=e.target.selectionEnd=s+2},0) }
-    if ((e.ctrlKey||e.metaKey)&&e.key==='f') { e.preventDefault(); setShowFind(v=>!v) }
-    if ((e.ctrlKey||e.metaKey)&&e.key==='/') { e.preventDefault(); toggleLineComment() }
-    if ((e.ctrlKey||e.metaKey)&&e.key==='d') { e.preventDefault(); setShowDiff(v=>!v) }
+    const ta = e.target
+    const s = ta.selectionStart, en = ta.selectionEnd
+    const before = code.substring(0, s)
+    const after  = code.substring(en)
+
+    // Tab — insert 2 spaces (Shift+Tab dedents)
+    if (e.key === 'Tab') {
+      e.preventDefault()
+      if (e.shiftKey) {
+        const lineStart = before.lastIndexOf('\n') + 1
+        if (code.substring(lineStart).startsWith('  ')) {
+          const newCode = code.substring(0, lineStart) + code.substring(lineStart + 2)
+          onChange(newCode)
+          setTimeout(() => { ta.selectionStart = ta.selectionEnd = Math.max(s - 2, lineStart) }, 0)
+        }
+      } else {
+        onChange(before + '  ' + after)
+        setTimeout(() => { ta.selectionStart = ta.selectionEnd = s + 2 }, 0)
+      }
+      return
+    }
+
+    // Enter — match current line indentation
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      const lineStart = before.lastIndexOf('\n') + 1
+      const currentLine = code.substring(lineStart, s)
+      const indent = currentLine.match(/^(\s*)/)[1]
+      const lastChar = before.trimEnd().slice(-1)
+      const extra = '{[('.includes(lastChar) ? '  ' : ''
+      onChange(before + '\n' + indent + extra + after)
+      setTimeout(() => { ta.selectionStart = ta.selectionEnd = s + 1 + indent.length + extra.length }, 0)
+      return
+    }
+
+    if ((e.ctrlKey||e.metaKey) && e.key==='f') { e.preventDefault(); setShowFind(v=>!v) }
+    if ((e.ctrlKey||e.metaKey) && e.key==='/') { e.preventDefault(); toggleLineComment() }
+    if ((e.ctrlKey||e.metaKey) && e.key==='d') { e.preventDefault(); setShowDiff(v=>!v) }
   }
   const handleCursorUpdate = (e) => {
     const ta=e.target, before=code.substring(0,ta.selectionStart)
@@ -244,11 +551,24 @@ function CodeEditor({ node, onChange, externalPalette }) {
   const handleFormat = () => { const formatted = code.split('\n').map(l=>l.replace(/\s+$/,'')).join('\n').replace(/\n{3,}/g,'\n\n'); onChange(formatted); showToast('FORMATTED') }
   const handleFindReplace = () => { if (!findQuery) return; const count=(code.split(findQuery).length-1); onChange(code.split(findQuery).join(replaceQuery)); showToast(`REPLACED ${count} INSTANCES`) }
   const toggleLineComment = () => {
-    const ta=textareaRef.current; const before=code.substring(0,ta.selectionStart); const lineStart=before.lastIndexOf('\n')+1
-    const lineEnd=code.indexOf('\n',lineStart)===-1?code.length:code.indexOf('\n',lineStart)
-    const lineText=code.substring(lineStart,lineEnd)
-    const newCode=lineText.trimStart().startsWith('#')?code.substring(0,lineStart)+lineText.replace(/^\s*#\s?/,'')+code.substring(lineEnd):code.substring(0,lineStart)+'# '+lineText+code.substring(lineEnd)
-    onChange(newCode); showToast('TOGGLED COMMENT')
+    const ta = textareaRef.current
+    const sel0 = ta.selectionStart, sel1 = ta.selectionEnd
+    const marker = isJS ? '//' : '#'
+    const before = code.substring(0, sel0)
+    const lineStart = before.lastIndexOf('\n') + 1
+    // multi-line: cover all selected lines
+    const selEnd = sel1 > sel0 ? sel1 : sel0
+    const lastNl = code.indexOf('\n', selEnd)
+    const lineEnd = lastNl === -1 ? code.length : lastNl
+    const selected = code.substring(lineStart, lineEnd)
+    const lines = selected.split('\n')
+    const allCommented = lines.every(l => l.trimStart().startsWith(marker))
+    const toggled = allCommented
+      ? lines.map(l => l.replace(new RegExp(`^(\\s*)${marker.replace('/','\\/')}\\s?`), '$1'))
+      : lines.map(l => l.replace(/^(\s*)/, `$1${marker} `))
+    const newCode = code.substring(0, lineStart) + toggled.join('\n') + code.substring(lineEnd)
+    onChange(newCode)
+    showToast('COMMENT')
   }
   const diffLines = useMemo(() => code.split('\n').map((line,i)=>({ type:i===1&&node.modified?'add':i===2&&node.modified?'del':'ctx', text:line, num:i+1 })), [code,node.modified])
   const cssVars = { '--syn-kw':palette.kw,'--syn-str':palette.str,'--syn-cmt':palette.cmt,'--syn-num':palette.num,'--syn-fn':palette.fn,'--syn-bi':palette.bi,'--syn-op':palette.op }
@@ -262,16 +582,24 @@ function CodeEditor({ node, onChange, externalPalette }) {
       ref={el => el && Object.entries(cssVars).forEach(([k,v])=>el.style.setProperty(k,v))}>
       {/* Toolbar */}
       <div className="ide-editor-toolbar">
+        {/* Language pill */}
+        <span style={{padding:'1px 7px',fontSize:'9px',fontFamily:"'Oswald',sans-serif",fontWeight:700,letterSpacing:'.1em',
+          background: isJS ? 'rgba(242,193,46,.15)' : 'rgba(66,133,244,.15)',
+          color: isJS ? '#f2c12e' : '#4285f4',
+          border: `1px solid ${isJS?'rgba(242,193,46,.3)':'rgba(66,133,244,.3)'}`,
+        }}>
+          {isJS ? 'JS' : node.label?.endsWith('.md') ? 'MD' : 'PY'}
+        </span>
+        <div className="ide-tb-sep"/>
         <button className="ide-tb-btn" onClick={handleCopy}><I.Copy/> COPY</button>
-        <div className="ide-tb-sep"/>
         <button className="ide-tb-btn" onClick={handleFormat}><I.Format/> FORMAT</button>
-        <button className="ide-tb-btn" onClick={toggleLineComment}># COMMENT</button>
+        <button className="ide-tb-btn" onClick={toggleLineComment} title="Ctrl+/">{isJS?'//':'#'} CMT</button>
         <div className="ide-tb-sep"/>
-        <button className={`ide-tb-btn ${showFind?'active':''}`} onClick={()=>setShowFind(v=>!v)}><I.Find/> FIND</button>
+        <button className={`ide-tb-btn ${showFind?'active':''}`} onClick={()=>setShowFind(v=>!v)} title="Ctrl+F"><I.Find/> FIND</button>
         <button className={`ide-tb-btn ${wordWrap?'active':''}`} onClick={()=>setWordWrap(v=>!v)}><I.Wrap/> WRAP</button>
-        <button className={`ide-tb-btn ${showDiff?'active':''}`} onClick={()=>setShowDiff(v=>!v)}><I.Diff/> DIFF</button>
         <div className="ide-tb-sep"/>
         <button className="ide-tb-btn" onClick={()=>setFontSize(s=>Math.max(10,s-1))}>A−</button>
+        <span style={{fontSize:'9px',opacity:.4,padding:'0 2px',color:palette.base}}>{fontSize}</span>
         <button className="ide-tb-btn" onClick={()=>setFontSize(s=>Math.min(20,s+1))}>A+</button>
         <div style={{marginLeft:'auto',position:'relative'}}>
           <button className={`ide-tb-btn ${showPaletteMenu?'active':''}`} onClick={()=>setShowPaletteMenu(v=>!v)} style={{gap:'4px'}}>
@@ -364,12 +692,14 @@ function CodeEditor({ node, onChange, externalPalette }) {
       </div>
       {/* Status strip */}
       <div className="editor-status-strip" style={{background:palette.bg,borderTop:`1px solid ${palette.lineNum}33`,color:palette.base}}>
-        <span style={{opacity:.45}}>Ln {cursor.line}, Col {cursor.col}</span>
+        <span style={{opacity:.45}}>Ln {cursor.line}:{cursor.col}</span>
         <span style={{opacity:.2}}>|</span>
-        <span style={{opacity:.45}}>{code.split('\n').length} lines</span>
+        <span style={{opacity:.45}}>{code.split('\n').length}L</span>
         <span style={{opacity:.2}}>|</span>
         <span style={{color:palette.fn,opacity:.7}}>{node.type}</span>
-        {node.modified && <><span style={{opacity:.2}}>|</span><span style={{color:'#ffc410',fontSize:'8px'}}>● MODIFIED</span></>}
+        {node.modified && <><span style={{opacity:.2}}>|</span><span style={{color:'#ffc410',fontSize:'8px'}}>● MOD</span></>}
+        <span style={{opacity:.2}}>|</span>
+        <span style={{opacity:.22,fontSize:'8px'}}>^Enter RUN · ^/ CMT · ^F FIND · Tab INDENT</span>
         <span style={{marginLeft:'auto',opacity:.35}}>{palette.name}</span>
       </div>
       {toastMsg && <div className="copy-toast">{toastMsg}</div>}
@@ -430,6 +760,9 @@ function GroupEditor({ group, nodes, onClose, onOpenNode }) {
   const getSynVars = (col) => ({'--syn-kw':col,'--syn-str':'#ffc410','--syn-cmt':'#5c6370','--syn-num':'#d19a66','--syn-fn':'#61afef','--syn-bi':'#56b6c2'})
   const totalLines = members.reduce((s,n)=>(n.code||'').split('\n').length+s,0)
   const scrollToFn = (id) => { setActiveId(id); document.getElementById('fn-block-'+id)?.scrollIntoView({behavior:'smooth',block:'start'}) }
+  const gNum = parseInt(group.id.replace(/\D/g,''))||0
+  const groupArtSrc = getPanelImg(gNum * 3 + 1)
+  const sideArtSrc = getPanelImg(gNum * 3 + 7)
 
   return (
     <div className="grp-editor-overlay" onClick={onClose}>
@@ -441,7 +774,7 @@ function GroupEditor({ group, nodes, onClose, onOpenNode }) {
           <div className="grp-chrome-dot" style={{background:'#28c840',cursor:'pointer'}} onClick={onClose}/>
           <div className="grp-chrome-sep"/>
           <div className="grp-chrome-title">{group.name}</div>
-          <span style={{marginLeft:'6px',fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:'.44rem',letterSpacing:'.12em',padding:'1px 7px',background:accent,color:'#000'}}>CLASS</span>
+          <span style={{marginLeft:'6px',fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:'11px',letterSpacing:'.12em',padding:'1px 7px',background:accent,color:'#000'}}>CLASS</span>
           <div className="grp-chrome-meta" style={{marginLeft:'auto'}}>
             {members.length} methods · {totalLines} lines · READ-ONLY
           </div>
@@ -450,19 +783,23 @@ function GroupEditor({ group, nodes, onClose, onOpenNode }) {
         <div className="grp-editor-body">
           {/* Sidebar */}
           <div className="grp-sidebar">
-            <div className="grp-sidebar-hdr">
-              <div className="grp-sidebar-sup">Class</div>
-              <div className="grp-sidebar-classname" style={{color:accent}}>{group.name}</div>
+            <div className="grp-sidebar-hdr" style={{padding:0,position:'relative',overflow:'hidden',height:'88px',flexShrink:0}}>
+              <img src={sideArtSrc} alt="" style={{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover',filter:'contrast(1.2) saturate(.4) brightness(.65)'}}/>
+              <div style={{position:'absolute',inset:0,background:`linear-gradient(to bottom,rgba(5,5,13,.2) 0%,rgba(5,5,13,.88) 100%), linear-gradient(to right,rgba(5,5,13,.15) 0%,transparent 60%)`,pointerEvents:'none'}}/>
+              <div style={{position:'absolute',bottom:0,left:0,right:0,padding:'8px 14px'}}>
+                <div className="grp-sidebar-sup">Class</div>
+                <div className="grp-sidebar-classname" style={{color:accent}}>{group.name}</div>
+              </div>
             </div>
             <div className="grp-sidebar-struct">
-              <div className="grp-sidebar-struct-class" style={{fontFamily:"'JetBrains Mono',monospace",fontSize:'.54rem'}}>
+              <div className="grp-sidebar-struct-class" style={{fontFamily:"'JetBrains Mono',monospace",fontSize:'12px'}}>
                 <span style={{color:'#c792ea'}}>class </span>
                 <span style={{color:accent}}>{group.name}</span>
                 <span style={{opacity:.4}}>:</span>
               </div>
               {members.map((n,i)=>(
                 <div key={n.id} className="grp-sidebar-struct-method" onClick={()=>scrollToFn(n.id)}
-                  style={{fontFamily:"'JetBrains Mono',monospace",fontSize:'.48rem',color:COLORS[i%COLORS.length]}}>
+                  style={{fontFamily:"'JetBrains Mono',monospace",fontSize:'11px',color:COLORS[i%COLORS.length]}}>
                   <span style={{opacity:.4}}>def </span>
                   <span>{n.label.replace('.py','').replace('.js','')}</span>
                   <span style={{opacity:.3}}>()</span>
@@ -503,19 +840,19 @@ function GroupEditor({ group, nodes, onClose, onOpenNode }) {
               })}
             </div>
             <div className="grp-codescroll">
+              {/* Manga art class banner */}
               <div className="grp-class-banner">
-                <div className="grp-banner-bar" style={{background:accent,height:'40px'}}/>
-                <div>
-                  <div className="grp-banner-code" style={{fontFamily:"'JetBrains Mono',monospace",fontSize:'13px'}}>
-                    <span style={{color:'#c792ea',fontWeight:'bold'}}>class </span>
-                    <span style={{color:accent,fontWeight:'bold'}}>{group.name}</span>
-                    <span style={{opacity:.4}}>:</span>
-                  </div>
-                  <div className="grp-banner-note"># assembled class view · {members.length} methods · read-only</div>
+                <img src={groupArtSrc} alt="" className="grp-banner-art"/>
+                <div className="grp-banner-scanlines"/>
+                <div className="grp-banner-overlay" style={{background:`linear-gradient(to right,rgba(5,5,13,.6) 0%,transparent 50%,rgba(5,5,13,.72) 100%), linear-gradient(to bottom,rgba(5,5,13,.12) 0%,transparent 28%,rgba(5,5,13,.99) 100%)`}}/>
+                <div className="grp-banner-content">
+                  <div className="grp-banner-kw" style={{color:'#c792ea'}}>class</div>
+                  <div className="grp-banner-title" style={{color:accent}}>{group.name}</div>
+                  <div className="grp-banner-note">{members.length} methods · {totalLines} lines · read-only</div>
                 </div>
-                <div style={{marginLeft:'auto',display:'flex',gap:'8px',alignItems:'center'}}>
-                  <div style={{padding:'3px 10px',border:`1px solid ${accent}44`,fontSize:'9px',color:accent,fontFamily:"'JetBrains Mono',monospace",letterSpacing:'1px'}}>CLASS</div>
-                  <div style={{padding:'3px 10px',border:'1px solid rgba(255,255,255,.1)',fontSize:'9px',opacity:.4,fontFamily:"'JetBrains Mono',monospace"}}>{members.length} METHODS</div>
+                <div className="grp-banner-chips">
+                  <div style={{padding:'2px 8px',border:`1px solid ${accent}55`,fontSize:'8px',color:accent,fontFamily:"'Oswald',sans-serif",fontWeight:700,letterSpacing:'.1em'}}>CLASS</div>
+                  <div style={{padding:'2px 8px',border:'1px solid rgba(255,255,255,.12)',fontSize:'8px',opacity:.4,fontFamily:"'Oswald',sans-serif",fontWeight:700,letterSpacing:'.1em'}}>{members.length} METHODS</div>
                 </div>
               </div>
               {members.map((n,i)=>{
@@ -570,18 +907,21 @@ function GroupEditor({ group, nodes, onClose, onOpenNode }) {
 function MangaNode({
   node, groups, brutal, isJoinSelected, edgeMode, hoveredNodeId, setHoveredNodeId,
   draggingNodeRef, lastMousePos, transform, setNodeColorPicker, handleNodeClickInMode, openNodeInEditor,
+  nodeRunState, onRun,
 }) {
-  const W = node.isMain ? 112 : 90
-  const H = node.isMain ? 142 : 116
+  const W = node.isMain ? 108 : 90
+  const H = node.isMain ? 44 : 36
   const accent = ACCENTS[node.themeIdx % ACCENTS.length]
   const group = groups.find(g => g.nodeIds.includes(node.id))
   const imgSrc = getMangaImgSrc(node)
   const isHovered = hoveredNodeId === node.id
   const dimmed = hoveredNodeId && !isHovered && !edgeMode
+  const runSt = nodeRunState?.[node.id]
+  const isDoc = node.type === 'doc'
 
   const boxShadow = brutal
-    ? (isJoinSelected ? `6px 6px 0 ${accent}` : isHovered ? '6px 6px 0 #0f0f0f' : '4px 4px 0 #0f0f0f')
-    : (isJoinSelected ? `0 0 20px ${accent}` : isHovered ? `0 0 24px ${accent}55` : `0 0 8px ${accent}22`)
+    ? (isJoinSelected ? `6px 6px 0 ${accent}` : isHovered ? '8px 8px 0 #0f0f0f' : '4px 4px 0 #0f0f0f')
+    : (isJoinSelected ? `0 0 24px ${accent}` : isHovered ? `0 0 28px ${accent}66` : `0 0 10px ${accent}28`)
 
   return (
     <div
@@ -628,34 +968,50 @@ function MangaNode({
           </span>
         </div>
       )}
-      {/* Panel frame */}
+      {/* Compact box node */}
       <div className="mn-node-frame" style={{
         border: isJoinSelected
-          ? (brutal ? `3px solid ${accent}` : `2px solid ${accent}`)
-          : (brutal ? '3px solid #0f0f0f' : `2px solid ${accent}33`),
-        boxShadow,
-        background: brutal ? '#f0ece0' : '#030308',
+          ? (brutal ? `2px solid ${accent}` : `1px solid ${accent}`)
+          : runSt?.status==='ok' ? `1px solid #10b981`
+          : runSt?.status==='error' ? `1px solid #ff435a`
+          : (brutal ? `2px solid #0f0f0f` : `1px solid ${accent}44`),
+        boxShadow: runSt?.status==='ok' ? `0 0 14px #10b98155`
+          : runSt?.status==='error' ? `0 0 14px #ff435a55`
+          : boxShadow,
+        background: brutal ? '#f0ece0' : 'rgba(6,6,18,.97)',
       }}>
-        {/* Image area */}
-        <div className="mn-node-img">
-          <img src={imgSrc} alt="" style={{opacity:brutal?.28:.18,filter:brutal?'contrast(1.1) saturate(.5) sepia(.15)':'contrast(1.2) saturate(.4)'}}/>
-          <div className="mn-node-tone"/>
-          <div className="mn-node-grad" style={{background:brutal?'linear-gradient(to bottom,transparent 40%,rgba(240,236,224,.88) 100%)':'linear-gradient(to bottom,transparent 40%,rgba(3,3,8,.94) 100%)'}}/>
-          {/* Type badge */}
-          <div className="mn-node-badge type" style={{background:accent,color:brutal?'#0f0f0f':'#000'}}>
-            {node.type.toUpperCase()}
-          </div>
-          {/* Main badge */}
-          {node.isMain && (
-            <div className="mn-node-badge main" style={{background:brutal?'#0f0f0f':accent,color:brutal?'#f2c12e':'#000',fontFamily:"'Bangers',sans-serif",fontSize:'.55rem',letterSpacing:'.1em'}}>
-              MAIN
-            </div>
-          )}
+        {/* Left accent strip */}
+        <div className="mn-node-strip" style={{background:accent, width:brutal?4:3}}/>
+        {/* Tiny art icon */}
+        <div className="mn-node-icon">
+          <img src={imgSrc} alt="" style={{width:'100%',height:'100%',objectFit:'cover',display:'block',
+            filter:'contrast(1.2) saturate(.5)',
+            opacity: brutal ? 0.9 : 0.85,
+          }}/>
         </div>
-        {/* Caption strip */}
-        <div className="mn-node-caption" style={{background:brutal?'#0f0f0f':'rgba(8,8,20,.96)',borderTop:brutal?'1px solid rgba(255,255,255,.06)':`1px solid ${accent}18`}}>
+        {/* Text content */}
+        <div className="mn-node-content">
+          <div className="mn-node-type-row">
+            <span className="mn-node-type-chip" style={{background: isDoc ? '#c792ea' : accent, color:brutal?'#0f0f0f':'#000'}}>{isDoc ? 'DOC' : node.type.slice(0,3).toUpperCase()}</span>
+            {node.isMain && <span className="mn-node-main-chip" style={{color:accent,borderColor:accent}}>M</span>}
+          </div>
+          <div className="mn-node-label" style={{color:brutal?'#0f0f0f':'#d8dce8'}}>{node.label}</div>
+        </div>
+        {/* Right: run button + dot + modified */}
+        <div className="mn-node-right">
+          <div className="mn-node-run"
+            style={{
+              color: runSt?.status==='ok' ? '#10b981' : runSt?.status==='error' ? '#ff435a' : accent,
+              opacity: runSt?.status==='running' ? 1 : 0.7,
+            }}
+            onPointerDown={e=>e.stopPropagation()}
+            onClick={e=>{ e.stopPropagation(); onRun?.(node.id) }}
+            title="Run (JS)"
+          >
+            {runSt?.status==='running' ? '⋯' : runSt?.status==='ok' ? '✓' : runSt?.status==='error' ? '✗' : '▶'}
+          </div>
           <div className="mn-node-dot"
-            style={{background:accent,width:7,height:7,borderRadius:brutal?0:'50%'}}
+            style={{background:accent,width:6,height:6,borderRadius:brutal?0:'50%',flexShrink:0}}
             onPointerDown={e=>e.stopPropagation()}
             onClick={e=>{
               e.stopPropagation()
@@ -663,9 +1019,6 @@ function MangaNode({
               setNodeColorPicker(p=>p?.nodeId===node.id?null:{nodeId:node.id,x:rect.left,y:rect.bottom+6})
             }}
           />
-          <span className="mn-node-fname" style={{color:brutal?'#f0ece0':accent}}>
-            {node.label}
-          </span>
           {node.modified && <div className="mn-node-mod"/>}
         </div>
       </div>
@@ -708,6 +1061,224 @@ function convexHull(pts) {
   for (const p of [...pts].reverse()) { while(upper.length>=2&&cross(upper[upper.length-2],upper[upper.length-1],p)<=0)upper.pop(); upper.push(p) }
   upper.pop(); lower.pop()
   return lower.concat(upper)
+}
+
+// ══════════════════════════════════════════════════════════════
+//  JS RUNTIME ENGINE
+// ══════════════════════════════════════════════════════════════
+
+const WORKER_SRC = `
+self.onmessage = function(e) {
+  const code = e.data
+  function _fmt(v) {
+    if (v === null) return 'null'
+    if (v === undefined) return 'undefined'
+    if (typeof v === 'function') return '[Function: ' + (v.name || 'anon') + ']'
+    if (typeof v === 'string') return JSON.stringify(v)
+    try { return JSON.stringify(v, null, 2) } catch { return String(v) }
+  }
+  self.console = {
+    log:      (...a) => self.postMessage({t:'log',   v:a.map(_fmt).join(' ')}),
+    warn:     (...a) => self.postMessage({t:'warn',  v:a.map(_fmt).join(' ')}),
+    error:    (...a) => self.postMessage({t:'error', v:a.map(String).join(' ')}),
+    info:     (...a) => self.postMessage({t:'info',  v:a.map(_fmt).join(' ')}),
+    table:    (...a) => self.postMessage({t:'table', v:JSON.stringify(a[0],null,2)}),
+    group:    (...a) => self.postMessage({t:'log',   v:'▸ '+a.map(_fmt).join(' ')}),
+    groupEnd: ()=>{},
+  }
+  ;(async () => {
+    try {
+      const hasAwait = /\\bawait\\b/.test(code)
+      const w = hasAwait ? '(async()=>{\\n'+code+'\\n})()' : '(function(){\\n'+code+'\\n})()'
+      const ret = await eval(w)
+      self.postMessage({t:'done', v: ret !== undefined ? _fmt(ret) : undefined})
+    } catch(e) {
+      self.postMessage({t:'err', v: e.message + (e.stack ? '\\n' + e.stack.split('\\n').slice(1,2).join('') : '')})
+    }
+  })()
+}
+`
+
+function runJS(code, timeout = 10000) {
+  return new Promise(resolve => {
+    const logs = []
+    const t0 = performance.now()
+    const blob = new Blob([WORKER_SRC], { type: 'application/javascript' })
+    const url = URL.createObjectURL(blob)
+    const worker = new Worker(url)
+
+    const finish = (retValStr, error) => {
+      clearTimeout(timer)
+      worker.terminate()
+      URL.revokeObjectURL(url)
+      resolve({ logs, retValStr, error, ms: Math.round(performance.now() - t0) })
+    }
+
+    const timer = setTimeout(() => {
+      logs.push({ type:'error', val:'Execution timed out (10s)', ts: Date.now() })
+      finish(undefined, new Error('timeout'))
+    }, timeout)
+
+    worker.onmessage = (e) => {
+      const { t, v } = e.data
+      const ts = Date.now()
+      if (t === 'done') {
+        if (v !== undefined) logs.push({ type:'return', val: v, ts })
+        finish(v, null)
+      } else if (t === 'err') {
+        logs.push({ type:'error', val: v, ts })
+        finish(undefined, new Error(v))
+      } else {
+        logs.push({ type: t, val: v, ts })
+      }
+    }
+
+    worker.onerror = (e) => {
+      logs.push({ type:'error', val: e.message || 'Worker error', ts: Date.now() })
+      finish(undefined, new Error(e.message))
+    }
+
+    worker.postMessage(code)
+  })
+}
+
+// ══════════════════════════════════════════════════════════════
+//  MARKDOWN RENDERER
+// ══════════════════════════════════════════════════════════════
+
+function renderMd(raw) {
+  if (!raw) return ''
+  const blocks = []
+  let s = raw.replace(/```([\w]*)\n?([\s\S]*?)```/g, (_,lang,code) => {
+    blocks.push(`<pre class="md-pre"><code class="md-code-block">${code.trim().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</code></pre>`)
+    return `\x00BLK${blocks.length-1}\x00`
+  })
+  s = s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+  s = s
+    .replace(/^#{3}\s+(.+)$/gm, '<h3 class="md-h3">$1</h3>')
+    .replace(/^#{2}\s+(.+)$/gm, '<h2 class="md-h2">$1</h2>')
+    .replace(/^#\s+(.+)$/gm, '<h1 class="md-h1">$1</h1>')
+    .replace(/^---$/gm, '<hr class="md-hr"/>')
+    .replace(/^&gt;\s?(.*)$/gm, '<blockquote class="md-bq">$1</blockquote>')
+    .replace(/^[\-\*]\s+(.+)$/gm, '<li class="md-li">$1</li>')
+    .replace(/^\d+\.\s+(.+)$/gm, '<li class="md-oli">$1</li>')
+  s = s
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/`([^`]+)`/g, '<code class="md-ic">$1</code>')
+    .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img class="md-img" src="$2" alt="$1"/>')
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a class="md-a" href="$2" target="_blank" rel="noopener">$1</a>')
+  s = s.split(/\n{2,}/).map(p => {
+    p = p.trim()
+    if (!p) return ''
+    if (/^<(h[1-3]|hr|pre|blockquote|li|\x00)/.test(p)) return p
+    return `<p class="md-p">${p.replace(/\n/g,'<br/>')}</p>`
+  }).join('\n')
+  s = s.replace(/(<li(?:\s[^>]*)?>[\s\S]*?<\/li>\n?)+/g, m => `<ul class="md-ul">${m}</ul>`)
+  s = s.replace(/\x00BLK(\d+)\x00/g, (_,i) => blocks[i])
+  return s
+}
+
+// ══════════════════════════════════════════════════════════════
+//  PERSISTENCE
+// ══════════════════════════════════════════════════════════════
+
+const LS_KEY = 'forbiden-ide-v1'
+
+function loadSaved() {
+  try {
+    const raw = localStorage.getItem(LS_KEY)
+    if (raw) {
+      const d = JSON.parse(raw)
+      if (d.nodes?.length) return { nodes: d.nodes, edges: d.edges || [], groups: d.groups || [] }
+    }
+  } catch {}
+  return {
+    nodes: JSON.parse(JSON.stringify(INITIAL_NODES)),
+    edges: JSON.parse(JSON.stringify(INITIAL_EDGES)),
+    groups: JSON.parse(JSON.stringify(INITIAL_GROUPS)),
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+//  FOLDER IMPORT PARSER
+// ══════════════════════════════════════════════════════════════
+
+function _parseImports(code) {
+  const paths = []
+  const res = [
+    /import\s+(?:[^'";\n]+\s+from\s+)?['"]([^'"]+)['"]/g,
+    /import\s*\(\s*['"]([^'"]+)['"]\s*\)/g,
+    /require\s*\(\s*['"]([^'"]+)['"]\s*\)/g,
+  ]
+  for (const re of res) {
+    re.lastIndex = 0; let m
+    while ((m = re.exec(code)) !== null) if (!paths.includes(m[1])) paths.push(m[1])
+  }
+  return paths
+}
+
+function _resolveRel(fromDir, imp) {
+  const parts = (fromDir + imp).split('/')
+  const out = []
+  for (const p of parts) { if (p === '..') out.pop(); else if (p !== '.') out.push(p) }
+  return out.join('/')
+}
+
+function _guessType(name, code) {
+  if (/^(index|main|app)\.(j|t)sx?$/.test(name)) return 'entry'
+  if (/\bclass\s+\w+/.test(code)) return 'class'
+  if (/\.(md|txt)$/.test(name)) return 'doc'
+  if (/\.(jsx|tsx)$/.test(name) || /useState|useEffect|React/.test(code)) return 'module'
+  return 'function'
+}
+
+const _TYPE_THEME = { entry:0, function:5, class:6, module:4, doc:11 }
+
+async function parseFolderToGraph(fileList) {
+  const all = await Promise.all([...fileList].map(f =>
+    f.text().then(text => ({
+      name: f.name,
+      path: (f.webkitRelativePath || f.name).replace(/\\/g, '/'),
+      text,
+    }))
+  ))
+  const kept = all.filter(f =>
+    /\.(js|ts|jsx|tsx|mjs|cjs|md)$/.test(f.name) &&
+    !f.path.includes('node_modules/') &&
+    !f.path.includes('.min.') &&
+    !f.path.includes('/dist/')
+  )
+  const nodes = kept.map((f, i) => {
+    const type = _guessType(f.name, f.text)
+    return {
+      id: 'u'+i, label: f.name, filepath: f.path, type,
+      isMain: /^(index|main)\.(j|t)sx?$/.test(f.name),
+      x: (Math.random()-.5)*700, y: (Math.random()-.5)*500,
+      vx:0, vy:0, themeIdx: _TYPE_THEME[type]??1,
+      classId:null, code: f.text, modified:false,
+    }
+  })
+  const pathMap = {}
+  kept.forEach((f, i) => { pathMap[f.path] = 'u'+i })
+  const edges = [], seen = new Set()
+  kept.forEach((f, i) => {
+    if (f.name.endsWith('.md')) return
+    const sid = 'u'+i
+    const dir = f.path.includes('/') ? f.path.slice(0, f.path.lastIndexOf('/')+1) : ''
+    _parseImports(f.text).filter(p => p.startsWith('.')).forEach(imp => {
+      const base = _resolveRel(dir, imp)
+      for (const c of [base, base+'.js', base+'.ts', base+'.jsx', base+'.tsx', base+'/index.js', base+'/index.ts', base+'/index.tsx']) {
+        const tid = pathMap[c]
+        if (tid && tid !== sid) {
+          const key = sid+'>'+tid
+          if (!seen.has(key)) { seen.add(key); edges.push({id:'ue'+edges.length, source:sid, target:tid}) }
+          break
+        }
+      }
+    })
+  })
+  return { nodes, edges, groups:[] }
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -786,6 +1357,21 @@ function IDE({ initialTheme = 'cyber', initialAvatar = 0 }) {
   const [showTermPalette, setShowTermPalette] = useState(false)
   const termEndRef = useRef(null)
 
+  // JS Runtime
+  const [nodeRunState, setNodeRunState] = useState({})
+  const [edgeDataLabels, setEdgeDataLabels] = useState({})
+  const [jsLogs, setJsLogs] = useState([
+    {type:'header', val:'// FORBIDEN JS Runtime ready', ts:Date.now()},
+    {type:'info',   val:'// Use ▶ on any node or type JS in the REPL below', ts:Date.now()},
+  ])
+  const [replInput, setReplInput] = useState('')
+  const [replHistory, setReplHistory] = useState([])
+  const [replHistIdx, setReplHistIdx] = useState(-1)
+  const jsConsoleEndRef = useRef(null)
+
+  // Markdown
+  const [mdPreviewMode, setMdPreviewMode] = useState('preview')
+
   // Chat & Notes
   const [chatInput, setChatInput] = useState('')
   const [chatMessages, setChatMessages] = useState([
@@ -822,6 +1408,19 @@ function IDE({ initialTheme = 'cyber', initialAvatar = 0 }) {
 
   useEffect(() => { termEndRef.current?.scrollIntoView({behavior:'smooth'}) }, [termLines])
   useEffect(() => { chatEndRef.current?.scrollIntoView({behavior:'smooth'}) }, [chatMessages])
+  useEffect(() => { jsConsoleEndRef.current?.scrollIntoView({behavior:'smooth'}) }, [jsLogs])
+  useEffect(() => {
+    const t = setInterval(() => {
+      const now = Date.now()
+      setEdgeDataLabels(prev => {
+        const next = {...prev}
+        let changed = false
+        Object.keys(next).forEach(k => { if (now - next[k].ts > 8000) { delete next[k]; changed = true } })
+        return changed ? next : prev
+      })
+    }, 1000)
+    return () => clearInterval(t)
+  }, [])
 
   // Load workspace data from API
   useEffect(() => {
@@ -861,7 +1460,7 @@ function IDE({ initialTheme = 'cyber', initialAvatar = 0 }) {
       eds.forEach(edge => {
         const src=nds.find(n=>n.id===edge.source), tgt=nds.find(n=>n.id===edge.target)
         if (!src||!tgt) return
-        const dx=tgt.x-src.x, dy=tgt.y-src.y, dist=Math.sqrt(dx*dx+dy*dy)||1, force=(dist-145)*0.05
+        const dx=tgt.x-src.x, dy=tgt.y-src.y, dist=Math.sqrt(dx*dx+dy*dy)||1, force=(dist-110)*0.05
         src.vx+=(dx/dist)*force; src.vy+=(dy/dist)*force
         tgt.vx-=(dx/dist)*force; tgt.vy-=(dy/dist)*force
       })
@@ -1001,13 +1600,20 @@ function IDE({ initialTheme = 'cyber', initialAvatar = 0 }) {
   // ── CREATE ──
   const handleCreateNode = async () => {
     if (!newNodeName.trim()) return
-    const slug=newNodeName.trim().replace(/\s+/g,'_')
+    const raw = newNodeName.trim()
+    // Respect whatever extension the user typed; default to .js
+    const hasExt = /\.\w{1,5}$/.test(raw)
+    const isDocType = newNodeType === 'doc'
+    const label = hasExt ? raw.replace(/\s+/g,'_') : raw.replace(/\s+/g,'_') + (isDocType ? '.md' : '.js')
+    const isMd = label.endsWith('.md')
+    const code = isMd
+      ? `# ${raw.replace(/\.\w+$/,'')}\n\n`
+      : `// ${label}\n\n`
     const x=(Math.random()-.5)*300, y=(Math.random()-.5)*300
-    const code='def '+slug+'():\n    pass'
     const tempId='n'+Date.now()
-    nodesRef.current=[...nodesRef.current,{id:tempId,label:slug+'.py',filepath:slug+'.py',type:newNodeType,isMain:false,x,y,vx:0,vy:0,themeIdx:newNodeColor,classId:null,code,modified:false}]
+    nodesRef.current=[...nodesRef.current,{id:tempId,label,filepath:label,type:isDocType||isMd?'doc':newNodeType,isMain:false,x,y,vx:0,vy:0,themeIdx:isDocType||isMd?11:newNodeColor,classId:null,code,modified:false}]
     setShowCreateNode(false); setNewNodeName(''); forceRender({})
-    wsHook.createNode(slug+'.py',{filepath:slug+'.py',type:newNodeType,x,y,theme_idx:newNodeColor,code}).then(n=>{
+    wsHook.createNode(label,{filepath:label,type:newNodeType,x,y,theme_idx:newNodeColor,code}).then(n=>{
       if(n) nodesRef.current=nodesRef.current.map(nd=>nd.id===tempId?{...nd,id:n.id}:nd)
     }).catch(()=>{})
   }
@@ -1079,11 +1685,73 @@ function IDE({ initialTheme = 'cyber', initialAvatar = 0 }) {
     setTermLines(l=>[...l,...resp]); setTermInput('')
   }
 
+  // ── JS RUNTIME ──
+  const handleRunNode = async (nodeId) => {
+    const node = nodesRef.current.find(n => n.id === nodeId)
+    if (!node) return
+    setNodeRunState(s => ({...s, [nodeId]: {status:'running', ms:0}}))
+    setBottomTab('console')
+    setJsLogs(l => [...l, {type:'header', val:`▶  ${node.label}`, ts:Date.now(), nodeId}])
+    const result = await runJS(node.code || '')
+    setNodeRunState(s => ({...s, [nodeId]: {status: result.error?'error':'ok', ms: result.ms}}))
+    setJsLogs(l => [
+      ...l,
+      ...result.logs.map(e => ({...e, nodeId})),
+      {type: result.error?'error-footer':'footer', val: result.error ? `✗ Error · ${result.ms}ms` : `✓ Done · ${result.ms}ms`, ts:Date.now(), nodeId}
+    ])
+    if (result.retValStr !== undefined) {
+      const outEdges = edgesRef.current.filter(e => e.source === nodeId)
+      if (outEdges.length) {
+        const label = result.retValStr.length > 20 ? result.retValStr.slice(0,20)+'…' : result.retValStr
+        const ts = Date.now()
+        setEdgeDataLabels(prev => {
+          const next = {...prev}
+          outEdges.forEach(e => { next[e.id] = {val:label, ts} })
+          return next
+        })
+      }
+    }
+  }
+
+  const handleRunRepl = async (code) => {
+    if (!code.trim()) return
+    setReplHistory(h => [code, ...h.slice(0,49)])
+    setReplHistIdx(-1)
+    setReplInput('')
+    setJsLogs(l => [...l, {type:'repl-in', val:`> ${code}`, ts:Date.now()}])
+    const result = await runJS(code)
+    setJsLogs(l => [...l, ...result.logs])
+  }
+
+  const handleReplKey = e => {
+    if (e.key==='Enter' && !e.shiftKey) { e.preventDefault(); handleRunRepl(replInput) }
+    if (e.key==='ArrowUp') {
+      e.preventDefault()
+      const idx = Math.min(replHistIdx+1, replHistory.length-1)
+      setReplHistIdx(idx)
+      if (replHistory[idx] !== undefined) setReplInput(replHistory[idx])
+    }
+    if (e.key==='ArrowDown') {
+      e.preventDefault()
+      const idx = Math.max(replHistIdx-1, -1)
+      setReplHistIdx(idx)
+      setReplInput(idx === -1 ? '' : replHistory[idx] || '')
+    }
+  }
+
   // ── CMD PALETTE ──
   const handleCmdAction = label => {
     if (!label) return
     if (label.includes('New file node')) setShowCreateNode(true)
+    else if (label.includes('New doc node')) {
+      const tempId='n'+Date.now()
+      const x=(Math.random()-.5)*300, y=(Math.random()-.5)*300
+      nodesRef.current=[...nodesRef.current,{id:tempId,label:'notes.md',filepath:'notes.md',type:'doc',isMain:false,x,y,vx:0,vy:0,themeIdx:11,classId:null,code:'# Notes\n\n',modified:false}]
+      forceRender({}); openNodeInEditor(tempId)
+    }
     else if (label.includes('New class group')) { setShowCreateGroup(true); setGroupSelected([]) }
+    else if (label.includes('Run current file')) { if (activeTabId) handleRunNode(activeTabId) }
+    else if (label.includes('JS console')) setBottomTab('console')
     else if (label.includes('terminal')) setBottomTab('terminal')
     else if (label.includes('board')) setSidebarMode('board')
     else if (label.includes('Join nodes')) setEdgeMode(m=>m==='join'?null:'join')
@@ -1116,22 +1784,29 @@ function IDE({ initialTheme = 'cyber', initialAvatar = 0 }) {
         {/* Breadcrumb */}
         <div style={{flex:1,minWidth:0,display:'flex',alignItems:'center',gap:'5px',overflow:'hidden'}}>
           {activeTabNode ? (
-            <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:'.46rem',letterSpacing:'.14em',padding:'2px 8px',background:brutal?'#f2c12e':'rgba(255,42,56,.12)',color:brutal?'#0f0f0f':'#ff2a38',border:brutal?'2px solid #0f0f0f':'1px solid rgba(255,42,56,.3)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',maxWidth:'240px'}}>
+            <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:'11px',letterSpacing:'.14em',padding:'2px 8px',background:brutal?'#f2c12e':'rgba(255,42,56,.12)',color:brutal?'#0f0f0f':'#ff2a38',border:brutal?'2px solid #0f0f0f':'1px solid rgba(255,42,56,.3)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',maxWidth:'240px'}}>
               {activeTabNode.label} <span style={{opacity:.5,fontWeight:400}}>// {activeTabNode.type}</span>
             </div>
           ) : (
-            <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:'.44rem',letterSpacing:'.14em',padding:'2px 8px',color:brutal?'rgba(240,236,224,.35)':'rgba(200,200,220,.3)',border:brutal?'2px solid rgba(255,255,255,.12)':'1px solid rgba(255,255,255,.07)'}}>NO FILE OPEN</div>
+            <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:'11px',letterSpacing:'.14em',padding:'2px 8px',color:brutal?'rgba(240,236,224,.35)':'rgba(200,200,220,.3)',border:brutal?'2px solid rgba(255,255,255,.12)':'1px solid rgba(255,255,255,.07)'}}>NO FILE OPEN</div>
           )}
         </div>
         {/* Stats */}
         <div style={{display:'flex',gap:'4px',alignItems:'center',flexShrink:0}}>
-          <div style={{background:brutal?'#c8001a':'rgba(255,42,56,.12)',color:brutal?'#f4f0e8':'#ff2a38',fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:'.4rem',letterSpacing:'.12em',padding:'2px 7px',border:brutal?'2px solid #c8001a':'1px solid rgba(255,42,56,.25)'}}>{nodeCount} NODES</div>
-          <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:'.4rem',letterSpacing:'.12em',padding:'2px 7px',opacity:.5,border:brutal?'2px solid rgba(255,255,255,.12)':'1px solid rgba(255,255,255,.07)'}}>{edgeCount} EDGES</div>
-          {modifiedNodes.length>0 && <div style={{background:'#f2c12e',color:'#0f0f0f',fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:'.4rem',letterSpacing:'.12em',padding:'2px 7px'}}>{modifiedNodes.length} UNSAVED</div>}
+          <div style={{background:brutal?'#c8001a':'rgba(255,42,56,.12)',color:brutal?'#f4f0e8':'#ff2a38',fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:'11px',letterSpacing:'.12em',padding:'2px 7px',border:brutal?'2px solid #c8001a':'1px solid rgba(255,42,56,.25)'}}>{nodeCount} NODES</div>
+          <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:'11px',letterSpacing:'.12em',padding:'2px 7px',opacity:.5,border:brutal?'2px solid rgba(255,255,255,.12)':'1px solid rgba(255,255,255,.07)'}}>{edgeCount} EDGES</div>
+          {modifiedNodes.length>0 && <div style={{background:'#f2c12e',color:'#0f0f0f',fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:'11px',letterSpacing:'.12em',padding:'2px 7px'}}>{modifiedNodes.length} UNSAVED</div>}
         </div>
         <div className="ide-topbar-sep"/>
         {/* Actions */}
         <button className="ide-topbar-btn primary" onClick={()=>setShowCreateNode(true)}>+ NODE</button>
+        <button className="ide-topbar-btn" onClick={()=>{
+          const x=(Math.random()-.5)*300, y=(Math.random()-.5)*300
+          const tempId='n'+Date.now()
+          nodesRef.current=[...nodesRef.current,{id:tempId,label:'readme.md',filepath:'readme.md',type:'doc',isMain:false,x,y,vx:0,vy:0,themeIdx:11,classId:null,code:'# README\n\nDocument your code here.\n\n## Overview\n\nThis is a **FORBIDEN** doc node.\n',modified:false}]
+          forceRender({})
+          openNodeInEditor(tempId)
+        }}>+ DOC</button>
         <button className="ide-topbar-btn" onClick={()=>setShowCmd(true)}>⌘P</button>
         <button className="ide-topbar-btn" onClick={()=>setThemeMode(t=>t==='cyber'?'brutal':'cyber')} style={{minWidth:'58px'}}>
           {brutal?'BRUTAL':'CYBER'}
@@ -1160,6 +1835,9 @@ function IDE({ initialTheme = 'cyber', initialAvatar = 0 }) {
           <div title="Timeline" className={`ide-icon-btn ${bottomTab==='timeline'?'active':''}`} onClick={()=>setBottomTab(v=>v==='timeline'?null:'timeline')}>
             <I.Timeline/>
           </div>
+          <div title="JS Console" className={`ide-icon-btn ${bottomTab==='console'?'active':''}`} onClick={()=>setBottomTab(v=>v==='console'?null:'console')}>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><polyline points="3,5 7,8 3,11"/><line x1="9" y1="11" x2="13" y2="11"/></svg>
+          </div>
           <div title="Terminal" className={`ide-icon-btn ${bottomTab==='terminal'?'active':''}`} onClick={()=>setBottomTab(v=>v==='terminal'?null:'terminal')}>
             <I.Terminal/>
           </div>
@@ -1179,7 +1857,7 @@ function IDE({ initialTheme = 'cyber', initialAvatar = 0 }) {
                   <input className="ide-toc-search" value={searchQuery} onChange={e=>setSearchQuery(e.target.value)} placeholder="Search nodes..." autoFocus/>
                 </>
               ) : (
-                <span className="ide-toc-sec" style={{padding:0,fontSize:'.44rem',letterSpacing:'.14em',fontFamily:"'Oswald',sans-serif",fontWeight:700}}>
+                <span className="ide-toc-sec" style={{padding:0,fontSize:'11px',letterSpacing:'.14em',fontFamily:"'Oswald',sans-serif",fontWeight:700}}>
                   {{files:'TABLE OF CONTENTS',git:'GIT STATUS',chat:'CHANNEL',note:'NOTES',settings:'SETTINGS'}[sidebarMode]||sidebarMode.toUpperCase()}
                 </span>
               )}
@@ -1217,7 +1895,7 @@ function IDE({ initialTheme = 'cyber', initialAvatar = 0 }) {
                     {groupsRef.current.map(g=>(
                       <div key={g.id} className="ide-toc-item" onClick={()=>setOpenGroupId(g.id)}>
                         <div style={{width:26,height:34,flexShrink:0,background:g.color+'18',border:`1px solid ${g.color}33`,display:'flex',alignItems:'center',justifyContent:'center'}}>
-                          <span style={{fontFamily:"'Bangers',sans-serif",fontSize:'.8rem',color:g.color}}>{g.name[0]}</span>
+                          <span style={{fontFamily:"'Bangers',sans-serif",fontSize:'16px',color:g.color}}>{g.name[0]}</span>
                         </div>
                         <div className="ide-toc-info">
                           <div className="ide-toc-name" style={{color:g.color}}>{g.name}</div>
@@ -1236,31 +1914,40 @@ function IDE({ initialTheme = 'cyber', initialAvatar = 0 }) {
               {/* SEARCH */}
               {sidebarMode==='search' && (
                 <div style={{flex:1,overflowY:'auto'}}>
-                  {searchQuery.trim() && <div className="ide-toc-sec">{filteredNodes.length} RESULTS</div>}
+                  {searchQuery.trim() && <div className="ide-toc-sec">{filteredNodes.length} MATCH{filteredNodes.length!==1?'ES':''}</div>}
                   {filteredNodes.map(node=>{
                     const accent=ACCENTS[node.themeIdx%ACCENTS.length]
                     const imgSrc=getMangaImgSrc(node)
+                    const q=searchQuery.trim().toLowerCase()
+                    // show the matching code line as context
+                    const matchLine = q ? (node.code||'').split('\n').find(l=>l.toLowerCase().includes(q)) : null
                     return (
                       <div key={node.id} className={`ide-toc-item ${activeTabId===node.id?'active':''}`} onClick={()=>openNodeInEditor(node.id)}>
                         <div className="ide-toc-thumb"><img src={imgSrc} alt="" loading="lazy"/></div>
                         <div className="ide-toc-info">
                           <div className="ide-toc-name">{node.label}</div>
-                          <div className="ide-toc-type" style={{color:accent}}>{node.type}</div>
+                          {matchLine ? (
+                            <div style={{fontSize:'9px',opacity:.5,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',fontFamily:"'JetBrains Mono',monospace",color:accent}}>
+                              {matchLine.trim().slice(0,32)}
+                            </div>
+                          ) : (
+                            <div className="ide-toc-type" style={{color:accent}}>{node.type}</div>
+                          )}
                         </div>
                       </div>
                     )
                   })}
-                  {searchQuery.trim()&&!filteredNodes.length && <div style={{padding:'20px 10px',opacity:.35,fontFamily:"'Share Tech Mono',monospace",fontSize:'.5rem',textAlign:'center'}}>NO RESULTS</div>}
+                  {searchQuery.trim()&&!filteredNodes.length && <div style={{padding:'20px 10px',opacity:.35,fontFamily:"'Share Tech Mono',monospace",fontSize:'12px',textAlign:'center'}}>NO RESULTS</div>}
                 </div>
               )}
 
               {/* GIT */}
               {sidebarMode==='git' && (<>
-                <div style={{padding:'8px 10px',fontFamily:"'Share Tech Mono',monospace",fontSize:'.46rem',flex:1,overflow:'auto'}}>
+                <div style={{padding:'8px 10px',fontFamily:"'Share Tech Mono',monospace",fontSize:'11px',flex:1,overflow:'auto'}}>
                   <div style={{opacity:.4,marginBottom:8}}>BRANCH <span style={{color:'#4285f4'}}>main</span></div>
                   <div style={{opacity:.4,marginBottom:14}}>4 commits ahead of origin</div>
                   {modifiedNodes.length===0 ? (
-                    <div style={{color:'#10b981',fontFamily:"'JetBrains Mono',monospace",fontSize:'.5rem'}}>✓ Working tree clean</div>
+                    <div style={{color:'#10b981',fontFamily:"'JetBrains Mono',monospace",fontSize:'12px'}}>✓ Working tree clean</div>
                   ) : (
                     <>
                       <div className="ide-toc-sec" style={{padding:'0 0 4px'}}>MODIFIED</div>
@@ -1275,7 +1962,7 @@ function IDE({ initialTheme = 'cyber', initialAvatar = 0 }) {
                       ))}
                     </>
                   )}
-                  <div style={{marginTop:14,opacity:.3,fontSize:'.42rem'}}>
+                  <div style={{marginTop:14,opacity:.3,fontSize:'11px'}}>
                     <div>commit a3f2c1d (HEAD)</div>
                     <div>feat: FORBIDEN IDE v2</div>
                     <div>commit 0be317b</div>
@@ -1290,7 +1977,7 @@ function IDE({ initialTheme = 'cyber', initialAvatar = 0 }) {
                   <div className="ide-chat-messages" ref={chatEndRef}>
                     {chatMessages.map(msg=>(
                       <div key={msg.id} className={`ide-chat-msg ${msg.self?'self':''}`}>
-                        {!msg.self && <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:'.4rem',marginBottom:2,color:brutal?'#f2c12e':'#ff2a38',letterSpacing:'.08em'}}>{msg.from}</div>}
+                        {!msg.self && <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:'11px',marginBottom:2,color:brutal?'#f2c12e':'#ff2a38',letterSpacing:'.08em'}}>{msg.from}</div>}
                         <div>{msg.text}</div>
                       </div>
                     ))}
@@ -1299,7 +1986,7 @@ function IDE({ initialTheme = 'cyber', initialAvatar = 0 }) {
                   <div className="ide-chat-input-row">
                     <input value={chatInput} onChange={e=>setChatInput(e.target.value)}
                       onKeyDown={e=>{if(e.key==='Enter'&&chatInput.trim()){setChatMessages(m=>[...m,{id:Date.now(),from:'You',text:chatInput.trim(),self:true}]);setChatInput('')}}}
-                      placeholder="Message..." style={{flex:1,background:'transparent',border:'none',outline:'none',fontFamily:"'Share Tech Mono',monospace",fontSize:'.5rem',color:brutal?'#0f0f0f':'#c0c8d8'}}/>
+                      placeholder="Message..." style={{flex:1,background:'transparent',border:'none',outline:'none',fontFamily:"'Share Tech Mono',monospace",fontSize:'12px',color:brutal?'#0f0f0f':'#c0c8d8'}}/>
                     <button className="ide-btn ide-btn-sm" onClick={()=>{if(chatInput.trim()){setChatMessages(m=>[...m,{id:Date.now(),from:'You',text:chatInput.trim(),self:true}]);setChatInput('')}}}>↵</button>
                   </div>
                 </div>
@@ -1309,7 +1996,7 @@ function IDE({ initialTheme = 'cyber', initialAvatar = 0 }) {
               {sidebarMode==='note' && (
                 <div style={{flex:1,display:'flex',flexDirection:'column',overflow:'hidden',padding:2}}>
                   <textarea value={notesText} onChange={e=>setNotesText(e.target.value)}
-                    style={{flex:1,resize:'none',border:'none',outline:'none',background:'transparent',fontFamily:"'Share Tech Mono',monospace",fontSize:'.5rem',lineHeight:1.6,color:brutal?'#0f0f0f':'#c0c8d8',padding:'8px 10px'}}
+                    style={{flex:1,resize:'none',border:'none',outline:'none',background:'transparent',fontFamily:"'Share Tech Mono',monospace",fontSize:'12px',lineHeight:1.6,color:brutal?'#0f0f0f':'#c0c8d8',padding:'8px 10px'}}
                     spellCheck={false}/>
                 </div>
               )}
@@ -1339,7 +2026,7 @@ function IDE({ initialTheme = 'cyber', initialAvatar = 0 }) {
                     <div key={p.id} className={`ide-palette-opt ${globalEditorPalette.id===p.id?'active':''}`}
                       onClick={()=>setGlobalEditorPalette(p)} style={{background:p.bg,marginBottom:2}}>
                       <div style={{display:'flex',gap:3}}>{p.swatches.map((c,i)=><div key={i} style={{width:7,height:7,borderRadius:'50%',background:c}}/>)}</div>
-                      <span style={{fontFamily:"'Share Tech Mono',monospace",fontSize:'.44rem',color:p.base}}>{p.name}</span>
+                      <span style={{fontFamily:"'Share Tech Mono',monospace",fontSize:'11px',color:p.base}}>{p.name}</span>
                     </div>
                   ))}
                 </div>
@@ -1352,7 +2039,7 @@ function IDE({ initialTheme = 'cyber', initialAvatar = 0 }) {
         <div className="ide-canvas-wrap">
           {/* Mode bar */}
           <div className="ide-mode-bar">
-            <div style={{fontFamily:"'Bangers',sans-serif",fontSize:'.6rem',letterSpacing:'.12em',opacity:.5}}>{brutal?'MANGA // BRUTAL':'MANGA // CYBER'}</div>
+            <div style={{fontFamily:"'Bangers',sans-serif",fontSize:'13px',letterSpacing:'.12em',opacity:.5}}>{brutal?'MANGA // BRUTAL':'MANGA // CYBER'}</div>
             <div style={{flex:1}}/>
             <button className={`ide-mode-btn ${edgeMode==='join'?'m-join':''}`} onClick={()=>setEdgeMode(m=>m==='join'?null:'join')}>
               {edgeMode==='join'&&<span className="v-pulse green"/>}J·JOIN
@@ -1363,7 +2050,7 @@ function IDE({ initialTheme = 'cyber', initialAvatar = 0 }) {
             <div className="ide-topbar-sep"/>
             <button className="ide-mode-btn" onClick={()=>setTransform({x:300,y:220,scale:1})}>RESET VIEW</button>
             {edgeMode==='join'&&joinFirstNode && (
-              <div style={{fontFamily:"'Share Tech Mono',monospace",fontSize:'.44rem',color:'#10b981',marginLeft:6}}>
+              <div style={{fontFamily:"'Share Tech Mono',monospace",fontSize:'11px',color:'#10b981',marginLeft:6}}>
                 → {nodesRef.current.find(n=>n.id===joinFirstNode)?.label}
               </div>
             )}
@@ -1406,20 +2093,39 @@ function IDE({ initialTheme = 'cyber', initialAvatar = 0 }) {
                     {visibleEdges.map(e=>{
                       const src=visibleNodes.find(n=>n.id===e.source), tgt=visibleNodes.find(n=>n.id===e.target)
                       if(!src||!tgt) return null
-                      const mx=(src.x+tgt.x)/2, my=(src.y+tgt.y)/2-(Math.abs(tgt.x-src.x)*0.18)
+                      const dx=tgt.x-src.x, dy=tgt.y-src.y
+                      const len=Math.sqrt(dx*dx+dy*dy)||1
+                      const bend=Math.min(len*0.38,72)
+                      const c1x=src.x+bend, c1y=src.y
+                      const c2x=tgt.x-bend, c2y=tgt.y
                       const isHov=hoveredEdgeId===e.id
+                      const midX=(src.x+tgt.x)/2, midY=(src.y+tgt.y)/2
+                      const edgeLabel=edgeDataLabels[e.id]
+                      const srcAcc=ACCENTS[src.themeIdx%ACCENTS.length]
                       return (
-                        <path key={e.id}
-                          className="edge-path"
-                          d={`M ${src.x} ${src.y} Q ${mx} ${my} ${tgt.x} ${tgt.y}`}
-                          stroke={isHov&&edgeMode==='cut'?'#ff435a':`url(#grad-${e.id})`}
-                          strokeWidth={isHov?3:brutal?2:1.5}
-                          opacity={isHov?1:.65}
-                          style={{cursor:edgeMode==='cut'?'pointer':'default',transition:'opacity .15s'}}
-                          onPointerEnter={()=>setHoveredEdgeId(e.id)}
-                          onPointerLeave={()=>setHoveredEdgeId(null)}
-                          onClick={()=>handleEdgeClick(e.id)}
-                        />
+                        <g key={e.id}>
+                          <path
+                            className="edge-path"
+                            d={`M ${src.x} ${src.y} C ${c1x},${c1y} ${c2x},${c2y} ${tgt.x},${tgt.y}`}
+                            stroke={isHov&&edgeMode==='cut'?'#ff435a':`url(#grad-${e.id})`}
+                            strokeWidth={isHov?3:brutal?2:1.5}
+                            opacity={isHov?1:.65}
+                            style={{cursor:edgeMode==='cut'?'pointer':'default',transition:'opacity .15s'}}
+                            onPointerEnter={()=>setHoveredEdgeId(e.id)}
+                            onPointerLeave={()=>setHoveredEdgeId(null)}
+                            onClick={()=>handleEdgeClick(e.id)}
+                          />
+                          {edgeLabel && (
+                            <g transform={`translate(${midX},${midY})`} style={{pointerEvents:'none'}}>
+                              <rect x={-edgeLabel.val.length*3-4} y={-9} width={edgeLabel.val.length*6+8} height={16}
+                                rx={brutal?0:2} fill={brutal?'#0f0f0f':'rgba(3,3,15,.92)'} stroke={srcAcc} strokeWidth=".8" strokeOpacity=".7"/>
+                              <text x={0} y={4} textAnchor="middle"
+                                fontFamily="'Share Tech Mono',monospace" fontSize="8" fill={srcAcc} opacity=".95">
+                                {edgeLabel.val}
+                              </text>
+                            </g>
+                          )}
+                        </g>
                       )
                     })}
                   </g>
@@ -1446,7 +2152,7 @@ function IDE({ initialTheme = 'cyber', initialAvatar = 0 }) {
                         <g transform="translate(9999,9999)">
                           <polygon points={pointsStr} className="group-hull"
                             stroke={grp.color} strokeWidth={brutal?2.5:1.5} strokeOpacity=".45"
-                            fill={grp.color} fillOpacity=".03"
+                            fill={grp.color} fillOpacity=".07"
                             strokeDasharray={brutal?"6 3":"5 3"}/>
                         </g>
                       </svg>
@@ -1484,6 +2190,8 @@ function IDE({ initialTheme = 'cyber', initialAvatar = 0 }) {
                     setNodeColorPicker={setNodeColorPicker}
                     handleNodeClickInMode={handleNodeClickInMode}
                     openNodeInEditor={openNodeInEditor}
+                    nodeRunState={nodeRunState}
+                    onRun={handleRunNode}
                   />
                 ))}
               </div>
@@ -1506,11 +2214,11 @@ function IDE({ initialTheme = 'cyber', initialAvatar = 0 }) {
                 <div className="ide-splash-overlay"/>
                 <div className="ide-splash-meta">
                   <span className="ide-splash-chapter">CHAPTER {chapterNum}</span>
-                  <h2 className="ide-splash-title">{activeTabNode.label.replace('.py','').replace('.js','')}</h2>
-                  <div className="ide-splash-info">{activeTabNode.type.toUpperCase()} · {(activeTabNode.code||'').split('\n').length} LINES{activeTabNode.modified?' · MODIFIED':''}</div>
+                  <h2 className="ide-splash-title">{activeTabNode.label.replace(/\.\w+$/,'')}</h2>
+                  <div className="ide-splash-info">{activeTabNode.type.toUpperCase()} · {(activeTabNode.code||'').split('\n').length} LINES · {activeTabNode.label.match(/\.(\w+)$/)?.[1]?.toUpperCase()||'FILE'}{activeTabNode.modified?' · MOD':''}</div>
                 </div>
               </div>
-              {/* Tabs */}
+              {/* Tabs + run button */}
               <div className="ide-file-tabs">
                 {openTabs.map(id=>{
                   const n=nodesRef.current.find(nd=>nd.id===id)
@@ -1523,34 +2231,78 @@ function IDE({ initialTheme = 'cyber', initialAvatar = 0 }) {
                     </div>
                   )
                 })}
+                <div style={{marginLeft:'auto',display:'flex',alignItems:'center',gap:4,padding:'0 6px',flexShrink:0}}>
+                  {activeTabNode?.type==='doc' ? (
+                    <>
+                      <button onClick={()=>setMdPreviewMode('edit')}
+                        style={{padding:'2px 7px',cursor:'pointer',fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:'9px',letterSpacing:'.1em',background:mdPreviewMode==='edit'?'#c792ea':'transparent',color:mdPreviewMode==='edit'?'#000':'rgba(200,200,220,.4)',border:'1px solid rgba(200,100,255,.25)'}}>
+                        EDIT
+                      </button>
+                      <button onClick={()=>setMdPreviewMode('preview')}
+                        style={{padding:'2px 7px',cursor:'pointer',fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:'9px',letterSpacing:'.1em',background:mdPreviewMode==='preview'?'#c792ea':'transparent',color:mdPreviewMode==='preview'?'#000':'rgba(200,200,220,.4)',border:'1px solid rgba(200,100,255,.25)'}}>
+                        PREVIEW
+                      </button>
+                    </>
+                  ) : (
+                    <button onClick={()=>handleRunNode(activeTabId)} title="Run JS (Ctrl+Enter)"
+                      style={{padding:'2px 10px',cursor:'pointer',fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:'9px',letterSpacing:'.1em',
+                        background:nodeRunState[activeTabId]?.status==='ok'?'#10b981':nodeRunState[activeTabId]?.status==='error'?'#ff435a':'transparent',
+                        color:nodeRunState[activeTabId]?.status?'#000':brutal?'#f2c12e':'#ff2a38',
+                        border:`1px solid ${nodeRunState[activeTabId]?.status==='ok'?'#10b981':nodeRunState[activeTabId]?.status==='error'?'#ff435a':brutal?'#f2c12e':'rgba(255,42,56,.4)'}`,
+                        transition:'all .15s'}}>
+                      {nodeRunState[activeTabId]?.status==='running'?'⋯':nodeRunState[activeTabId]?.status==='ok'?`✓ ${nodeRunState[activeTabId].ms}ms`:nodeRunState[activeTabId]?.status==='error'?'✗ ERROR':'▶ RUN'}
+                    </button>
+                  )}
+                </div>
               </div>
-              {/* Editor */}
-              <div className="ide-code-wrap">
-                <CodeEditor
-                  key={activeTabId}
-                  node={activeTabNode}
-                  onChange={code=>updateNodeCode(activeTabId,code)}
-                  externalPalette={globalEditorPalette}
-                />
+              {/* Editor / Markdown Preview */}
+              <div className="ide-code-wrap" onKeyDown={e=>{if(e.ctrlKey&&e.key==='Enter'){e.preventDefault();handleRunNode(activeTabId)}}}>
+                {activeTabNode?.type==='doc' && mdPreviewMode==='preview' ? (
+                  <div className="md-preview" dangerouslySetInnerHTML={{__html: renderMd(activeTabNode.code||'')}}/>
+                ) : (
+                  <CodeEditor
+                    key={activeTabId}
+                    node={activeTabNode}
+                    onChange={code=>updateNodeCode(activeTabId,code)}
+                    externalPalette={globalEditorPalette}
+                  />
+                )}
               </div>
             </>
           ) : (
-            /* Welcome panel */
+            /* Welcome panel — dual column */
             <div className="ide-welcome">
-              <div className="ide-welcome-grid">
-                {[0,2,7,5,14,63,9,11].map(idx=>(
-                  <div key={idx} className="ide-welcome-poster" onClick={()=>{
-                    const firstNode=nodesRef.current[idx%nodesRef.current.length]
-                    if(firstNode) openNodeInEditor(firstNode.id)
-                  }}>
-                    <img src={`/manga/${encodeURIComponent(MANGA_RAW[idx%MANGA_RAW.length])}`} alt="" loading="lazy"/>
-                  </div>
-                ))}
+              {/* Left: hero art column */}
+              <div className="ide-welcome-left">
+                <img src={getPanelImg(0)} alt="" loading="lazy"/>
+                <div className="ide-welcome-hero-overlay"/>
+                <div className="ide-welcome-hero-scanlines"/>
+                <div className="ide-welcome-hero-text">
+                  <div className="ide-welcome-hero-tag" style={{color:brutal?'#f2c12e':'#ff2a38',borderColor:brutal?'#f2c12e':'#ff2a38'}}>FORBIDEN // NGO</div>
+                  <div className="ide-welcome-title">SELECT<br/>A NODE</div>
+                  <div className="ide-welcome-sub">Each panel is a chapter.</div>
+                </div>
               </div>
-              <div className="ide-welcome-cta">
-                <div className="ide-welcome-title">OPEN A NODE</div>
-                <div className="ide-welcome-sub">Click a panel in the graph — each node is a chapter in your code manga.</div>
-                <button className="ide-btn primary" style={{marginTop:6}} onClick={()=>setShowCreateNode(true)}>+ CREATE NODE</button>
+              {/* Right: info + grid + cta */}
+              <div className="ide-welcome-right">
+                <div className="ide-welcome-sys">
+                  <div className="ide-welcome-sys-line" style={{color:brutal?'#f2c12e':'#ff2a38'}}>GRAPH IDE // ACTIVE</div>
+                  <div className="ide-welcome-sys-line">{nodeCount} NODES · {edgeCount} EDGES</div>
+                </div>
+                <div className="ide-welcome-grid">
+                  {[5,11,19,31,47,71].map(idx=>(
+                    <div key={idx} className="ide-welcome-grid-item" onClick={()=>{
+                      const n=nodesRef.current[idx%nodesRef.current.length]
+                      if(n) openNodeInEditor(n.id)
+                    }}>
+                      <img src={getPanelImg(idx)} alt="" loading="lazy"/>
+                    </div>
+                  ))}
+                </div>
+                <div className="ide-welcome-cta">
+                  <button className="ide-btn primary" onClick={()=>setShowCreateNode(true)}>+ NEW NODE</button>
+                  <button className="ide-btn" onClick={()=>setSidebarMode('files')}>BROWSE FILES</button>
+                </div>
               </div>
             </div>
           )}
@@ -1562,6 +2314,7 @@ function IDE({ initialTheme = 'cyber', initialAvatar = 0 }) {
         <div className="ide-bottom-tray">
           <div className="ide-tray-tabs">
             <span className={`ide-tray-tab ${bottomTab==='timeline'?'active':''}`} onClick={()=>setBottomTab('timeline')}>TIMELINE</span>
+            <span className={`ide-tray-tab ${bottomTab==='console'?'active':''}`} onClick={()=>setBottomTab('console')}>JS CONSOLE</span>
             <span className={`ide-tray-tab ${bottomTab==='terminal'?'active':''}`} onClick={()=>setBottomTab('terminal')}>TERMINAL</span>
             <span className="ide-tray-close" onClick={()=>setBottomTab(null)}>✕</span>
           </div>
@@ -1572,7 +2325,7 @@ function IDE({ initialTheme = 'cyber', initialAvatar = 0 }) {
               {/* Chapter strip */}
               <div className="ide-chapter-strip">
                 {VERSIONS.map((ver,i)=>{
-                  const imgSrc=`/manga/${encodeURIComponent(MANGA_RAW[(i*17)%MANGA_RAW.length])}`
+                  const imgSrc=getPanelImg(i*3+2)
                   return (
                     <div key={ver.id} className={`ide-chapter-thumb ${activeVersionIdx===i?'is-active':''}`}
                       onClick={()=>{setActiveVersionIdx(i);setActiveVersionName(ver.name);setPlayheadPos(i*140+20)}}>
@@ -1615,22 +2368,74 @@ function IDE({ initialTheme = 'cyber', initialAvatar = 0 }) {
             </div>
           )}
 
+          {/* JS CONSOLE */}
+          {bottomTab==='console' && (
+            <div style={{flex:1,display:'flex',flexDirection:'column',overflow:'hidden',background:brutal?'#0a0a0a':'#03030e'}}>
+              <div style={{display:'flex',alignItems:'center',gap:6,padding:'4px 10px',borderBottom:brutal?'2px solid #1a1a1a':'1px solid rgba(255,42,56,.1)',flexShrink:0}}>
+                <span style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:'10px',letterSpacing:'.15em',color:brutal?'#f2c12e':'#ff2a38'}}>JS RUNTIME</span>
+                {activeTabNode && (
+                  <button onClick={()=>handleRunNode(activeTabId)}
+                    style={{background:'#10b981',border:'none',color:'#000',padding:'2px 10px',cursor:'pointer',fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:'10px',letterSpacing:'.08em'}}>
+                    ▶ RUN {activeTabNode.label}
+                  </button>
+                )}
+                <div style={{marginLeft:'auto'}}>
+                  <button onClick={()=>setJsLogs([])}
+                    style={{background:'transparent',border:'1px solid rgba(255,255,255,.1)',color:'rgba(200,200,220,.4)',padding:'2px 8px',cursor:'pointer',fontFamily:"'Share Tech Mono',monospace",fontSize:'10px'}}>
+                    CLEAR
+                  </button>
+                </div>
+              </div>
+              <div style={{flex:1,overflowY:'auto',padding:'6px 10px',fontFamily:"'JetBrains Mono',monospace",fontSize:'11px',lineHeight:1.65,scrollbarWidth:'thin',scrollbarColor:'rgba(255,42,56,.2) transparent'}}>
+                {jsLogs.map((line,i)=>{
+                  const ts=new Date(line.ts).toLocaleTimeString('en',{hour12:false,hour:'2-digit',minute:'2-digit',second:'2-digit'})
+                  const colors={log:'#c0c8d8',warn:'#ffc410',error:'#ff435a',info:'#4285f4',return:'#10b981',table:'#bb9af7',header:'#ff2a38','repl-in':'#28f1c3',footer:'#10b981','error-footer':'#ff435a'}
+                  const col=colors[line.type]||'#c0c8d8'
+                  const prefix={log:'[LOG]',warn:'[WARN]',error:'[ERR]',info:'[INFO]',return:'[←]',table:'[TBL]',header:'','repl-in':'',footer:'  ✓','error-footer':'  ✗'}[line.type]||''
+                  if (line.type==='header') return (
+                    <div key={i} style={{color:col,marginTop:i>0?8:0,fontFamily:"'Oswald',sans-serif",fontWeight:700,letterSpacing:'.1em',fontSize:'10px',borderTop:i>0?'1px solid rgba(255,42,56,.1)':'none',paddingTop:i>0?6:0}}>
+                      {line.val}
+                    </div>
+                  )
+                  return (
+                    <div key={i} style={{display:'flex',gap:8,color:col,whiteSpace:'pre-wrap',wordBreak:'break-all'}}>
+                      <span style={{opacity:.35,flexShrink:0,fontFamily:"'Share Tech Mono',monospace",fontSize:'9px',marginTop:1}}>{ts}</span>
+                      {prefix&&<span style={{opacity:.55,flexShrink:0,fontSize:'9px',marginTop:1}}>{prefix}</span>}
+                      <span style={{flex:1}}>{line.val}</span>
+                    </div>
+                  )
+                })}
+                <div ref={jsConsoleEndRef}/>
+              </div>
+              <div style={{display:'flex',alignItems:'center',gap:6,padding:'5px 10px',borderTop:brutal?'2px solid #1a1a1a':'1px solid rgba(255,42,56,.08)',flexShrink:0,background:brutal?'#0f0f0f':'rgba(3,3,12,.6)'}}>
+                <span style={{color:'#ff2a38',fontFamily:"'JetBrains Mono',monospace",fontSize:'12px',flexShrink:0}}>{'>'}</span>
+                <input value={replInput} onChange={e=>setReplInput(e.target.value)} onKeyDown={handleReplKey}
+                  style={{flex:1,background:'transparent',border:'none',outline:'none',fontFamily:"'JetBrains Mono',monospace",fontSize:'11px',color:'#c0c8d8',caretColor:'#ff2a38'}}
+                  placeholder="// type JS here, Enter to run..." spellCheck={false} autoComplete="off"/>
+                <button onClick={()=>handleRunRepl(replInput)}
+                  style={{background:'transparent',border:'1px solid rgba(255,42,56,.3)',color:'#ff2a38',padding:'2px 8px',cursor:'pointer',fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:'9px',letterSpacing:'.1em',flexShrink:0}}>
+                  RUN
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* TERMINAL */}
           {bottomTab==='terminal' && (
             <div style={{flex:1,display:'flex',flexDirection:'column',overflow:'hidden',background:termPalette.bg,position:'relative'}}>
               {/* Terminal toolbar */}
               <div style={{display:'flex',alignItems:'center',gap:4,padding:'4px 8px',background:termPalette.bg,borderBottom:`1px solid ${termPalette.border}44`,flexShrink:0}}>
-                <span style={{fontFamily:"'Share Tech Mono',monospace",fontSize:'.44rem',color:termPalette.dim,letterSpacing:'.1em'}}>TERMINAL</span>
+                <span style={{fontFamily:"'Share Tech Mono',monospace",fontSize:'11px',color:termPalette.dim,letterSpacing:'.1em'}}>TERMINAL</span>
                 <div style={{marginLeft:'auto',position:'relative'}}>
                   <button onClick={()=>setShowTermPalette(v=>!v)}
-                    style={{background:'transparent',border:`1px solid ${termPalette.border}33`,color:termPalette.dim,padding:'2px 8px',cursor:'pointer',fontFamily:"'Share Tech Mono',monospace",fontSize:'.4rem',letterSpacing:'.06em'}}>
+                    style={{background:'transparent',border:`1px solid ${termPalette.border}33`,color:termPalette.dim,padding:'2px 8px',cursor:'pointer',fontFamily:"'Share Tech Mono',monospace",fontSize:'11px',letterSpacing:'.06em'}}>
                     {termPalette.name} ▾
                   </button>
                   {showTermPalette && (
                     <div style={{position:'absolute',right:0,top:'calc(100%+4px)',width:'160px',background:brutal?'#f0ece0':'rgba(8,8,18,.98)',border:brutal?'3px solid #0f0f0f':'1px solid rgba(255,255,255,.1)',boxShadow:'0 10px 40px rgba(0,0,0,.9)',zIndex:99,padding:'4px'}}>
                       {TERM_PALETTES.map(tp=>(
                         <div key={tp.id} onClick={()=>{setTermPalette(tp);setShowTermPalette(false)}}
-                          style={{padding:'5px 8px',cursor:'pointer',fontFamily:"'Share Tech Mono',monospace",fontSize:'.44rem',color:tp.text,background:tp.bg,border:'1px solid transparent',marginBottom:1}}
+                          style={{padding:'5px 8px',cursor:'pointer',fontFamily:"'Share Tech Mono',monospace",fontSize:'11px',color:tp.text,background:tp.bg,border:'1px solid transparent',marginBottom:1}}
                           onMouseEnter={e=>e.currentTarget.style.borderColor=tp.cursor} onMouseLeave={e=>e.currentTarget.style.borderColor='transparent'}>
                           {tp.name}
                         </div>
@@ -1638,7 +2443,7 @@ function IDE({ initialTheme = 'cyber', initialAvatar = 0 }) {
                     </div>
                   )}
                 </div>
-                <button onClick={()=>setTermLines([])} style={{background:'transparent',border:brutal?`2px solid rgba(255,255,255,.12)`:`1px solid rgba(255,255,255,.08)`,color:termPalette.dim,padding:'2px 8px',cursor:'pointer',fontFamily:"'Share Tech Mono',monospace",fontSize:'.4rem',letterSpacing:'.06em'}}>CLEAR</button>
+                <button onClick={()=>setTermLines([])} style={{background:'transparent',border:brutal?`2px solid rgba(255,255,255,.12)`:`1px solid rgba(255,255,255,.08)`,color:termPalette.dim,padding:'2px 8px',cursor:'pointer',fontFamily:"'Share Tech Mono',monospace",fontSize:'11px',letterSpacing:'.06em'}}>CLEAR</button>
               </div>
               {/* Lines */}
               <div style={{flex:1,overflowY:'auto',padding:'8px 12px',fontFamily:"'JetBrains Mono',monospace",fontSize:'11px',lineHeight:1.7,scrollbarWidth:'thin',scrollbarColor:`${termPalette.cursor}33 transparent`}}>
@@ -1681,7 +2486,7 @@ function IDE({ initialTheme = 'cyber', initialAvatar = 0 }) {
             {/* Header */}
             <div style={{padding:'10px 14px',display:'flex',alignItems:'center',gap:10,flexShrink:0,borderBottom:brutal?'3px solid #0f0f0f':'1px solid rgba(255,42,56,.15)'}}>
               <span style={{fontFamily:"'Bangers',sans-serif",fontSize:'1.3rem',letterSpacing:'.1em',color:brutal?'#f2c12e':'#ff2a38'}}>MISSION BOARD</span>
-              <span style={{fontFamily:"'Share Tech Mono',monospace",fontSize:'.44rem',opacity:.4}}>{board.cards.length} tasks</span>
+              <span style={{fontFamily:"'Share Tech Mono',monospace",fontSize:'11px',opacity:.4}}>{board.cards.length} tasks</span>
               <div style={{marginLeft:'auto',display:'flex',gap:6}}>
                 <button className="ide-btn ide-btn-sm" onClick={()=>{setNewCardCol(board.cols[0]?.id);setNewCardTitle('')}}>+ TASK</button>
                 <button onClick={()=>setSidebarMode('files')} style={{background:'transparent',border:'none',color:'rgba(200,200,220,.4)',cursor:'pointer',fontSize:'1.1rem'}}>✕</button>
@@ -1701,8 +2506,8 @@ function IDE({ initialTheme = 'cyber', initialAvatar = 0 }) {
                         <div className="board-card-accent" style={{background:PC[card.priority]||'#4a4a6a'}}/>
                         <div className="board-card-title">{card.title}</div>
                         <div className="board-card-meta">
-                          <span className="board-priority" style={{background:(PC[card.priority]||'#4a4a6a')+'22',color:PC[card.priority]||'#c0c8d8',fontSize:'.38rem',fontFamily:"'Oswald',sans-serif",fontWeight:700,letterSpacing:'.08em'}}>{card.priority}</span>
-                          {card.tags?.slice(0,2).map(t=><span key={t} className="board-tag" style={{color:'rgba(200,200,220,.5)',borderColor:'rgba(255,255,255,.08)',fontFamily:"'Share Tech Mono',monospace",fontSize:'.38rem',padding:'1px 4px'}}>{t}</span>)}
+                          <span className="board-priority" style={{background:(PC[card.priority]||'#4a4a6a')+'22',color:PC[card.priority]||'#c0c8d8',fontSize:'10px',fontFamily:"'Oswald',sans-serif",fontWeight:700,letterSpacing:'.08em'}}>{card.priority}</span>
+                          {card.tags?.slice(0,2).map(t=><span key={t} className="board-tag" style={{color:'rgba(200,200,220,.5)',borderColor:'rgba(255,255,255,.08)',fontFamily:"'Share Tech Mono',monospace",fontSize:'10px',padding:'1px 4px'}}>{t}</span>)}
                         </div>
                         {card.progress>0 && (
                           <div className="board-progress">
@@ -1715,7 +2520,7 @@ function IDE({ initialTheme = 'cyber', initialAvatar = 0 }) {
                       <div style={{padding:'5px'}}>
                         <input value={newCardTitle} onChange={e=>setNewCardTitle(e.target.value)} placeholder="Task title..."
                           onKeyDown={e=>{if(e.key==='Enter')addCard(col.id);if(e.key==='Escape')setNewCardCol(null)}}
-                          autoFocus style={{width:'100%',background:'transparent',border:brutal?'2px solid #0f0f0f':'1px solid rgba(255,42,56,.2)',outline:'none',color:brutal?'#0f0f0f':'#c0c8d8',fontFamily:"'Share Tech Mono',monospace",fontSize:'.54rem',padding:'5px 7px'}}/>
+                          autoFocus style={{width:'100%',background:'transparent',border:brutal?'2px solid #0f0f0f':'1px solid rgba(255,42,56,.2)',outline:'none',color:brutal?'#0f0f0f':'#c0c8d8',fontFamily:"'Share Tech Mono',monospace",fontSize:'12px',padding:'5px 7px'}}/>
                       </div>
                     ) : (
                       <div className="board-add-card" onClick={()=>{setNewCardCol(col.id);setNewCardTitle('')}}>+ ADD TASK</div>
@@ -1734,14 +2539,14 @@ function IDE({ initialTheme = 'cyber', initialAvatar = 0 }) {
           <div className="board-card-detail-box" onClick={e=>e.stopPropagation()}>
             <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:4}}>
               <div style={{width:8,height:8,background:PC[focusCard.priority]||'#4a4a6a',borderRadius:brutal?0:'50%'}}/>
-              <span style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:'.44rem',color:PC[focusCard.priority],letterSpacing:'.1em'}}>{focusCard.priority}</span>
+              <span style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:'11px',color:PC[focusCard.priority],letterSpacing:'.1em'}}>{focusCard.priority}</span>
               <button onClick={()=>setFocusCard(null)} style={{marginLeft:'auto',background:'transparent',border:'none',cursor:'pointer',color:'rgba(200,200,220,.35)',fontSize:'1rem'}}>✕</button>
             </div>
             <div style={{fontFamily:"'Bangers',sans-serif",fontSize:'1.1rem',letterSpacing:'.06em',marginBottom:8,color:brutal?'#0f0f0f':'#f4f0e8'}}>{focusCard.title}</div>
-            {focusCard.due && <div style={{fontFamily:"'Share Tech Mono',monospace",fontSize:'.46rem',opacity:.5,marginBottom:8}}>DUE {focusCard.due}</div>}
+            {focusCard.due && <div style={{fontFamily:"'Share Tech Mono',monospace",fontSize:'11px',opacity:.5,marginBottom:8}}>DUE {focusCard.due}</div>}
             {focusCard.progress>0 && (
               <div style={{marginBottom:10}}>
-                <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:'.4rem',letterSpacing:'.12em',opacity:.4,marginBottom:4}}>PROGRESS</div>
+                <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:'11px',letterSpacing:'.12em',opacity:.4,marginBottom:4}}>PROGRESS</div>
                 <div style={{height:4,background:'rgba(128,128,128,.15)',borderRadius:2}}>
                   <div style={{width:focusCard.progress+'%',height:'100%',background:PC[focusCard.priority]||'#10b981',borderRadius:2,transition:'width .3s'}}/>
                 </div>
@@ -1749,7 +2554,7 @@ function IDE({ initialTheme = 'cyber', initialAvatar = 0 }) {
             )}
             {/* Move to col */}
             <div>
-              <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:'.4rem',letterSpacing:'.12em',opacity:.4,marginBottom:5}}>MOVE TO</div>
+              <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:'11px',letterSpacing:'.12em',opacity:.4,marginBottom:5}}>MOVE TO</div>
               <div style={{display:'flex',flexWrap:'wrap',gap:5}}>
                 {board.cols.map(col=>(
                   <button key={col.id} onClick={()=>{moveCard(focusCard.id,col.id);setFocusCard(null)}}
@@ -1796,7 +2601,7 @@ function IDE({ initialTheme = 'cyber', initialAvatar = 0 }) {
               <div>
                 <div className="ide-modal-label">TYPE</div>
                 <div style={{display:'flex',gap:5}}>
-                  {['entry','function','class','module'].map(t=>(
+                  {['entry','function','class','module','doc'].map(t=>(
                     <button key={t} className={`ide-btn ide-btn-sm ${newNodeType===t?'primary':''}`} onClick={()=>setNewNodeType(t)}>{t.toUpperCase()}</button>
                   ))}
                 </div>
@@ -1848,7 +2653,7 @@ function IDE({ initialTheme = 'cyber', initialAvatar = 0 }) {
                     <div key={n.id} onClick={()=>setGroupSelected(s=>s.includes(n.id)?s.filter(id=>id!==n.id):[...s,n.id])}
                       style={{display:'flex',alignItems:'center',gap:7,padding:'4px 8px',cursor:'pointer',border:`1px solid ${groupSelected.includes(n.id)?groupColor:'rgba(255,255,255,.08)'}`,background:groupSelected.includes(n.id)?groupColor+'12':'transparent',transition:'all .12s'}}>
                       <div style={{width:6,height:6,borderRadius:'50%',background:groupSelected.includes(n.id)?groupColor:'rgba(200,200,220,.25)'}}/>
-                      <span style={{fontFamily:"'Share Tech Mono',monospace",fontSize:'.5rem'}}>{n.label}</span>
+                      <span style={{fontFamily:"'Share Tech Mono',monospace",fontSize:'12px'}}>{n.label}</span>
                     </div>
                   ))}
                 </div>

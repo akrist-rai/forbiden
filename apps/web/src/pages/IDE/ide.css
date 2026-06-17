@@ -110,7 +110,7 @@ body {
   background: rgba(3,3,8,0.98) !important;
   border-bottom: 1px solid rgba(255,42,56,0.15) !important;
   color: var(--red) !important;
-  font-size: 0.5rem !important;
+  font-size: 12px !important;
   letter-spacing: 0.18em !important;
   font-weight: 700 !important;
 }
@@ -124,7 +124,7 @@ body {
   background: rgba(3,3,8,0.98) !important;
   border-top: 1px solid rgba(255,42,56,0.18) !important;
   color: var(--muted) !important;
-  font-size: 0.44rem !important;
+  font-size: 11px !important;
   letter-spacing: 0.1em !important;
   font-family: var(--mono) !important;
   padding: 0 1rem !important;
@@ -145,7 +145,7 @@ body {
   border: 1px solid rgba(255,255,255,0.08) !important;
   border-radius: 0 !important;
   color: var(--paper) !important;
-  font-size: 0.5rem !important;
+  font-size: 12px !important;
   letter-spacing: 0.06em !important;
 }
 
@@ -163,7 +163,7 @@ body {
   border: 1px solid rgba(255,255,255,0.08) !important;
   color: var(--muted) !important;
   font-family: var(--mono) !important;
-  font-size: 0.46rem !important;
+  font-size: 11px !important;
   letter-spacing: 0.12em !important;
   border-radius: 0 !important;
   transition: all 0.2s !important;
@@ -181,7 +181,7 @@ body {
 }
 .create-modal-title {
   color: var(--red) !important;
-  font-size: 0.55rem !important;
+  font-size: 12px !important;
   letter-spacing: 0.2em !important;
   font-family: var(--mono) !important;
 }
@@ -199,7 +199,7 @@ body {
 }
 .create-modal-label {
   color: var(--red) !important;
-  font-size: 0.42rem !important;
+  font-size: 11px !important;
   letter-spacing: 0.18em !important;
 }
 
@@ -261,7 +261,7 @@ body {
 .type-btn {
   border-radius: 0 !important;
   font-family: var(--mono) !important;
-  font-size: 0.44rem !important;
+  font-size: 11px !important;
   letter-spacing: 0.1em !important;
 }
 .type-btn.selected {
@@ -558,17 +558,37 @@ body {
     .grp-tab.active { opacity: 1; }
     /* Code scroll area */
     .grp-codescroll { flex: 1; overflow-y: auto; overflow-x: hidden; }
-    /* Class declaration banner */
+    /* Class declaration banner — manga art */
     .grp-class-banner {
-      display: flex; align-items: center; gap: 12px;
-      padding: 12px 18px;
+      position: relative; height: 120px; flex-shrink: 0; overflow: hidden;
       border-bottom: 1px solid rgba(255,255,255,0.07);
-      background: rgba(255,255,255,0.018);
-      flex-shrink: 0;
+      display: flex; align-items: flex-end; justify-content: space-between;
     }
-    .grp-banner-bar { width: 3px; border-radius: 2px; flex-shrink: 0; }
-    .grp-banner-code { font-size: 13px; font-weight: bold; line-height: 1.4; }
-    .grp-banner-note { font-size: 9px; opacity: 0.3; margin-top: 3px; }
+    .grp-banner-art {
+      position: absolute; inset: 0; width: 100%; height: 100%;
+      object-fit: cover; display: block;
+      filter: contrast(1.22) saturate(.42) brightness(.7);
+    }
+    .grp-banner-scanlines {
+      position: absolute; inset: 0; pointer-events: none;
+      background: repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.1) 2px,rgba(0,0,0,.1) 4px);
+    }
+    .grp-banner-overlay { position: absolute; inset: 0; pointer-events: none; }
+    .grp-banner-content {
+      position: relative; z-index: 2; padding: 0 18px 14px; display: flex;
+      flex-direction: column; gap: 2px;
+    }
+    .grp-banner-kw { font-family: 'JetBrains Mono',monospace; font-size: 10px; opacity: .6; }
+    .grp-banner-title {
+      font-family: 'Bangers','Bebas Neue',sans-serif; font-size: 2rem;
+      line-height: .88; letter-spacing: .04em; transform: skew(-2deg);
+      text-shadow: 0 2px 20px rgba(0,0,0,.9);
+    }
+    .grp-banner-note { font-size: 9px; opacity: 0.35; margin-top: 3px; letter-spacing: .6px; }
+    .grp-banner-chips {
+      position: relative; z-index: 2; padding: 0 18px 14px;
+      display: flex; flex-direction: column; gap: 5px; align-items: flex-end;
+    }
     /* Individual function section */
     .grp-fn-section { border-bottom: 1px solid rgba(255,255,255,0.05); }
     /* Section header — looks like the labeled boxes in the ref image */
