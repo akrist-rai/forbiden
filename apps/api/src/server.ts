@@ -4,7 +4,7 @@ import cors       from '@koa/cors';
 import bodyParser from 'koa-bodyparser';
 import { createServer }  from 'node:http';
 import { attach }        from './ws/manager.ts';
-import { isDbConfigured } from './db/index.ts';
+import { initDb, isDbConfigured } from './db/index.ts';
 import workspacesRouter  from './routes/workspaces.ts';
 import nodesRouter       from './routes/nodes.ts';
 import gitRouter         from './routes/git.ts';
@@ -22,8 +22,7 @@ app.use(async (ctx, next) => {
     await next();
   } catch (err: any) {
     ctx.status = err.status || err.statusCode || 500;
-    const cause = err.cause?.message || err.cause?.toString?.() || undefined;
-    ctx.body   = { error: err.message || 'Internal server error', cause };
+    ctx.body   = { error: err.message || 'Internal server error' };
     console.error('[API Error]', err);
   }
 });
@@ -83,6 +82,9 @@ process.on('SIGINT',  () => shutdown('SIGINT'));
 process.on('SIGTERM', () => shutdown('SIGTERM'));
 
 // ─── LISTEN ──────────────────────────────────────────────────────────────────
+// Init DB (resolves hostname to IPv4) before accepting requests
+initDb().then(() => console.log('[db] connected')).catch(e => console.error('[db] init failed', e));
+
 server.listen(PORT, () => {
   console.log(`
   ╔══════════════════════════════════════════╗

@@ -2,6 +2,7 @@
 import './ide.css'
 import './manga.css'
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
+import { useWorkspace } from '../../hooks/useWorkspace'
 
 
     
@@ -569,8 +570,8 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
       const txt    = brutal ? '#0f0f0f' : '#f4f0e8';
       const enc    = (f) => encodeURIComponent(f);
 
-      const rightPosters = MANGA_RAW.slice(0, 6);
-      const stripImgs    = [...MANGA_RAW.slice(4, 18), ...MANGA_RAW.slice(4, 18)]; // doubled for loop
+      const rightPosters = MANGA_RAW.slice(0, 9);
+      const stripImgs    = [...MANGA_RAW.slice(8, 28), ...MANGA_RAW.slice(8, 28)]; // doubled for loop
 
       return (
         <div className="manga-hero-root">
@@ -581,10 +582,10 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
               key={bgIdx}
               src={`/manga/${enc(MANGA_RAW[bgIdx])}`}
               alt=""
-              style={{ opacity: fadeIn ? (brutal ? 0.09 : 0.13) : 0 }}
+              style={{ opacity: fadeIn ? (brutal ? 0.52 : 0.62) : 0, filter: brutal ? 'contrast(1.1) saturate(0.6) sepia(0.15)' : 'contrast(1.12) saturate(0.7)' }}
             />
-            <div className="manga-hero-grad-l" style={{ background: `linear-gradient(90deg, ${bg}dd 0%, ${bg}99 40%, ${bg}44 70%, transparent 100%)` }} />
-            <div className="manga-hero-grad-b" style={{ background: `linear-gradient(180deg, ${bg}88 0%, transparent 35%, transparent 58%, ${bg}ee 100%)` }} />
+            <div className="manga-hero-grad-l" style={{ background: `linear-gradient(90deg, ${bg}f0 0%, ${bg}cc 30%, ${bg}77 55%, transparent 80%)` }} />
+            <div className="manga-hero-grad-b" style={{ background: `linear-gradient(180deg, ${bg}55 0%, transparent 25%, transparent 55%, ${bg}ee 90%, ${bg} 100%)` }} />
             <div className="manga-hero-scan" />
             <div className="manga-hero-tone" />
           </div>
@@ -1029,6 +1030,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
     //  MAIN IDE
     // ═══════════════════════════════════════════════════════════════
     function IDE({ initialTheme, initialAvatar }) {
+      const wsHook = useWorkspace();
       const [themeMode, setThemeMode] = useState('cyber');
       const nodesRef = useRef(JSON.parse(JSON.stringify(INITIAL_NODES)));
       const edgesRef = useRef(INITIAL_EDGES);
@@ -1090,9 +1092,39 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
       const lastMousePos = useRef({ x:0, y:0 });
       const playheadDragRef = useRef({ isDragging:false });
       const termEndRef = useRef(null);
+      const saveCodeTimerRef = useRef({});  // debounce timers per nodeId
 
       useEffect(() => { termEndRef.current?.scrollIntoView({behavior:'smooth'}); }, [termLines]);
       useEffect(() => { chatEndRef.current?.scrollIntoView({behavior:'smooth'}); }, [chatMessages]);
+
+      // Load workspace data from API when ready
+      useEffect(() => {
+        if (wsHook.loading || wsHook.error) return;
+        if (wsHook.nodes.length > 0) {
+          nodesRef.current = wsHook.nodes.map(n => ({
+            id: n.id, label: n.label, filepath: n.filepath,
+            type: n.type || 'function', isMain: n.is_main,
+            x: n.x || 0, y: n.y || 0, vx: 0, vy: 0,
+            themeIdx: n.theme_idx || 0, classId: n.class_id,
+            code: '', modified: n.modified || false,
+          }));
+          edgesRef.current = wsHook.edges.map(e => ({ id: e.id, source: e.source, target: e.target }));
+          groupsRef.current = wsHook.groups.map(g => ({
+            id: g.id, name: g.name, color: g.color, nodeIds: g.node_ids || [],
+          }));
+          forceRender({});
+        }
+        if (wsHook.columns.length > 0) {
+          setBoard({
+            cols: wsHook.columns.map(c => ({ id: c.id, title: c.title, color: c.color })),
+            cards: wsHook.cards.map(k => ({
+              id: k.id, colId: k.col_id, title: k.title, priority: k.priority,
+              tags: k.tags || [], progress: k.progress || 0, due: k.due || null,
+              assignee: k.assignee_idx ?? null,
+            })),
+          });
+        }
+      }, [wsHook.loading]);
 
       useEffect(() => {
         const handler = (e) => {
@@ -1107,7 +1139,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
             if (e.key==='`'||e.key==='~') setBottomPanelTab(v=>v==='terminal'?null:'terminal');
             if (e.key==='j'||e.key==='J') setEdgeMode(m=>m==='join'?null:'join');
             if (e.key==='x'||e.key==='X') setEdgeMode(m=>m==='cut'?null:'cut');
-            if (e.key==='Delete'||e.key==='Backspace') { if(hoveredNodeId){ nodesRef.current=nodesRef.current.filter(n=>n.id!==hoveredNodeId); edgesRef.current=edgesRef.current.filter(e=>e.source!==hoveredNodeId&&e.target!==hoveredNodeId); forceRender({}); } }
+            if (e.key==='Delete'||e.key==='Backspace') { if(hoveredNodeId){ const nid=hoveredNodeId; nodesRef.current=nodesRef.current.filter(n=>n.id!==nid); edgesRef.current=edgesRef.current.filter(e=>e.source!==nid&&e.target!==nid); forceRender({}); wsHook.deleteNode(nid).catch(()=>{}); } }
           }
         };
         window.addEventListener('keydown', handler);
@@ -1217,7 +1249,15 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
           draggingNodeRef.current.x+=dx;draggingNodeRef.current.y+=dy;lastMousePos.current={x:e.clientX,y:e.clientY};
         }
       };
-      const handleCanvasPointerUp = () => { setIsDraggingCanvas(false); draggingNodeRef.current=null; };
+      const handleCanvasPointerUp = () => {
+        setIsDraggingCanvas(false);
+        const dr = draggingNodeRef.current;
+        if (dr?.hasDragged) {
+          // Save position after drag ends
+          wsHook.savePositions([{id:dr.id,x:dr.x,y:dr.y}]).catch(()=>{});
+        }
+        draggingNodeRef.current=null;
+      };
       const handleWheel = (e) => {
         if(e.target.closest('.code-area')||e.target.closest('.floating-panel')||e.target.closest('.nle-wrap'))return;
         e.preventDefault();
@@ -1227,11 +1267,19 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
       const openGroupEditor = (gid) => { setOpenGroupId(gid); };
       const closeGroupEditor = () => setOpenGroupId(null);
 
-      const handleCreateNode = () => {
+      const handleCreateNode = async () => {
         if(!newNodeName.trim())return;
-        const nid='n'+Date.now(), slug=newNodeName.trim().replace(/\s+/g,'_');
-        nodesRef.current=[...nodesRef.current,{id:nid,label:slug+'.py',type:newNodeType,isMain:false,x:(Math.random()-.5)*300,y:(Math.random()-.5)*300,vx:0,vy:0,themeIdx:newNodeColor,classId:null,code:'def '+slug+'():\n    pass',modified:false}];
+        const slug=newNodeName.trim().replace(/\s+/g,'_');
+        const x=(Math.random()-.5)*300, y=(Math.random()-.5)*300;
+        const code='def '+slug+'():\n    pass';
+        // Optimistic local update
+        const tempId='n'+Date.now();
+        nodesRef.current=[...nodesRef.current,{id:tempId,label:slug+'.py',filepath:slug+'.py',type:newNodeType,isMain:false,x,y,vx:0,vy:0,themeIdx:newNodeColor,classId:null,code,modified:false}];
         setShowCreateNode(false);setNewNodeName('');forceRender({});
+        // Persist to API
+        wsHook.createNode(slug+'.py', { filepath:slug+'.py', type:newNodeType, x, y, theme_idx:newNodeColor, code }).then(n => {
+          if (n) nodesRef.current = nodesRef.current.map(nd => nd.id===tempId ? {...nd, id:n.id} : nd);
+        }).catch(()=>{});
       };
 
       const handleCreateGroup = () => {
@@ -1240,9 +1288,16 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
         groupsRef.current=[...groupsRef.current,{id:gid,name:groupName.trim(),color:groupColor,nodeIds:[...groupSelected]}];
         nodesRef.current=nodesRef.current.map(n=>groupSelected.includes(n.id)?{...n,classId:gid}:n);
         setShowCreateGroup(false);setGroupName('');setGroupSelected([]);forceRender({});
+        if (wsHook.workspace) wsHook.createGroup(groupName.trim(), groupColor, [...groupSelected]).catch(()=>{});
       };
 
-      const dissolveGroup = (gid) => { groupsRef.current=groupsRef.current.filter(g=>g.id!==gid); nodesRef.current=nodesRef.current.map(n=>n.classId===gid?{...n,classId:null}:n); if(openGroupId===gid) setOpenGroupId(null); forceRender({}); };
+      const dissolveGroup = (gid) => {
+        groupsRef.current=groupsRef.current.filter(g=>g.id!==gid);
+        nodesRef.current=nodesRef.current.map(n=>n.classId===gid?{...n,classId:null}:n);
+        if(openGroupId===gid) setOpenGroupId(null);
+        forceRender({});
+        if (wsHook.workspace) wsHook.deleteGroup(gid).catch(()=>{});
+      };
 
       const handleNodeClickInMode = (nodeId) => {
         if (edgeMode === 'join') {
@@ -1250,22 +1305,43 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
           if (joinFirstNode === nodeId) { setJoinFirstNode(null); return; }
           // check edge doesn't already exist
           const exists = edgesRef.current.find(e=>(e.source===joinFirstNode&&e.target===nodeId)||(e.source===nodeId&&e.target===joinFirstNode));
-          if (!exists) { edgesRef.current=[...edgesRef.current,{id:'e'+Date.now(),source:joinFirstNode,target:nodeId}]; forceRender({}); }
+          if (!exists) { const src=joinFirstNode,tgt=nodeId,tempEdge={id:'e'+Date.now(),source:src,target:tgt}; edgesRef.current=[...edgesRef.current,tempEdge]; forceRender({}); wsHook.createEdge(src,tgt).catch(()=>{}); }
           setJoinFirstNode(null);
         }
       };
       const handleEdgeClickInMode = (edgeId) => {
-        if (edgeMode === 'cut') { edgesRef.current=edgesRef.current.filter(e=>e.id!==edgeId); forceRender({}); }
+        if (edgeMode === 'cut') { edgesRef.current=edgesRef.current.filter(e=>e.id!==edgeId); forceRender({}); wsHook.deleteEdge(edgeId).catch(()=>{}); }
       };
       const handleChangeNodeColor = (nodeId, colorIdx) => {
         nodesRef.current = nodesRef.current.map(n => n.id===nodeId ? {...n, themeIdx:colorIdx} : n);
         setNodeColorPicker(null); forceRender({});
       };
 
-      const addCard = (colId) => { if(!newCardTitle.trim())return; setBoard(b=>({...b,cards:[...b.cards,{id:'k'+Date.now(),colId,title:newCardTitle.trim(),priority:'MED',tags:[],progress:0,due:'',assignee:avatarIndex}]})); setNewCardCol(null);setNewCardTitle(''); };
-      const moveCard = (cardId,colId) => setBoard(b=>({...b,cards:b.cards.map(c=>c.id===cardId?{...c,colId}:c)}));
-      const updateCard = (cardId,patch) => setBoard(b=>({...b,cards:b.cards.map(c=>c.id===cardId?{...c,...patch}:c)}));
-      const deleteCard = (cardId) => { setBoard(b=>({...b,cards:b.cards.filter(c=>c.id!==cardId)}));setFocusCard(null); };
+      const addCard = (colId) => {
+        if(!newCardTitle.trim()) return;
+        const title = newCardTitle.trim();
+        const newCard = {id:'k'+Date.now(), colId, title, priority:'MED', tags:[], progress:0, due:'', assignee:avatarIndex};
+        setBoard(b=>({...b, cards:[...b.cards, newCard]}));
+        setNewCardCol(null); setNewCardTitle('');
+        if (wsHook.workspace) wsHook.createCard(colId, title, {priority:'MED', tags:[], progress:0, assignee_idx:avatarIndex}).catch(()=>{});
+      };
+      const moveCard = (cardId, colId) => {
+        setBoard(b=>({...b, cards:b.cards.map(c=>c.id===cardId?{...c,colId}:c)}));
+        if (wsHook.workspace) wsHook.updateCard(cardId, {col_id:colId}).catch(()=>{});
+      };
+      const updateCard = (cardId, patch) => {
+        setBoard(b=>({...b, cards:b.cards.map(c=>c.id===cardId?{...c,...patch}:c)}));
+        if (wsHook.workspace) {
+          const apiPatch = {...patch};
+          if ('colId' in apiPatch) { apiPatch.col_id = apiPatch.colId; delete apiPatch.colId; }
+          wsHook.updateCard(cardId, apiPatch).catch(()=>{});
+        }
+      };
+      const deleteCard = (cardId) => {
+        setBoard(b=>({...b, cards:b.cards.filter(c=>c.id!==cardId)}));
+        setFocusCard(null);
+        if (wsHook.workspace) wsHook.deleteCard(cardId).catch(()=>{});
+      };
 
       const handleTermInput = (e) => {
         if(e.key!=='Enter')return; const cmd=termInput.trim(); if(!cmd)return;
@@ -1476,7 +1552,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
                   <div style={{display:'flex',height:'100%'}}>
                     {MANGA_IMGS.slice(0,5).map((img,i)=>(
                       <div key={i} style={{flex:1,overflow:'hidden',borderRight:'1px solid rgba(128,128,128,0.1)'}}>
-                        <img src={`/manga/${img}`} alt="" style={{width:'100%',height:'100%',objectFit:'cover',display:'block',filter:themeMode==='brutal'?'contrast(1.1)':'brightness(0.6) contrast(1.1)'}} loading="lazy"/>
+                        <img src={`/manga/${img}`} alt="" style={{width:'100%',height:'100%',objectFit:'cover',display:'block',filter:themeMode==='brutal'?'contrast(1.05) saturate(0.7)':'brightness(0.85) contrast(1.1) saturate(0.75)'}} loading="lazy"/>
                       </div>
                     ))}
                   </div>
@@ -1885,6 +1961,24 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
                 )}
                 {bottomPanelTab==='timeline' && (
                   <div className="nle-wrap">
+                    {/* Manga episode strip — chapter thumbnails above timeline */}
+                    <div style={{height:'52px',display:'flex',borderBottom:'1px solid rgba(128,128,128,0.1)',flexShrink:0,overflow:'hidden',position:'relative'}}>
+                      <div style={{width:'130px',flexShrink:0,borderRight:'1px solid rgba(128,128,128,0.12)',display:'flex',alignItems:'center',padding:'0 8px',gap:'4px',fontFamily:"'Bangers',sans-serif",fontSize:'0.6rem',letterSpacing:'0.1em',color:themeMode==='brutal'?'#0f0f0f':'#f4f0e8',opacity:0.7}}>
+                        <I.Git/> VERSION HISTORY
+                      </div>
+                      <div style={{flex:1,display:'flex',gap:'2px',padding:'4px 6px',overflowX:'hidden'}}>
+                        {['v1.0','v1.1','v1.2','v1.3','v1.4','v1.5'].map((v,i)=>(
+                          <div key={v} style={{width:'80px',flexShrink:0,position:'relative',overflow:'hidden',border:'1px solid rgba(128,128,128,0.15)',cursor:'pointer'}}
+                            onMouseEnter={e=>e.currentTarget.style.borderColor='var(--accent,#ff2a38)'}
+                            onMouseLeave={e=>e.currentTarget.style.borderColor='rgba(128,128,128,0.15)'}>
+                            <img src={`/manga/${encodeURIComponent(MANGA_RAW[(i*7+3)%MANGA_RAW.length])}`} alt="" style={{width:'100%',height:'100%',objectFit:'cover',opacity: themeMode==='brutal'?0.55:0.45,filter:'contrast(1.1) saturate(0.65)'}} loading="lazy"/>
+                            <div style={{position:'absolute',inset:0,background:'linear-gradient(to top,rgba(0,0,0,0.85) 0%,transparent 60%)',pointerEvents:'none'}}/>
+                            <div style={{position:'absolute',bottom:'3px',left:'4px',right:'4px',fontFamily:"'Bangers',sans-serif",fontSize:'0.55rem',letterSpacing:'0.08em',color:'#fff',lineHeight:1,textShadow:'0 1px 3px rgba(0,0,0,0.9)'}}>{v}</div>
+                            <div style={{position:'absolute',top:'3px',left:'3px',width:'6px',height:'6px',borderRadius:'50%',background:i===4?'#ff2a38':'rgba(128,128,128,0.4)'}}/>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                     <div className="nle-body">
                       <div className="nle-track-headers">
                         <div className="nle-ruler" style={{borderBottom:'none'}}/>
@@ -1991,18 +2085,16 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
                     />
                   )}
 
-                  {/* ── AMBIENT MANGA PANELS — always visible as canvas bg art ── */}
-                  {activeTabId && (
-                    <div style={{position:'absolute',inset:0,zIndex:1,pointerEvents:'none',overflow:'hidden',opacity:0.06}}>
-                      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gridTemplateRows:'1fr 1fr',gap:'3px',width:'100%',height:'100%'}}>
-                        {MANGA_RAW.slice(8,14).map((img,i)=>(
-                          <div key={i} style={{overflow:'hidden',position:'relative'}}>
-                            <img src={`/manga/${encodeURIComponent(img)}`} alt="" style={{width:'100%',height:'100%',objectFit:'cover',filter:'contrast(1.1) saturate(0.6)'}} loading="lazy"/>
-                          </div>
-                        ))}
-                      </div>
+                  {/* ── AMBIENT MANGA PANELS — visible canvas art behind nodes ── */}
+                  <div style={{position:'absolute',inset:0,zIndex:1,pointerEvents:'none',overflow:'hidden',opacity: activeTabId ? (themeMode==='brutal' ? 0.08 : 0.1) : 0}}>
+                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr 1fr',gridTemplateRows:'1fr 1fr 1fr',gap:'2px',width:'100%',height:'100%'}}>
+                      {MANGA_RAW.slice(15,27).map((img,i)=>(
+                        <div key={i} style={{overflow:'hidden',position:'relative'}}>
+                          <img src={`/manga/${encodeURIComponent(img)}`} alt="" style={{width:'100%',height:'100%',objectFit:'cover',filter: themeMode==='brutal' ? 'contrast(1.05) saturate(0.4) sepia(0.1)' : 'contrast(1.15) saturate(0.5)'}} loading="lazy"/>
+                        </div>
+                      ))}
                     </div>
-                  )}
+                  </div>
 
                   <div className="graph-layer" style={{transform:`translate(${transform.x}px,${transform.y}px) scale(${transform.scale})`}}>
                     <svg className="svg-edges" style={{pointerEvents: edgeMode==='cut' ? 'all' : 'none'}}>
@@ -2088,11 +2180,14 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
                               ...(grp?{boxShadow:themeMode==='brutal'?`4px 4px 0 ${grp.color}`:`0 0 12px ${grp.color}88`}:{}),
                               ...(isJoinSelected?themeMode==='brutal'?{boxShadow:`6px 6px 0 ${nodeAccent}`,border:`3px solid ${nodeAccent}`}:{boxShadow:`0 0 18px ${nodeAccent}, 0 0 30px ${nodeAccent}88`,border:`2px solid ${nodeAccent}`}:{})
                             }}>
-                            {/* Avatar portrait inside main nodes (brutal theme) */}
-                            {node.isMain && themeMode==='brutal' && (
-                              <img src={`/avatars/0xAV0${String((node.themeIdx%6)+1).padStart(2,'0')}s.jpeg`} alt=""
-                                style={{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover',opacity:0.18,pointerEvents:'none'}}/>
-                            )}
+                            {/* Manga art inside node circles */}
+                            <img src={`/manga/${encodeURIComponent(MANGA_RAW[(node.themeIdx*7+11)%MANGA_RAW.length])}`} alt=""
+                              style={{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover',
+                                opacity: node.isMain ? (themeMode==='brutal'?0.28:0.22) : (themeMode==='brutal'?0.16:0.12),
+                                filter: themeMode==='brutal' ? 'contrast(1.1) saturate(0.5) sepia(0.1)' : 'contrast(1.2) saturate(0.4)',
+                                pointerEvents:'none'}}/>
+                            {/* Main node overlay accent */}
+                            {node.isMain && <div style={{position:'absolute',inset:0,background:`radial-gradient(circle,transparent 40%,${nodeAccent}22 100%)`,pointerEvents:'none'}}/>}
                           </div>
                           <div className="node-label" style={{
                             ...(grp?themeMode==='brutal'?{borderColor:grp.color,boxShadow:`3px 3px 0 ${grp.color}`}:{borderColor:grp.color+'44'}:{}),
@@ -2369,8 +2464,11 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
                         <div className="grp-chrome-dot" style={{background:'#febc2e'}}/>
                         <div className="grp-chrome-dot" style={{background:'#28c840'}}/>
                         <div className="grp-chrome-sep"/>
+                        <div className="manga-chrome-chapter">
+                          <span style={{fontFamily:"'Bangers',sans-serif",fontSize:'1rem',letterSpacing:'.06em',color:nodeAccent,lineHeight:1}}>CH.{String((activeTabNode.themeIdx % 20) + 1).padStart(2,'0')}</span>
+                        </div>
                         {/* Tab bar inline in chrome */}
-                        <div style={{display:'flex', gap:'0', overflow:'hidden', flex:1, borderRadius:'4px', background:'rgba(0,0,0,0.2)', border:'1px solid rgba(255,255,255,0.06)'}}>
+                        <div style={{display:'flex', gap:'0', overflow:'hidden', flex:1, borderRadius:'0', background:'rgba(0,0,0,0.2)', border:'1px solid rgba(255,255,255,0.06)'}}>
                           {openTabs.map(id => {
                             const n = nodesRef.current.find(x => x.id === id); if (!n) return null;
                             const acc = AVATAR_ACCENTS[n.themeIdx % AVATAR_ACCENTS.length];
@@ -2397,6 +2495,15 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 
                         {/* Sidebar */}
                         <div className="grp-sidebar">
+                          {/* Manga art panel — node avatar */}
+                          <div className="manga-editor-art">
+                            <img src={`/manga/${encodeURIComponent(MANGA_RAW[activeTabNode.themeIdx % MANGA_RAW.length])}`} alt="" draggable="false"/>
+                            <div className="manga-editor-art-meta">
+                              <span className="manga-editor-art-ch">CH.{String((activeTabNode.themeIdx % 20) + 1).padStart(2,'0')}</span>
+                              <span className="manga-editor-art-kind">{activeTabNode.type.toUpperCase()}</span>
+                            </div>
+                            <div className="manga-editor-art-accent" style={{background:nodeAccent}}/>
+                          </div>
                           <div className="grp-sidebar-hdr">
                             <div className="grp-sidebar-sup">FILE INFO</div>
                             <div className="grp-sidebar-classname" style={{color: nodeAccent}}>{activeTabNode.label}</div>
@@ -2451,13 +2558,13 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
                         </div>
 
                         {/* Main code editor */}
-                        <div style={{flex:1, display:'flex', flexDirection:'column', overflow:'hidden', minWidth:0}}>
+                        <div className="manga-editor-code-col" style={{flex:1, display:'flex', flexDirection:'column', overflow:'hidden', minWidth:0}}>
                           <CodeEditor
                             node={activeTabNode}
                             externalPalette={globalEditorPalette}
                             onChange={code => {
                               const node = nodesRef.current.find(n => n.id === activeTabNode.id);
-                              if (node) { node.code = code; node.modified = true; forceRender({}); }
+                              if (node) { node.code = code; node.modified = true; forceRender({}); clearTimeout(saveCodeTimerRef.current[node.id]); saveCodeTimerRef.current[node.id] = setTimeout(()=>wsHook.saveCode(node.id, code).catch(()=>{}), 1200); }
                             }}
                           />
                         </div>

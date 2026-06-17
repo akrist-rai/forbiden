@@ -334,29 +334,213 @@
 }
 
 /* ══════════════════════════════════════════════════════
-   CODE EDITOR — manga panel
+   CODE EDITOR — manga panel (full redesign)
    ══════════════════════════════════════════════════════ */
+
+/* Sidebar manga art panel */
+.manga-editor-art {
+  position: relative;
+  width: 100%;
+  height: 150px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.manga-editor-art img {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  object-position: top center;
+  filter: contrast(1.12) saturate(0.82);
+  display: block;
+}
+.manga-editor-art-meta {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  padding: 8px 10px 7px;
+  background: linear-gradient(to top, rgba(0,0,0,.8) 0%, rgba(0,0,0,.3) 60%, transparent 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.manga-editor-art-ch {
+  font-family: 'Bangers', sans-serif;
+  font-size: 1.6rem;
+  letter-spacing: .04em;
+  line-height: 1;
+  color: #f2c12e;
+  text-shadow: 2px 2px 0 rgba(0,0,0,.7);
+}
+.manga-editor-art-kind {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: .38rem;
+  letter-spacing: .2em;
+  color: rgba(240,236,224,.75);
+}
+.manga-editor-art-accent {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 3px;
+}
+.theme-brutal .manga-editor-art { border-bottom: 3px solid #0f0f0f; }
+.theme-cyber  .manga-editor-art { border-bottom: 1px solid rgba(255,42,56,.25); }
+
+/* Chrome chapter tag */
+.manga-chrome-chapter {
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  flex-shrink: 0;
+}
+.theme-brutal .manga-chrome-chapter { border-right: 1px solid rgba(255,255,255,.15); }
+.theme-cyber  .manga-chrome-chapter { border-right: 1px solid rgba(255,42,56,.15); }
+
+/* Code column screentone overlay */
+.manga-editor-code-col { position: relative; }
+.manga-editor-code-col::before {
+  content: '';
+  position: absolute; inset: 0;
+  pointer-events: none; z-index: 0;
+  background-image: radial-gradient(circle, rgba(255,255,255,.014) 1px, transparent 1px);
+  background-size: 7px 7px;
+}
+
+/* ── brutal theme overrides ── */
+.theme-brutal .grp-editor-shell {
+  box-shadow: 14px 14px 0 rgba(0,0,0,.7) !important;
+}
 .theme-brutal .grp-editor-chrome {
   background: #0f0f0f !important;
   border-bottom: 3px solid #0f0f0f !important;
 }
 .theme-brutal .grp-chrome-meta  { color: #f2c12e !important; }
-.theme-brutal .grp-chrome-sep   { background: rgba(255,255,255,.12) !important; }
+.theme-brutal .grp-chrome-sep   { background: rgba(255,255,255,.15) !important; }
 .theme-brutal .grp-chrome-dot   { border-radius: 0 !important; }
+/* Sidebar */
+.theme-brutal .grp-sidebar {
+  border-right: 3px solid #0f0f0f !important;
+  background-color: #ede8d5 !important;
+  background-image: radial-gradient(circle, rgba(0,0,0,.07) 1px, transparent 1px) !important;
+  background-size: 5.5px 5.5px !important;
+}
+.theme-brutal .grp-sidebar-hdr {
+  background: #0f0f0f !important;
+  border-bottom: 3px solid #0f0f0f !important;
+  padding: 10px 14px 8px !important;
+}
+.theme-brutal .grp-sidebar-sup {
+  font-family: 'Oswald', sans-serif !important;
+  font-weight: 700 !important;
+  letter-spacing: .2em !important;
+  font-size: .42rem !important;
+  color: rgba(240,236,224,.4) !important;
+  opacity: 1 !important;
+}
+.theme-brutal .grp-sidebar-classname {
+  font-family: 'Share Tech Mono', monospace !important;
+  font-size: .65rem !important;
+  font-weight: 700 !important;
+  letter-spacing: .04em !important;
+}
+.theme-brutal .grp-member-row { border-left-width: 3px !important; }
+.theme-brutal .grp-member-fname {
+  font-family: 'Share Tech Mono', monospace !important;
+  font-size: .55rem !important;
+}
+.theme-brutal .grp-member-ftype {
+  font-family: 'Oswald', sans-serif !important;
+  font-weight: 700 !important;
+  font-size: .38rem !important;
+  letter-spacing: .12em !important;
+}
+.theme-brutal .grp-stat-label {
+  font-family: 'Oswald', sans-serif !important;
+  font-weight: 700 !important;
+  letter-spacing: .12em !important;
+}
+/* Editor toolbar */
+.theme-brutal .editor-toolbar {
+  background: #1a1a1a !important;
+  border-bottom: 2px solid #0f0f0f !important;
+}
+.theme-brutal .editor-toolbar-btn { font-size: .44rem !important; }
+/* Status strip = manga caption */
+.theme-brutal .editor-status-strip {
+  background: #0f0f0f !important;
+  color: rgba(240,236,224,.65) !important;
+  font-family: 'Share Tech Mono', monospace !important;
+  border-top: 3px solid #0f0f0f !important;
+  font-size: .42rem !important;
+  letter-spacing: .08em !important;
+  height: 26px !important;
+}
+/* Inspector panel */
+.theme-brutal .code-panel-info {
+  background-color: rgba(230,226,214,.85) !important;
+  background-image: radial-gradient(circle, rgba(0,0,0,.07) 1px, transparent 1px) !important;
+  background-size: 5px 5px !important;
+  border-left: 2px solid #0f0f0f !important;
+}
+.theme-brutal .code-panel-info-hdr {
+  font-family: 'Oswald', sans-serif !important;
+  font-weight: 700 !important;
+  letter-spacing: .2em !important;
+  font-size: .42rem !important;
+  background: #0f0f0f !important;
+  color: rgba(240,236,224,.5) !important;
+  opacity: 1 !important;
+  border-bottom: 2px solid #0f0f0f !important;
+  padding: 7px 12px !important;
+}
+.theme-brutal .info-section-title {
+  font-family: 'Oswald', sans-serif !important;
+  font-weight: 700 !important;
+  letter-spacing: .18em !important;
+  font-size: .4rem !important;
+}
+.theme-brutal .stat-label {
+  font-family: 'Oswald', sans-serif !important;
+  font-weight: 700 !important;
+  letter-spacing: .1em !important;
+  font-size: .44rem !important;
+  opacity: 1 !important;
+}
+/* Editor tab */
 .theme-brutal .editor-wrap      { border: 3px solid #0f0f0f !important; border-radius: 0 !important; box-shadow: 5px 5px 0 #0f0f0f !important; }
 .theme-brutal .breadcrumb       { border-bottom: 2px solid #0f0f0f !important; background: #f0ece0 !important; }
 .theme-brutal .editor-tab       { border-radius: 0 !important; border-right: 2px solid #0f0f0f !important; font-family: var(--mono) !important; }
 .theme-brutal .editor-tab.active { background: #0f0f0f !important; color: #f2c12e !important; }
 .theme-brutal .editor-toolbar-wrap { background: #f0ece0 !important; border-bottom: 1px solid rgba(0,0,0,.12) !important; }
-.theme-brutal .editor-toolbar-btn { font-size: .44rem !important; }
 .theme-brutal .type-btn { border-radius:0!important; font-family:'Oswald',sans-serif!important; font-weight:700!important; }
 .theme-brutal .type-btn.selected { background:#c8001a!important; border-color:#c8001a!important; color:#fff!important; box-shadow:3px 3px 0 rgba(200,0,26,.3)!important; }
 
+/* ── cyber theme overrides ── */
+.theme-cyber .grp-editor-shell {
+  box-shadow: 0 0 40px rgba(255,42,56,.18), 0 0 0 1px rgba(255,42,56,.12) !important;
+}
 .theme-cyber .editor-wrap   { border-radius:0!important; }
 .theme-cyber .editor-tab    { border-radius:0!important; }
 .theme-cyber .breadcrumb    { background:rgba(3,3,8,.95)!important; }
-.theme-cyber .grp-editor-chrome { background:rgba(3,3,8,.98)!important; border-bottom:1px solid rgba(255,42,56,.12)!important; }
+.theme-cyber .grp-editor-chrome { background:rgba(3,3,8,.98)!important; border-bottom:1px solid rgba(255,42,56,.15)!important; }
 .theme-cyber .grp-chrome-meta { color:#ff2a38!important; }
+.theme-cyber .editor-status-strip {
+  background: rgba(3,3,8,.98) !important;
+  border-top: 1px solid rgba(255,42,56,.2) !important;
+  font-family: 'Share Tech Mono', monospace !important;
+  font-size: .42rem !important;
+  letter-spacing: .08em !important;
+}
+.theme-cyber .code-panel-info-hdr {
+  font-family: 'Oswald', sans-serif !important;
+  font-weight: 700 !important;
+  letter-spacing: .2em !important;
+  font-size: .42rem !important;
+  opacity: 1 !important;
+}
+.theme-cyber .info-section-title {
+  font-family: 'Oswald', sans-serif !important;
+  font-weight: 700 !important;
+  letter-spacing: .16em !important;
+  font-size: .4rem !important;
+}
 
 /* ══════════════════════════════════════════════════════
    GRAPH MODE BAR
@@ -433,9 +617,9 @@
 /* Body grid */
 .manga-hero-body {
   position: absolute;
-  top: 0; left: 0; right: 0; bottom: 70px;
+  top: 0; left: 0; right: 0; bottom: 90px;
   display: grid;
-  grid-template-columns: 1fr 290px;
+  grid-template-columns: 1fr 340px;
   gap: 3px;
 }
 
@@ -543,7 +727,7 @@
   flex: 1;
   overflow: hidden;
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, 1fr);
   grid-template-rows: repeat(3, 1fr);
   gap: 2px;
   padding: 2px;
@@ -570,7 +754,7 @@
 .manga-hero-strip {
   position: absolute;
   bottom: 0; left: 0; right: 0;
-  height: 70px;
+  height: 90px;
   display: flex;
   align-items: center;
   gap: 0;
@@ -594,7 +778,7 @@
   width: max-content;
 }
 .manga-hero-strip-thumb {
-  width: 48px; height: 60px;
+  width: 62px; height: 80px;
   flex-shrink: 0; overflow: hidden; position: relative;
 }
 .manga-hero-strip-thumb img {
