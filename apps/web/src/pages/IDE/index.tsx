@@ -430,11 +430,11 @@ const PANEL_IMGS = [
 function getMangaImgSrc(node) {
   const numId = parseInt((node.id || '').replace(/\D/g,'')) || 0
   const idx = (numId * 11 + (node.themeIdx || 0) * 7) % PANEL_IMGS.length
-  return `/manga/${encodeURIComponent(PANEL_IMGS[idx])}`
+  return `${import.meta.env.BASE_URL}manga/${encodeURIComponent(PANEL_IMGS[idx])}`
 }
 
 function getPanelImg(seed) {
-  return `/manga/${encodeURIComponent(PANEL_IMGS[seed % PANEL_IMGS.length])}`
+  return `${import.meta.env.BASE_URL}manga/${encodeURIComponent(PANEL_IMGS[seed % PANEL_IMGS.length])}`
 }
 
 function highlightCode(code, lang = null) {
