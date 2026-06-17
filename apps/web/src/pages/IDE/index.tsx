@@ -2575,8 +2575,8 @@ function IDE({ initialTheme = 'cyber', initialAvatar = 0 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [sidebarW,    setSidebarW]    = useState(240)
   const [bottomOpen,  setBottomOpen]  = useState(false)
-  const [bottomTab,   setBottomTab]   = useState('timeline')
-  const [bottomH,     setBottomH]     = useState(200)
+  const [bottomTab,   setBottomTab]   = useState('console')
+  const [bottomH,     setBottomH]     = useState(260)
   const splitDragRef = useRef<any>(null)
   const panelDragRef = useRef(null)
   const tlDragRef    = useRef<any>(null)
@@ -2753,6 +2753,8 @@ function IDE({ initialTheme = 'cyber', initialAvatar = 0 }) {
 
   // ── COMPUTED ──
   const activeTabNode = nodesRef.current.find(n => n.id === activeTabId) || null
+  const activeLang    = detectLang(activeTabNode?.label || '')
+  const canRun        = activeTabNode && activeLang !== 'md' && activeLang !== 'unknown'
   const modifiedNodes = nodesRef.current.filter(n => n.modified)
   const nodeCount = nodesRef.current.length
   const edgeCount = edgesRef.current.length
@@ -3207,6 +3209,7 @@ function IDE({ initialTheme = 'cyber', initialAvatar = 0 }) {
     const isGo  = lang === 'go'
     setNodeRunState(s => ({...s, [nodeId]: {status:'running', ms:0}}))
     setBottomTab('console')
+    setBottomOpen(true)
     setJsLogs(l => {
       const header = [{type:'header', val:`▶  ${node.label}`, ts:Date.now(), nodeId}]
       if (isPy && !_pyW) header.push({type:'info', val:'⌛ Loading Python runtime (Pyodide, ~10 MB, first run only)…', ts:Date.now()})
@@ -3288,12 +3291,10 @@ function IDE({ initialTheme = 'cyber', initialAvatar = 0 }) {
 
   // ── ICON BAR ──
   const sideIconDefs = [
-    { key:'files',    icon:<I.Files/>,   tip:'Files' },
-    { key:'search',   icon:<I.Search/>,  tip:'Search' },
-    { key:'git',      icon:<I.Git/>,     tip:'Git',    badge:modifiedNodes.length||0 },
-    { key:'chat',     icon:<I.Message/>, tip:'Chat' },
-    { key:'note',     icon:<I.Note/>,    tip:'Notes' },
-    { key:'board',    icon:<I.Board/>,   tip:'Board' },
+    { key:'files',  icon:<I.Files/>,  tip:'Files' },
+    { key:'search', icon:<I.Search/>, tip:'Search' },
+    { key:'note',   icon:<I.Note/>,   tip:'Notes' },
+    { key:'board',  icon:<I.Board/>,  tip:'Board',  badge:0 },
   ]
 
   // ── CHAPTER SPLASH DATA ──
@@ -3308,40 +3309,59 @@ function IDE({ initialTheme = 'cyber', initialAvatar = 0 }) {
       <div className="ide-topbar">
         <span className="ide-logo">FOR<span className="ide-logo-accent">BID</span>EN<span style={{color:'#ff2a38',animation:'fblink 1.1s infinite',fontSize:'1.1rem'}}>_</span></span>
         <div className="ide-topbar-sep"/>
-        {/* Breadcrumb */}
-        <div style={{flex:1,minWidth:0,display:'flex',alignItems:'center',gap:'5px',overflow:'hidden'}}>
-          {activeTabNode ? (
-            <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:'11px',letterSpacing:'.14em',padding:'2px 8px',background:brutal?'#f2c12e':'rgba(255,42,56,.12)',color:brutal?'#0f0f0f':'#ff2a38',border:brutal?'2px solid #0f0f0f':'1px solid rgba(255,42,56,.3)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',maxWidth:'240px'}}>
-              {activeTabNode.label} <span style={{opacity:.5,fontWeight:400}}>// {activeTabNode.type}</span>
+
+        {/* Active file breadcrumb + language badge */}
+        <div style={{flex:1,minWidth:0,display:'flex',alignItems:'center',gap:6,overflow:'hidden'}}>
+          {activeTabNode ? (<>
+            <div style={{fontFamily:"'JetBrains Mono',monospace",fontSize:'12px',fontWeight:500,color:brutal?'#0f0f0f':'#c0c8d8',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',maxWidth:220,opacity:.9}}>
+              {activeTabNode.label}
             </div>
-          ) : (
-            <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:'11px',letterSpacing:'.14em',padding:'2px 8px',color:brutal?'rgba(240,236,224,.35)':'rgba(200,200,220,.3)',border:brutal?'2px solid rgba(255,255,255,.12)':'1px solid rgba(255,255,255,.07)'}}>NO FILE OPEN</div>
+            {activeLang!=='unknown' && (
+              <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:'9px',letterSpacing:'.14em',padding:'1px 6px',background:isCompiled(activeLang)?'rgba(255,100,80,.15)':'rgba(16,185,129,.12)',color:isCompiled(activeLang)?'#ff8060':'#10b981',border:`1px solid ${isCompiled(activeLang)?'rgba(255,100,80,.3)':'rgba(16,185,129,.25)'}`,flexShrink:0}}>
+                {activeLang.toUpperCase()}
+              </div>
+            )}
+            {activeTabNode.modified && (
+              <div style={{width:5,height:5,borderRadius:'50%',background:'#f2c12e',flexShrink:0}}/>
+            )}
+          </>) : (
+            <div style={{fontFamily:"'Share Tech Mono',monospace",fontSize:'11px',opacity:.25,letterSpacing:'.05em'}}>no file open</div>
           )}
         </div>
-        {/* Unsaved indicator */}
+
+        {/* Unsaved count */}
         {modifiedNodes.length>0 && (
-          <div style={{background:'#f2c12e',color:'#0f0f0f',fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:'10px',letterSpacing:'.12em',padding:'2px 7px',flexShrink:0,transition:'all .2s'}}>{modifiedNodes.length} UNSAVED</div>
+          <div style={{background:'#f2c12e22',color:'#f2c12e',border:'1px solid #f2c12e44',fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:'9px',letterSpacing:'.12em',padding:'2px 6px',flexShrink:0}}>
+            {modifiedNodes.length}●
+          </div>
         )}
+
         <div className="ide-topbar-sep"/>
-        {/* Actions */}
-        <button className="ide-topbar-btn" onClick={()=>setNotebookFloating(f=>!f)}
-          style={{color:notebookFloating?'#c792ea':'',borderColor:notebookFloating?'rgba(199,146,234,.4)':'',transition:'all .15s',fontWeight:700}}>
-          ◎ NOTEBOOK
-        </button>
+
+        {/* ▶ RUN — primary action, only when a runnable file is open */}
+        {canRun && (
+          <button
+            className="ide-topbar-btn"
+            onClick={()=>handleRunNode(activeTabId)}
+            style={{
+              background: isCompiled(activeLang) ? 'rgba(255,100,80,.18)' : 'rgba(16,185,129,.18)',
+              color:       isCompiled(activeLang) ? '#ff8060' : '#10b981',
+              border:      `1px solid ${isCompiled(activeLang)?'rgba(255,100,80,.4)':'rgba(16,185,129,.4)'}`,
+              fontWeight: 700, letterSpacing: '.1em',
+            }}
+          >
+            ▶ RUN
+          </button>
+        )}
+
         <button className="ide-topbar-btn primary" onClick={()=>setShowCreateNode(true)}>+ NODE</button>
-        <button className="ide-topbar-btn" onClick={()=>folderInputRef.current?.click()} title="Upload a folder">⬆ FOLDER</button>
+        <button className="ide-topbar-btn" onClick={()=>folderInputRef.current?.click()} title="Import folder">⬆ IMPORT</button>
         <input ref={folderInputRef} type="file" multiple {...{'webkitdirectory':''}} style={{display:'none'}} onChange={handleFolderUpload}/>
-        <button className="ide-topbar-btn" onClick={()=>{
-          const x=(Math.random()-.5)*300, y=(Math.random()-.5)*300
-          const tempId='n'+Date.now()
-          nodesRef.current=[...nodesRef.current,{id:tempId,label:'readme.md',filepath:'readme.md',type:'doc',isMain:false,x,y,vx:0,vy:0,themeIdx:11,classId:null,code:'# README\n\nDocument your code here.\n\n## Overview\n\nThis is a **FORBIDEN** doc node.\n',modified:false}]
-          forceRender({})
-          openNodeInEditor(tempId)
-        }}>+ DOC</button>
         <button className="ide-topbar-btn" onClick={()=>setShowCmd(true)}>⌘P</button>
-        {/* Avatar */}
-        <div onClick={()=>setSidebarMode(s=>s==='settings'?null:'settings')}
-          style={{cursor:'pointer',width:'32px',height:'32px',border:`2px solid ${sidebarMode==='settings'?'#ff2a38':'rgba(255,255,255,.12)'}`,overflow:'hidden',flexShrink:0,transition:'border-color .15s'}}>
+
+        {/* Avatar → settings */}
+        <div onClick={()=>{setSidebarMode('settings');setSidebarOpen(o=>sidebarMode==='settings'?!o:true)}}
+          style={{cursor:'pointer',width:'30px',height:'30px',border:`2px solid ${sidebarMode==='settings'&&sidebarOpen?'#ff2a38':'rgba(255,255,255,.12)'}`,overflow:'hidden',flexShrink:0,transition:'border-color .15s'}}>
           <img src={`${import.meta.env.BASE_URL}avatars/0xAV0${String((avatarIndex%6)+1).padStart(2,'0')}s.jpeg`} alt="op" style={{width:'100%',height:'100%',objectFit:'cover'}}/>
         </div>
       </div>
@@ -3364,22 +3384,29 @@ function IDE({ initialTheme = 'cyber', initialAvatar = 0 }) {
             </div>
           ))}
           <div style={{flex:1}}/>
-          <div title="Timeline" className={`ide-icon-btn ${bottomOpen&&bottomTab==='timeline'?'active':''}`} onClick={()=>{ if(bottomOpen&&bottomTab==='timeline'){setBottomOpen(false)}else{setBottomTab('timeline');setBottomOpen(true)} }}>
-            <I.Timeline/>
-          </div>
-          <div title="Notebook (Jupyter-style)" className={`ide-icon-btn ${bottomOpen&&bottomTab==='notebook'?'active':''}`} onClick={()=>{ if(bottomOpen&&bottomTab==='notebook'){setBottomOpen(false)}else{setBottomTab('notebook');setBottomOpen(true)} }}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
-          </div>
-          <div title="Git Snapshots" className={`ide-icon-btn ${bottomOpen&&bottomTab==='git'?'active':''}`} onClick={()=>{ if(bottomOpen&&bottomTab==='git'){setBottomOpen(false)}else{setBottomTab('git');setBottomOpen(true);refreshGit()} }}>
-            <I.Git/>
-          </div>
-          <div title="JS Console" className={`ide-icon-btn ${bottomOpen&&bottomTab==='console'?'active':''}`} onClick={()=>{ if(bottomOpen&&bottomTab==='console'){setBottomOpen(false)}else{setBottomTab('console');setBottomOpen(true)} }}>
+          {/* Console — opens run output */}
+          <div title="Console (run output)" className={`ide-icon-btn ${bottomOpen&&bottomTab==='console'?'active':''}`}
+            onClick={()=>{ if(bottomOpen&&bottomTab==='console'){setBottomOpen(false)}else{setBottomTab('console');setBottomOpen(true)} }}>
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><polyline points="3,5 7,8 3,11"/><line x1="9" y1="11" x2="13" y2="11"/></svg>
           </div>
-          <div title="Editor" className={`ide-icon-btn ${editorOpen?'active':''}`} onClick={()=>setEditorOpen(o=>!o)}>
-            <I.Files/>
+          {/* Notebook */}
+          <div title="Notebook" className={`ide-icon-btn ${bottomOpen&&bottomTab==='notebook'?'active':''}`}
+            onClick={()=>{ if(bottomOpen&&bottomTab==='notebook'){setBottomOpen(false)}else{setBottomTab('notebook');setBottomOpen(true)} }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
           </div>
-          <div title="Settings" className={`ide-icon-btn ${sidebarMode==='settings'&&sidebarOpen?'active':''}`} onClick={()=>{setSidebarMode('settings'); setSidebarOpen(o=>sidebarMode==='settings'?!o:true)}}>
+          {/* Git snapshots */}
+          <div title="Git Snapshots" className={`ide-icon-btn ${bottomOpen&&bottomTab==='git'?'active':''}`}
+            onClick={()=>{ if(bottomOpen&&bottomTab==='git'){setBottomOpen(false)}else{setBottomTab('git');setBottomOpen(true);refreshGit()} }}>
+            <I.Git/>
+            {modifiedNodes.length>0 && <div className="ide-icon-badge">{modifiedNodes.length}</div>}
+          </div>
+          {/* Editor pane toggle */}
+          <div title="Toggle editor" className={`ide-icon-btn ${editorOpen?'active':''}`} onClick={()=>setEditorOpen(o=>!o)}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="16,18 22,12 16,6"/><polyline points="8,6 2,12 8,18"/></svg>
+          </div>
+          {/* Settings */}
+          <div title="Settings" className={`ide-icon-btn ${sidebarMode==='settings'&&sidebarOpen?'active':''}`}
+            onClick={()=>{setSidebarMode('settings');setSidebarOpen(o=>sidebarMode==='settings'?!o:true)}}>
             <I.Settings/>
           </div>
         </div>
@@ -4071,23 +4098,26 @@ function IDE({ initialTheme = 'cyber', initialAvatar = 0 }) {
           {/* Tab bar */}
           <div className="ide-bottom-tabbar">
             {[
-              {key:'timeline', label:'◈ TIMELINE'},
-              {key:'console',  label:'>_ CONSOLE'},
+              {key:'console',  label:'▶ CONSOLE'},
               {key:'notebook', label:'◎ NOTEBOOK'},
-              {key:'git',      label:'◆ SNAPSHOTS'},
+              {key:'git',      label:'◆ GIT'},
             ].map(t=>(
               <button key={t.key}
                 className={`ide-bottom-tab ${bottomTab===t.key?'active':''}`}
                 onClick={()=>{ setBottomTab(t.key); if(t.key==='git') refreshGit() }}>
                 {t.label}
+                {t.key==='git' && modifiedNodes.length>0 && (
+                  <span style={{marginLeft:4,background:'#f2c12e',color:'#0f0f0f',fontSize:'8px',fontFamily:"'Oswald',sans-serif",fontWeight:700,padding:'0 3px',borderRadius:2}}>{modifiedNodes.length}</span>
+                )}
               </button>
             ))}
             <div style={{flex:1}}/>
+            {/* resize hint */}
+            <span style={{fontSize:'9px',opacity:.2,fontFamily:"'Share Tech Mono',monospace",alignSelf:'center',marginRight:6,userSelect:'none'}}>drag to resize</span>
             <button className="ide-bottom-close" onClick={()=>setBottomOpen(false)}>✕</button>
           </div>
           {/* Content */}
           <div style={{flex:1,overflow:'hidden',display:'flex',flexDirection:'column',minHeight:0}}>
-            {bottomTab==='timeline' && <TimelinePanel eventLog={eventLog} brutal={brutal}/>}
             {bottomTab==='notebook' && <NotebookPanel brutal={brutal}/>}
             {bottomTab==='console' && (<>
 
