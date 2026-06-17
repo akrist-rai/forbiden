@@ -3372,33 +3372,45 @@ function IDE({ initialTheme = 'cyber', initialAvatar = 0 }) {
 
       </div>{/* ide-main-row */}
 
-      {/* ── FLOATING NOTEBOOK PANEL ── */}
+      {/* ── FLOATING NOTEBOOK PANEL (centered modal) ── */}
       {notebookFloating && (
-        <div style={{
-          position:'fixed', top:'36px', right:0, bottom:'22px', zIndex:100,
-          width: Math.min(460, typeof window!=='undefined'?window.innerWidth*0.38:460),
-          display:'flex', flexDirection:'column', overflow:'hidden',
-          background:'#05050f', borderLeft:'1px solid rgba(199,146,234,.18)',
-          boxShadow:'-12px 0 40px rgba(0,0,0,.7)',
-          animation:'nbSlideIn .18s cubic-bezier(.2,.8,.4,1)',
-        }}>
-          <div style={{display:'flex',alignItems:'center',gap:7,padding:'5px 10px',flexShrink:0,
-            borderBottom:'1px solid rgba(255,255,255,.07)',background:'rgba(0,0,0,.55)'}}>
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#c792ea" strokeWidth="2">
-              <rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/>
-              <line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/>
-            </svg>
-            <span style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:'10px',letterSpacing:'.15em',color:'#c792ea'}}>NOTEBOOK</span>
-            <span style={{opacity:.25,fontSize:'9px',fontFamily:"'Share Tech Mono',monospace"}}>Shift+Enter runs · Tab indents</span>
-            <button onClick={()=>setNotebookFloating(false)}
-              style={{marginLeft:'auto',background:'transparent',border:'none',cursor:'pointer',
-                color:'rgba(200,200,220,.35)',fontSize:'15px',lineHeight:1,padding:'2px 6px',
-                transition:'color .12s'}}
-              onMouseEnter={e=>(e.currentTarget.style.color='#ff435a')}
-              onMouseLeave={e=>(e.currentTarget.style.color='rgba(200,200,220,.35)')}>✕</button>
+        <>
+          {/* Backdrop */}
+          <div onClick={()=>setNotebookFloating(false)}
+            style={{position:'fixed',inset:0,zIndex:99,background:'rgba(0,0,0,.55)',backdropFilter:'blur(2px)'}}/>
+          {/* Panel */}
+          <div style={{
+            position:'fixed',
+            top:'50%', left:'50%',
+            transform:'translate(-50%,-50%)',
+            zIndex:100,
+            width:'min(860px, 90vw)',
+            height:'min(680px, 85vh)',
+            display:'flex', flexDirection:'column', overflow:'hidden',
+            background:'#07070f',
+            border:'1px solid rgba(199,146,234,.25)',
+            boxShadow:'0 24px 80px rgba(0,0,0,.85), 0 0 0 1px rgba(199,146,234,.08)',
+            animation:'nbFadeIn .18s cubic-bezier(.2,.8,.4,1)',
+          }}>
+            {/* Title bar */}
+            <div style={{display:'flex',alignItems:'center',gap:8,padding:'7px 12px',flexShrink:0,
+              borderBottom:'1px solid rgba(255,255,255,.07)',background:'rgba(0,0,0,.6)',userSelect:'none'}}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#c792ea" strokeWidth="2">
+                <rect x="3" y="3" width="18" height="18" rx="2"/>
+                <line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/>
+                <line x1="9" y1="3" x2="9" y2="21"/>
+              </svg>
+              <span style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:'11px',letterSpacing:'.15em',color:'#c792ea'}}>NOTEBOOK</span>
+              <span style={{opacity:.22,fontSize:'9px',fontFamily:"'Share Tech Mono',monospace"}}>Shift+Enter runs · Tab indents · Esc closes</span>
+              <button onClick={()=>setNotebookFloating(false)}
+                style={{marginLeft:'auto',background:'transparent',border:'none',cursor:'pointer',
+                  color:'rgba(200,200,220,.3)',fontSize:'16px',lineHeight:1,padding:'2px 6px',transition:'color .12s'}}
+                onMouseEnter={e=>(e.currentTarget.style.color='#ff435a')}
+                onMouseLeave={e=>(e.currentTarget.style.color='rgba(200,200,220,.3)')}>✕</button>
+            </div>
+            <NotebookPanel brutal={false}/>
           </div>
-          <NotebookPanel brutal={false}/>
-        </div>
+        </>
       )}
 
       {/* ── BOTTOM PANEL (Timeline / Console / Git) ── */}
