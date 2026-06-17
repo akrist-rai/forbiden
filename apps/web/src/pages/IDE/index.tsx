@@ -2,7 +2,7 @@
 import './ide.css'
 import './manga.css'
 import './ide-v2.css'
-import { useState, useEffect, useRef, useMemo } from 'react'
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { useWorkspace } from '../../hooks/useWorkspace'
 
 // ══════════════════════════════════════════════════════════════
@@ -153,6 +153,21 @@ const MANGA_RAW = [
 
 const ACCENTS = ['#10b981','#ff435a','#ffc410','#4285f4','#28f1c3','#bb9af7','#ff1650','#5ccfe6','#ffbd5e','#e36209','#72f1b8','#ff8080','#89ddff','#e5c07b','#4ec9b0','#c792ea']
 
+
+const TL_TRACKS = [
+  { key:'create', types:['node-create'],            label:'CREATE', color:'#10b981', icon:'⊕' },
+  { key:'edit',   types:['code-edit'],              label:'EDIT',   color:'#ffc410', icon:'✏' },
+  { key:'run',    types:['run-ok','run-err'],        label:'RUN',    color:'#4285f4', icon:'▶' },
+  { key:'edge',   types:['edge-add','edge-del'],     label:'EDGE',   color:'#bb9af7', icon:'⇢' },
+  { key:'import', types:['import','group'],          label:'IMPORT', color:'#c792ea', icon:'⬆' },
+  { key:'commit', types:['commit'],                  label:'COMMIT', color:'#ff2a38', icon:'◆' },
+  { key:'sys',    types:['system','node-delete'],    label:'SYSTEM', color:'#607080', icon:'⚡' },
+]
+const TL_COL = {
+  'node-create':'#10b981','node-delete':'#ff435a','code-edit':'#ffc410',
+  'edge-add':'#4285f4','edge-del':'#bb9af7','run-ok':'#10b981','run-err':'#ff435a',
+  'import':'#c792ea','group':'#c792ea','commit':'#ff2a38','system':'#607080',
+}
 const INITIAL_NODES = [
   { id:'n1', type:'entry', label:'main.js', isMain:true, x:0, y:0, vx:0, vy:0, themeIdx:0, modified:false, code:
 `// FORBIDEN — Main entry point
@@ -466,6 +481,293 @@ const I = {
 }
 
 // ══════════════════════════════════════════════════════════════
+//  FLOATING PANEL SYSTEM
+// ══════════════════════════════════════════════════════════════
+
+function FloatingPanel({ pid, title, icon, panels, setPanels, panelDragRef, children, minW=240, minH=160, brutal=false, onClose=null, noPad=false }) {
+  const p = panels[pid]
+  if (!p?.visible) return null
+
+  const bringFront = () => setPanels(ps => {
+    const maxZ = Math.max(10, ...Object.values(ps).map((x:any) => x.z||0))
+    return ps[pid].z >= maxZ ? ps : {...ps, [pid]: {...ps[pid], z: maxZ+1}}
+  })
+
+  const startDrag = (e, mode) => {
+    if (e.button !== 0) return
+    e.preventDefault(); e.stopPropagation()
+    document.body.style.userSelect = 'none'
+    panelDragRef.current = { pid, mode, sx:e.clientX, sy:e.clientY, x:p.x, y:p.y, w:p.w, h:p.h, minW, minH }
+    bringFront()
+  }
+
+  const barBg   = brutal ? '#0a0a0a' : 'rgba(5,5,16,.98)'
+  const panelBg = brutal ? '#ede8d5' : 'rgba(6,6,18,.97)'
+  const border  = brutal ? '3px solid #0f0f0f' : '1px solid rgba(255,42,56,.14)'
+  const HW = 6  // handle width
+  const CW = 14 // corner handle size
+
+  return (
+    <div onMouseDown={bringFront} style={{
+      position:'fixed', left:p.x-HW, top:p.y-HW,
+      width:p.w+HW*2, height:p.h+HW*2,
+      zIndex:p.z||10,
+      pointerEvents:'none',
+    }}>
+      {/* Resize handles — rendered in the outer wrapper (outside overflow:hidden) */}
+      {/* E  */}<div onMouseDown={e=>startDrag(e,'resize-e')}  style={{pointerEvents:'all',position:'absolute',right:0,top:CW,bottom:CW,width:HW,cursor:'ew-resize',zIndex:2}}/>
+      {/* W  */}<div onMouseDown={e=>startDrag(e,'resize-w')}  style={{pointerEvents:'all',position:'absolute',left:0,top:CW,bottom:CW,width:HW,cursor:'ew-resize',zIndex:2}}/>
+      {/* S  */}<div onMouseDown={e=>startDrag(e,'resize-s')}  style={{pointerEvents:'all',position:'absolute',left:CW,right:CW,bottom:0,height:HW,cursor:'ns-resize',zIndex:2}}/>
+      {/* N  */}<div onMouseDown={e=>startDrag(e,'resize-n')}  style={{pointerEvents:'all',position:'absolute',left:CW,right:CW,top:0,height:HW,cursor:'ns-resize',zIndex:2}}/>
+      {/* SE */}<div onMouseDown={e=>startDrag(e,'resize-se')} style={{pointerEvents:'all',position:'absolute',right:0,bottom:0,width:CW,height:CW,cursor:'se-resize',zIndex:3}}/>
+      {/* SW */}<div onMouseDown={e=>startDrag(e,'resize-sw')} style={{pointerEvents:'all',position:'absolute',left:0,bottom:0,width:CW,height:CW,cursor:'sw-resize',zIndex:3}}/>
+      {/* NE */}<div onMouseDown={e=>startDrag(e,'resize-ne')} style={{pointerEvents:'all',position:'absolute',right:0,top:0,width:CW,height:CW,cursor:'ne-resize',zIndex:3}}/>
+      {/* NW */}<div onMouseDown={e=>startDrag(e,'resize-nw')} style={{pointerEvents:'all',position:'absolute',left:0,top:0,width:CW,height:CW,cursor:'nw-resize',zIndex:3}}/>
+
+      {/* Actual panel (offset inward by HW) */}
+      <div onMouseDown={e=>{e.stopPropagation();bringFront()}} style={{
+        position:'absolute', left:HW, top:HW, right:HW, bottom:HW,
+        display:'flex', flexDirection:'column', overflow:'hidden',
+        background:panelBg, border, boxShadow:'0 8px 48px rgba(0,0,0,.8)',
+        borderRadius: brutal ? 0 : 3,
+        pointerEvents:'all',
+      }}>
+        {/* Title bar */}
+        <div onMouseDown={e=>startDrag(e,'move')} style={{
+          height:26, flexShrink:0, display:'flex', alignItems:'center',
+          gap:6, padding:'0 8px', cursor:'grab', userSelect:'none',
+          background:barBg, borderBottom:brutal?'2px solid rgba(255,255,255,.06)':'1px solid rgba(255,42,56,.1)',
+        }}>
+          {icon && <span style={{opacity:.5, fontSize:'12px'}}>{icon}</span>}
+          <span style={{flex:1, fontFamily:"'Oswald',sans-serif", fontWeight:700, fontSize:'9px', letterSpacing:'.14em', opacity:.5, color: brutal?'#f0ece0':'#c0c8d8'}}>{title}</span>
+          <div style={{display:'flex',gap:3,alignItems:'center'}}>
+            <div title="Minimise" style={{width:9,height:9,borderRadius:'50%',background:'#ffbd2e',opacity:.7,cursor:'pointer'}}
+              onMouseDown={e=>{e.stopPropagation(); setPanels(ps=>({...ps,[pid]:{...ps[pid],h:26}}))}}/>
+            <div title="Close" style={{width:9,height:9,borderRadius:'50%',background:'#ff5f57',opacity:.7,cursor:'pointer'}}
+              onMouseDown={e=>{e.stopPropagation(); onClose ? onClose() : setPanels(ps=>({...ps,[pid]:{...ps[pid],visible:false}}))}}/>
+          </div>
+        </div>
+        {/* Body */}
+        <div style={{flex:1, overflow:'hidden', display:'flex', flexDirection:'column', minHeight:0}}>
+          {children}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+
+// ══════════════════════════════════════════════════════════════
+//  TIMELINE PANEL — VS Code terminal style, bottom scrubber
+// ══════════════════════════════════════════════════════════════
+
+function TimelinePanel({ eventLog, brutal, onPhMsChange=null }) {
+  const [phMs,     setPhMsInternal] = useState(() => Date.now())
+  const [playing,  setPlaying]  = useState(false)
+  const [zoom,     setZoom]     = useState(1)
+  const [filter,   setFilter]   = useState('all')
+  const [expanded, setExpanded] = useState(null)
+  const rafRef   = useRef(null)
+  const trackRef = useRef(null)
+
+  const setPhMs = (v) => {
+    const ms = typeof v === 'function' ? v(phMs) : v
+    setPhMsInternal(ms)
+    onPhMsChange?.(ms)
+  }
+
+  const sorted = useMemo(() => [...eventLog].sort((a,b)=>a.ts-b.ts), [eventLog])
+  const tStart = sorted.length ? sorted[0].ts            : Date.now()-10000
+  const tEnd   = sorted.length ? sorted[sorted.length-1].ts+2000 : Date.now()
+  const tDur   = Math.max(tEnd-tStart, 1000)
+
+  const filtered = useMemo(() => {
+    if (filter === 'all') return sorted
+    const tr = TL_TRACKS.find(t=>t.key===filter)
+    return tr ? sorted.filter(e=>tr.types.includes(e.type)) : sorted
+  }, [sorted, filter])
+
+  const fmtT = (ms) => {
+    const rel=Math.max(0,ms-tStart)
+    const s=Math.floor(rel/1000),m=Math.floor(s/60)
+    return `${String(m).padStart(2,'0')}:${String(s%60).padStart(2,'0')}.${String(Math.floor((rel%1000)/10)).padStart(2,'0')}`
+  }
+
+  const prog = Math.max(0, Math.min(1, (phMs-tStart)/tDur))
+
+  const nearEv = useMemo(() => {
+    if (!sorted.length) return null
+    return sorted.reduce((b,e)=>Math.abs(e.ts-phMs)<Math.abs(b.ts-phMs)?e:b)
+  }, [sorted, phMs])
+
+  const selEv  = sorted.find(e=>e.id===expanded)||null
+  const dispEv = selEv || nearEv
+
+  useEffect(() => {
+    if (!playing) { cancelAnimationFrame(rafRef.current); return }
+    let last = performance.now()
+    const tick = now => {
+      const dt=now-last; last=now
+      setPhMs(p => { const n=p+dt*1.5; if (n>=tEnd){setPlaying(false);return tEnd} return n })
+      rafRef.current = requestAnimationFrame(tick)
+    }
+    rafRef.current = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(rafRef.current)
+  }, [playing, tEnd])
+
+  const scrubAt = (e) => {
+    const rect = trackRef.current?.getBoundingClientRect()
+    if (!rect) return
+    const r = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width))
+    setPhMs(tStart + r * tDur)
+  }
+
+  const bg0   = brutal ? '#ede8d5' : '#05050f'
+  const bg1   = brutal ? '#0a0a0a' : 'rgba(0,0,0,.7)'
+  const text  = brutal ? '#0f0f0f' : '#c0c8d8'
+  const sep   = brutal ? 'rgba(0,0,0,.15)' : 'rgba(255,255,255,.06)'
+  const accent= '#ff2a38'
+
+  const btnS:any = {
+    background:'transparent', border:'none', cursor:'pointer',
+    color:brutal?'rgba(240,236,224,.5)':'rgba(200,200,220,.5)',
+    fontFamily:"'JetBrains Mono',monospace", fontSize:'11px', padding:'0 3px',
+    lineHeight:1, transition:'color .1s',
+  }
+  const accentBtnS = {
+    ...btnS, color:playing?'#ff2a38':'#10b981', fontSize:'14px',
+  }
+
+  return (
+    <div style={{display:'flex',flexDirection:'column',height:'100%',background:bg0,userSelect:'none',overflow:'hidden'}}>
+
+      {/* ── TRACK ROW: filter chips + controls ── */}
+      <div style={{display:'flex',alignItems:'center',gap:3,padding:'3px 8px',flexShrink:0,
+        borderBottom:`1px solid ${sep}`,background:bg1,flexWrap:'nowrap',overflow:'hidden'}}>
+        {/* Transport */}
+        <button style={btnS} onClick={()=>{setPlaying(false);setPhMs(tStart)}} title="Start">⏮</button>
+        <button style={accentBtnS} onClick={()=>setPlaying(p=>!p)}>{playing?'⏸':'▶'}</button>
+        <button style={btnS} onClick={()=>{setPlaying(false);setPhMs(tEnd)}} title="End">⏭</button>
+        <div style={{fontFamily:"'JetBrains Mono',monospace",fontSize:'10px',color:'#c792ea',
+          background:'rgba(199,146,234,.1)',border:'1px solid rgba(199,146,234,.2)',
+          padding:'1px 6px',borderRadius:2,letterSpacing:'.04em',flexShrink:0}}>
+          {fmtT(phMs)}
+        </div>
+        <div style={{width:1,height:14,background:sep,flexShrink:0,margin:'0 2px'}}/>
+        {/* Filter chips */}
+        <button style={{...btnS,fontSize:'8px',letterSpacing:'.07em',
+          color:filter==='all'?accent:'inherit',
+          borderBottom:filter==='all'?`1px solid ${accent}`:'1px solid transparent'}}
+          onClick={()=>setFilter('all')}>ALL</button>
+        {TL_TRACKS.map(tr=>(
+          <button key={tr.key} style={{...btnS,fontSize:'8px',letterSpacing:'.07em',
+            color:filter===tr.key?tr.color:'inherit',
+            borderBottom:filter===tr.key?`1px solid ${tr.color}`:'1px solid transparent'}}
+            onClick={()=>setFilter(f=>f===tr.key?'all':tr.key)}>{tr.label}</button>
+        ))}
+        <div style={{flex:1}}/>
+        <span style={{fontFamily:"'Bangers',sans-serif",fontSize:'13px',color:TL_COL[dispEv?.type]||'#607080',
+          lineHeight:1,minWidth:22,textAlign:'right'}}>
+          {sorted.length}
+        </span>
+        <span style={{fontFamily:"'Oswald',sans-serif",fontSize:'8px',opacity:.3,letterSpacing:'.1em',color:text}}>EVT</span>
+      </div>
+
+      {/* ── SCRUBBER TRACK ── */}
+      <div ref={trackRef}
+        style={{position:'relative',height:36,flexShrink:0,cursor:'crosshair',
+          borderBottom:`1px solid ${sep}`,background:'rgba(0,0,0,.4)'}}
+        onMouseDown={e=>{scrubAt(e); const move=(ev)=>scrubAt(ev); const up=()=>{document.removeEventListener('mousemove',move);document.removeEventListener('mouseup',up)}; document.addEventListener('mousemove',move); document.addEventListener('mouseup',up)}}>
+
+        {/* Grid lines every 10% */}
+        {[...Array(11)].map((_,i)=>(
+          <div key={i} style={{position:'absolute',left:`${i*10}%`,top:0,bottom:0,width:1,
+            background:i%5===0?'rgba(255,255,255,.1)':'rgba(255,255,255,.035)',pointerEvents:'none'}}/>
+        ))}
+
+        {/* Event dots on track */}
+        {filtered.map(ev=>{
+          const col=TL_COL[ev.type]||'#888'
+          const x=((ev.ts-tStart)/tDur)*100
+          const isNear=nearEv?.id===ev.id
+          const isSel=expanded===ev.id
+          return (
+            <div key={ev.id}
+              onClick={e=>{e.stopPropagation();setExpanded(s=>s===ev.id?null:ev.id);setPhMs(ev.ts)}}
+              title={ev.label}
+              style={{position:'absolute',left:`${x}%`,top:'50%',
+                width:isSel||isNear?10:6,height:isSel||isNear?10:6,
+                borderRadius:'50%',background:col,
+                transform:'translate(-50%,-50%)',
+                boxShadow:isSel||isNear?`0 0 8px ${col},0 0 2px ${col}`:'none',
+                border:isSel?'2px solid #fff':'none',
+                zIndex:isSel||isNear?4:1,cursor:'pointer',
+                transition:'all .08s',pointerEvents:'all'}}/>
+          )
+        })}
+
+        {/* Playhead */}
+        <div style={{position:'absolute',left:`${prog*100}%`,top:0,bottom:0,
+          transform:'translateX(-50%)',pointerEvents:'none',zIndex:5}}>
+          <div style={{width:2,height:'100%',background:accent,opacity:.9,
+            boxShadow:`0 0 6px ${accent}`}}/>
+          <div style={{position:'absolute',top:0,left:'50%',transform:'translateX(-50%)',
+            width:0,height:0,borderLeft:'5px solid transparent',borderRight:'5px solid transparent',
+            borderTop:`7px solid ${accent}`}}/>
+        </div>
+
+        {/* Event ticks (all, background layer) */}
+        {sorted.map(ev=>(
+          <div key={'t'+ev.id} style={{position:'absolute',
+            left:`${((ev.ts-tStart)/tDur)*100}%`,top:0,
+            width:1,height:'40%',background:TL_COL[ev.type]||'#888',opacity:.25,
+            pointerEvents:'none'}}/>
+        ))}
+      </div>
+
+      {/* ── CURRENT EVENT INFO ROW ── */}
+      <div style={{flex:1,display:'flex',alignItems:'center',gap:0,overflow:'hidden'}}>
+        {dispEv ? (<>
+          {/* Color stripe */}
+          <div style={{width:3,alignSelf:'stretch',background:TL_COL[dispEv.type]||'#607080',flexShrink:0}}/>
+          {/* Icon */}
+          <div style={{width:32,flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',
+            fontSize:'13px',opacity:.8}}>{dispEv.icon}</div>
+          {/* Info */}
+          <div style={{flex:1,minWidth:0,padding:'4px 6px'}}>
+            <div style={{display:'flex',alignItems:'center',gap:5}}>
+              <span style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:'9px',
+                letterSpacing:'.1em',color:TL_COL[dispEv.type]||'#aaa',flexShrink:0}}>
+                {dispEv.type.toUpperCase().replace(/-/g,' ')}
+              </span>
+              {!selEv&&<span style={{fontSize:'7px',opacity:.2,fontFamily:"'Share Tech Mono',monospace",color:text}}>NEAREST</span>}
+            </div>
+            <div style={{fontFamily:"'Share Tech Mono',monospace",fontSize:'10px',color:text,
+              overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{dispEv.label}</div>
+          </div>
+          {/* Time */}
+          <div style={{padding:'0 8px',flexShrink:0,textAlign:'right'}}>
+            <div style={{fontFamily:"'JetBrains Mono',monospace",fontSize:'8px',color:'#c792ea',opacity:.7}}>
+              {new Date(dispEv.ts).toLocaleTimeString('en',{hour12:false})}
+            </div>
+            <div style={{fontFamily:"'JetBrains Mono',monospace",fontSize:'8px',color:'#ffc410',opacity:.5}}>
+              +{fmtT(dispEv.ts)}
+            </div>
+          </div>
+          {selEv&&<button style={{...btnS,padding:'0 8px',fontSize:'9px'}} onClick={()=>setExpanded(null)}>✕</button>}
+        </>) : (
+          <div style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',
+            opacity:.18,fontFamily:"'Share Tech Mono',monospace",color:text,fontSize:'10px'}}>
+            NO EVENTS — start editing to record history
+          </div>
+        )}
+      </div>
+
+    </div>
+  )
+}
+
+// ══════════════════════════════════════════════════════════════
 //  CODE EDITOR COMPONENT
 // ══════════════════════════════════════════════════════════════
 
@@ -485,6 +787,8 @@ function CodeEditor({ node, onChange, externalPalette }) {
   const textareaRef = useRef(null)
   const lineNumRef = useRef(null)
   const overlayRef = useRef(null)
+  const [acList, setAcList] = useState([])
+  const [acIdx, setAcIdx] = useState(0)
   const code = node.code || ''
   const lineH = fontSize * 1.65
 
@@ -494,6 +798,51 @@ function CodeEditor({ node, onChange, externalPalette }) {
     if (overlayRef.current && textareaRef.current) overlayRef.current.style.transform = `translateY(-${textareaRef.current.scrollTop}px)`
   }
   const isJS = node.label?.match(/\.(js|ts|jsx|tsx|mjs)$/)
+
+  const AC_JS = ['function','const','let','var','return','if','else','for','while','switch','case',
+    'class','import','export','from','default','new','this','typeof','instanceof','async','await',
+    'try','catch','finally','throw','break','continue','null','undefined','true','false',
+    'console.log','console.error','console.warn','console.table','console.info',
+    'Math.floor','Math.ceil','Math.round','Math.random','Math.max','Math.min','Math.abs','Math.sqrt','Math.PI',
+    'JSON.stringify','JSON.parse','Array.from','Array.isArray',
+    'Object.keys','Object.values','Object.entries','Object.assign','Object.fromEntries',
+    'parseInt','parseFloat','isNaN','String','Number','Boolean','Array','Object','Promise',
+    'setTimeout','clearTimeout','setInterval','clearInterval','requestAnimationFrame',
+    'fetch','document','window','localStorage','performance.now',
+    'Promise.all','Promise.race','Promise.resolve','Promise.reject',
+  ]
+  const AC_PY = ['def ','class ','import ','from ','return ','if ','elif ','else:','for ','while ',
+    'in ','not ','and ','or ','True','False','None','pass','break','continue','raise ',
+    'try:','except ','except Exception as e:','finally:','with ','as ','yield ','lambda ','async def ',
+    'print(','len(','range(','list(','dict(','set(','tuple(','str(','int(','float(','bool(',
+    'type(','isinstance(','hasattr(','getattr(','enumerate(','zip(',
+    'map(','filter(','sorted(','reversed(','sum(','max(','min(','abs(',
+    'open(','super().__init__()','self.','__init__','__str__','__repr__','__len__',
+  ]
+
+  const computeAc = (newCode, pos) => {
+    const before = newCode.slice(0, pos)
+    const m = before.match(/[\w.]+$/)
+    const word = m ? m[0] : ''
+    if (word.length < 2) { setAcList([]); return }
+    const base = isJS ? AC_JS : AC_PY
+    const fileWords = [...new Set((newCode.match(/\b[a-zA-Z_]\w{2,}\b/g) || []))].filter(w => w !== word && w.length > 2)
+    const all = [...base, ...fileWords]
+    const wl = word.toLowerCase()
+    const matches = [...new Set(all.filter(s => s.toLowerCase().startsWith(wl) && s.toLowerCase() !== wl))].slice(0, 9)
+    setAcList(matches); setAcIdx(0)
+  }
+
+  const insertAc = (item) => {
+    const ta = textareaRef.current; if (!ta) return
+    const s = ta.selectionStart
+    const before = code.slice(0, s)
+    const word = (before.match(/[\w.]+$/) || [''])[0]
+    const newCode = code.slice(0, s - word.length) + item + code.slice(s)
+    onChange(newCode)
+    setAcList([])
+    setTimeout(() => { ta.selectionStart = ta.selectionEnd = s - word.length + item.length; ta.focus() }, 0)
+  }
   const tabStr = '  ' // 2 spaces
 
   const handleKeyDown = (e) => {
@@ -501,6 +850,14 @@ function CodeEditor({ node, onChange, externalPalette }) {
     const s = ta.selectionStart, en = ta.selectionEnd
     const before = code.substring(0, s)
     const after  = code.substring(en)
+
+    // Autocomplete intercept
+    if (acList.length > 0) {
+      if (e.key === 'Escape') { e.preventDefault(); setAcList([]); return }
+      if (e.key === 'ArrowDown') { e.preventDefault(); setAcIdx(i => (i+1) % acList.length); return }
+      if (e.key === 'ArrowUp')   { e.preventDefault(); setAcIdx(i => (i-1+acList.length) % acList.length); return }
+      if (e.key === 'Tab' || e.key === 'Enter') { e.preventDefault(); insertAc(acList[acIdx]); return }
+    }
 
     // Tab — insert 2 spaces (Shift+Tab dedents)
     if (e.key === 'Tab') {
@@ -669,14 +1026,40 @@ function CodeEditor({ node, onChange, externalPalette }) {
             ref={textareaRef}
             className="code-area"
             value={code}
-            onChange={e=>onChange(e.target.value)}
+            onChange={e=>{onChange(e.target.value); computeAc(e.target.value, e.target.selectionStart)}}
             onScroll={handleScroll}
             onKeyDown={handleKeyDown}
-            onSelect={handleCursorUpdate}
-            onClick={handleCursorUpdate}
+            onSelect={e=>{handleCursorUpdate(e); setAcList([])}}
+            onClick={e=>{handleCursorUpdate(e); setAcList([])}}
+            onBlur={()=>setTimeout(()=>setAcList([]),150)}
             spellCheck={false}
             style={{position:'absolute',inset:0,padding:`20px 14px`,fontFamily:"'JetBrains Mono',monospace",fontSize:fontSize+'px',lineHeight:lineH+'px',color:'transparent',caretColor:palette.fn,background:'transparent',border:'none',outline:'none',resize:'none',zIndex:2,whiteSpace:wordWrap?'pre-wrap':'pre',overflowWrap:wordWrap?'break-word':'normal',overflow:'auto'}}
           />
+          {/* Autocomplete dropdown */}
+          {acList.length > 0 && (
+            <div style={{
+              position:'absolute',
+              top: Math.min((cursor.line) * lineH + 20 - (textareaRef.current?.scrollTop||0), (lineH*20)),
+              left: Math.min(36 + 14 + (cursor.col - 1) * (fontSize * 0.605), '60%'),
+              zIndex:20, minWidth:180, maxWidth:300,
+              background:palette.bg, border:`1px solid ${palette.kw}55`,
+              boxShadow:`0 6px 24px rgba(0,0,0,.7)`,
+              fontFamily:"'JetBrains Mono',monospace", fontSize:(fontSize-1)+'px',
+              overflow:'hidden', borderRadius:2,
+            }}>
+              {acList.map((item,i)=>(
+                <div key={item} onMouseDown={e=>{e.preventDefault();insertAc(item)}}
+                  style={{padding:'4px 10px',cursor:'pointer',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',
+                    background:i===acIdx?palette.kw+'28':'transparent',
+                    color:i===acIdx?palette.kw:palette.base,borderLeft:i===acIdx?`2px solid ${palette.kw}`:'2px solid transparent'}}>
+                  {item}
+                </div>
+              ))}
+              <div style={{padding:'2px 10px',opacity:.3,fontSize:(fontSize-3)+'px',borderTop:`1px solid ${palette.lineNum}33`}}>
+                Tab/↵ insert · Esc close
+              </div>
+            </div>
+          )}
         </div>
         {/* Minimap */}
         {minimap && (
@@ -907,7 +1290,7 @@ function GroupEditor({ group, nodes, onClose, onOpenNode }) {
 function MangaNode({
   node, groups, brutal, isJoinSelected, edgeMode, hoveredNodeId, setHoveredNodeId,
   draggingNodeRef, lastMousePos, transform, setNodeColorPicker, handleNodeClickInMode, openNodeInEditor,
-  nodeRunState, onRun,
+  nodeRunState, onRun, onCtxMenu,
 }) {
   const W = node.isMain ? 108 : 90
   const H = node.isMain ? 44 : 36
@@ -935,6 +1318,7 @@ function MangaNode({
       }}
       onPointerEnter={() => !edgeMode && setHoveredNodeId(node.id)}
       onPointerLeave={() => setHoveredNodeId(null)}
+      onContextMenu={e=>{e.preventDefault();e.stopPropagation();onCtxMenu?.(node.id,e.clientX,e.clientY)}}
       onPointerDown={e => {
         e.stopPropagation()
         if (edgeMode) return
@@ -1143,6 +1527,85 @@ function runJS(code, timeout = 10000) {
 }
 
 // ══════════════════════════════════════════════════════════════
+//  PYTHON RUNTIME  (Pyodide via Web Worker, lazy singleton)
+// ══════════════════════════════════════════════════════════════
+
+const PY_WORKER_SRC = `
+importScripts('https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js')
+let py = null, queue = []
+
+loadPyodide({ indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.26.4/full/' }).then(p => {
+  py = p
+  self.postMessage({ t: 'ready' })
+  queue.forEach(run); queue = []
+})
+
+function run({ id, code }) {
+  try {
+    py.runPython('import io,sys; _o=io.StringIO(); sys.stdout=sys.stderr=_o')
+    let rv = null, err = null
+    try { rv = py.runPython(code) } catch(e) { err = e.message }
+    const out = py.runPython('_o.getvalue()')
+    try { py.runPython('sys.stdout=sys.__stdout__; sys.stderr=sys.__stderr__') } catch {}
+    const rvs = (rv !== null && rv !== undefined && String(rv) !== 'None') ? String(rv) : null
+    self.postMessage({ id, t: 'done', out, rv: rvs, err })
+  } catch(e) {
+    self.postMessage({ id, t: 'done', out: '', rv: null, err: e.message })
+  }
+}
+
+self.onmessage = e => { if (!py) queue.push(e.data); else run(e.data) }
+`
+
+let _pyW = null
+
+function _getPyWorker() {
+  if (_pyW) return _pyW
+  const blob = new Blob([PY_WORKER_SRC], { type: 'application/javascript' })
+  const url = URL.createObjectURL(blob)
+  const worker = new Worker(url)
+  URL.revokeObjectURL(url)
+  let _nextId = 0
+  const cbs = {}
+  const readyP = new Promise(res => {
+    const h = e => { if (e.data.t === 'ready') { worker.removeEventListener('message', h); res() } }
+    worker.addEventListener('message', h)
+  })
+  worker.addEventListener('message', e => {
+    const { id, t, out, rv, err } = e.data
+    if (t !== 'done') return
+    const cb = cbs[id]; if (!cb) return
+    delete cbs[id]; cb({ out, rv, err })
+  })
+  worker.addEventListener('error', e => {
+    Object.values(cbs).forEach(cb => cb({ out: '', rv: null, err: e.message }))
+    Object.keys(cbs).forEach(k => delete cbs[k])
+  })
+  _pyW = { worker, readyP, cbs, id: () => _nextId++ }
+  return _pyW
+}
+
+async function runPython(code, timeout = 30000) {
+  const logs = [], t0 = performance.now()
+  const pw = _getPyWorker()
+  await pw.readyP
+  return new Promise(resolve => {
+    const id = pw.id()
+    const finish = ({ out, rv, err }) => {
+      clearTimeout(timer)
+      delete pw.cbs[id]
+      ;(out || '').split('\n').forEach(l => { if (l) logs.push({ type: 'log', val: l, ts: Date.now() }) })
+      if (err) logs.push({ type: 'error', val: err, ts: Date.now() })
+      else if (rv !== null) logs.push({ type: 'return', val: rv, ts: Date.now() })
+      resolve({ logs, retValStr: rv || undefined, error: err ? new Error(err) : null, ms: Math.round(performance.now() - t0) })
+    }
+    const timer = setTimeout(() => finish({ out: '', rv: null, err: 'Python execution timed out (30s)' }), timeout)
+    pw.cbs[id] = finish
+    pw.worker.postMessage({ id, code })
+  })
+}
+
+// ══════════════════════════════════════════════════════════════
 //  MARKDOWN RENDERER
 // ══════════════════════════════════════════════════════════════
 
@@ -1291,10 +1754,27 @@ function IDE({ initialTheme = 'cyber', initialAvatar = 0 }) {
   const brutal = themeMode === 'brutal'
 
   // Graph state
-  const nodesRef = useRef(JSON.parse(JSON.stringify(INITIAL_NODES)))
-  const edgesRef = useRef(JSON.parse(JSON.stringify(INITIAL_EDGES)))
-  const groupsRef = useRef(JSON.parse(JSON.stringify(INITIAL_GROUPS)))
-  const [, forceRender] = useState({})
+  const _saved = useMemo(() => loadSaved(), [])
+  const nodesRef  = useRef(_saved.nodes)
+  const edgesRef  = useRef(_saved.edges)
+  const groupsRef = useRef(_saved.groups)
+  const saveTimerRef = useRef(null)
+  const [_rt, _setRt] = useState(0)
+  const forceRender = useCallback(() => _setRt(t => t+1), [])
+
+  useEffect(() => {
+    if (_rt === 0) return
+    clearTimeout(saveTimerRef.current)
+    saveTimerRef.current = setTimeout(() => {
+      try {
+        localStorage.setItem(LS_KEY, JSON.stringify({
+          nodes: nodesRef.current,
+          edges: edgesRef.current,
+          groups: groupsRef.current,
+        }))
+      } catch {}
+    }, 800)
+  }, [_rt])
 
   // Canvas
   const [transform, setTransform] = useState({ x: 300, y: 220, scale: 1 })
@@ -1302,14 +1782,118 @@ function IDE({ initialTheme = 'cyber', initialAvatar = 0 }) {
   const lastMousePos = useRef({ x:0, y:0 })
   const draggingNodeRef = useRef(null)
   const canvasInputRef = useRef(null)
+  const folderInputRef = useRef(null)
 
-  // UI panels
-  const [sidebarMode, setSidebarMode] = useState('files') // 'files'|'search'|'git'|'chat'|'note'|'board'|'settings'|null
-  const [bottomTab, setBottomTab] = useState(null) // null | 'timeline' | 'terminal'
+  // ── Unified floating panel system ──────────────────────────────
+  const W = typeof window!=='undefined' ? window.innerWidth  : 1400
+  const H = typeof window!=='undefined' ? window.innerHeight : 900
+  const [editorOpen,  setEditorOpen]  = useState(true)
+  const [editorW,     setEditorW]     = useState(480)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [sidebarW,    setSidebarW]    = useState(240)
+  const [bottomOpen,  setBottomOpen]  = useState(false)
+  const [bottomTab,   setBottomTab]   = useState('timeline')
+  const [bottomH,     setBottomH]     = useState(200)
+  const splitDragRef = useRef<any>(null)
+  const panelDragRef = useRef(null)
+  const tlDragRef    = useRef<any>(null)
+
+  // ── Split-pane drag (editor/sidebar width) ──────────────────
+  useEffect(() => {
+    const onMove = (e) => {
+      const d = splitDragRef.current; if (!d) return
+      const dx = e.clientX - d.sx
+      if (d.side === 'editor')  setEditorW(w  => Math.max(280, Math.min(window.innerWidth*0.7, d.startW - dx)))
+      if (d.side === 'sidebar') setSidebarW(w => Math.max(160, Math.min(480, d.startW + dx)))
+    }
+    const onUp = () => { splitDragRef.current=null; document.body.style.userSelect=''; document.body.style.cursor='' }
+    document.addEventListener('mousemove', onMove)
+    document.addEventListener('mouseup', onUp)
+    return () => { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp) }
+  }, [])
+
+  // ── Timeline panel drag (height) ────────────────────────────
+  useEffect(() => {
+    const onMove = (e) => {
+      const d = tlDragRef.current; if (!d) return
+      const dy = e.clientY - d.sy
+      setBottomH(h => Math.max(120, Math.min(window.innerHeight*0.65, d.startH - dy)))
+    }
+    const onUp = () => { tlDragRef.current=null; document.body.style.userSelect=''; document.body.style.cursor='' }
+    document.addEventListener('mousemove', onMove)
+    document.addEventListener('mouseup', onUp)
+    return () => { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp) }
+  }, [])
+
+  // ── Event log (timeline) ────────────────────────────────────
+  const [eventLog, setEventLog] = useState([
+    {id:1, type:'system', label:'FORBIDEN IDE started', ts:Date.now(), icon:'⚡'}
+  ])
+  const addEvent = useCallback((type, label, meta={}) => {
+    const icons = {'node-create':'⊕','node-delete':'⊖','code-edit':'✏','edge-add':'⇢','edge-del':'⇠','run-ok':'✓','run-err':'✗','import':'⬆','group':'◈','commit':'◆','system':'⚡'}
+    setEventLog(log => [{id:Date.now()+Math.random(), type, label, ts:Date.now(), icon:icons[type]||'·', meta}, ...log].slice(0,300))
+  }, [])
+
+  // ── Git panel state ─────────────────────────────────────────
+  const [gitStatus, setGitStatus]       = useState(null)
+  const [gitLog,    setGitLog]          = useState([])
+  const [gitBranch, setGitBranch]       = useState('')
+  const [gitCommitMsg, setGitCommitMsg] = useState('')
+  const [gitLoading, setGitLoading]     = useState(false)
+
+  const wsId = wsHook.workspace?.id
+  const refreshGit = useCallback(async () => {
+    if (!wsId) return
+    setGitLoading(true)
+    try {
+      const [status, log, branches] = await Promise.all([
+        fetch(`/api/workspaces/${wsId}/git/status`).then(r=>r.json()).catch(()=>null),
+        fetch(`/api/workspaces/${wsId}/git/log?limit=30`).then(r=>r.json()).catch(()=>[]),
+        fetch(`/api/workspaces/${wsId}/git/branches`).then(r=>r.json()).catch(()=>[]),
+      ])
+      setGitStatus(status)
+      setGitLog(Array.isArray(log) ? log : log?.commits || [])
+      const cur = Array.isArray(branches) ? branches.find((b:any)=>b.current) : null
+      setGitBranch(cur?.name || 'main')
+    } catch {}
+    setGitLoading(false)
+  }, [wsId])
+
+  // Load git when bottom panel git tab is opened
+  useEffect(() => {
+    if (bottomOpen && bottomTab === 'git' && wsId && !gitLog.length) refreshGit()
+  }, [bottomOpen, bottomTab, wsId])
+
+  const handleGitCommit = async () => {
+    if (!gitCommitMsg.trim() || !wsId) return
+    setGitLoading(true)
+    try {
+      await fetch(`/api/workspaces/${wsId}/git/stage`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({files:['.']})})
+      await fetch(`/api/workspaces/${wsId}/git/commit`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({message:gitCommitMsg})})
+      addEvent('commit', `Commit: ${gitCommitMsg.slice(0,40)}`)
+      setGitCommitMsg('')
+      await refreshGit()
+    } catch(e:any) {}
+    setGitLoading(false)
+  }
+
+  // ── Legacy compat shims ─────────────────────────────────────
+  const [sidebarMode, setSidebarMode] = useState('files')
 
   // Tabs & editor
   const [openTabs, setOpenTabs] = useState([])
   const [activeTabId, setActiveTabId] = useState(null)
+
+  const handleDeleteNode = useCallback((nid) => {
+    const deletedLabel = nodesRef.current.find(n=>n.id===nid)?.label||nid
+    nodesRef.current=nodesRef.current.filter(n=>n.id!==nid)
+    edgesRef.current=edgesRef.current.filter(e=>e.source!==nid&&e.target!==nid)
+    setOpenTabs(t=>t.filter(tid=>tid!==nid))
+    if (activeTabId===nid) setActiveTabId(null)
+    forceRender({})
+    addEvent('node-delete', `Deleted ${deletedLabel}`)
+    wsHook.deleteNode(nid).catch(()=>{})
+  }, [activeTabId, addEvent])
   const [globalEditorPalette, setGlobalEditorPalette] = useState(PALETTES[0])
 
   // Node interaction
@@ -1318,6 +1902,7 @@ function IDE({ initialTheme = 'cyber', initialAvatar = 0 }) {
   const [edgeMode, setEdgeMode] = useState(null) // null|'join'|'cut'
   const [joinFirstNode, setJoinFirstNode] = useState(null)
   const [nodeColorPicker, setNodeColorPicker] = useState(null)
+  const [nodeCtxMenu, setNodeCtxMenu] = useState(null)   // {nodeId, x, y}
 
   // Modals
   const [openGroupId, setOpenGroupId] = useState(null)
@@ -1511,13 +2096,7 @@ function IDE({ initialTheme = 'cyber', initialAvatar = 0 }) {
         if (e.key==='j'||e.key==='J') setEdgeMode(m=>m==='join'?null:'join')
         if (e.key==='x'||e.key==='X') setEdgeMode(m=>m==='cut'?null:'cut')
         if ((e.key==='Delete'||e.key==='Backspace')&&hoveredNodeId) {
-          const nid=hoveredNodeId
-          nodesRef.current=nodesRef.current.filter(n=>n.id!==nid)
-          edgesRef.current=edgesRef.current.filter(e=>e.source!==nid&&e.target!==nid)
-          setOpenTabs(t=>t.filter(tid=>tid!==nid))
-          if (activeTabId===nid) setActiveTabId(null)
-          forceRender({})
-          wsHook.deleteNode(nid).catch(()=>{})
+          handleDeleteNode(hoveredNodeId)
         }
       }
     }
@@ -1560,9 +2139,15 @@ function IDE({ initialTheme = 'cyber', initialAvatar = 0 }) {
       return newT
     })
   }
+  const codeEditTimerRef = useRef({})
   const updateNodeCode = (id, code) => {
     nodesRef.current = nodesRef.current.map(n=>n.id===id?{...n,code,modified:true}:n)
     forceRender({})
+    clearTimeout(codeEditTimerRef.current[id])
+    codeEditTimerRef.current[id] = setTimeout(() => {
+      const node = nodesRef.current.find(n=>n.id===id)
+      if (node) addEvent('code-edit', `Edited ${node.label}`, {nodeId:id})
+    }, 2000)
   }
   const handleNodeClickInMode = nodeId => {
     if (edgeMode==='join') {
@@ -1572,6 +2157,9 @@ function IDE({ initialTheme = 'cyber', initialAvatar = 0 }) {
       if (!exists) {
         const tempEdge={id:'e'+Date.now(),source:joinFirstNode,target:nodeId}
         edgesRef.current=[...edgesRef.current,tempEdge]; forceRender({})
+        const srcLabel=nodesRef.current.find(n=>n.id===joinFirstNode)?.label||joinFirstNode
+        const tgtLabel=nodesRef.current.find(n=>n.id===nodeId)?.label||nodeId
+        addEvent('edge-add', `${srcLabel} → ${tgtLabel}`)
         wsHook.createEdge(joinFirstNode,nodeId).catch(()=>{})
       }
       setJoinFirstNode(null)
@@ -1580,6 +2168,7 @@ function IDE({ initialTheme = 'cyber', initialAvatar = 0 }) {
   const handleEdgeClick = edgeId => {
     if (edgeMode==='cut') {
       edgesRef.current=edgesRef.current.filter(e=>e.id!==edgeId); forceRender({})
+      addEvent('edge-del', `Removed edge`)
       wsHook.deleteEdge(edgeId).catch(()=>{})
     }
   }
@@ -1598,10 +2187,24 @@ function IDE({ initialTheme = 'cyber', initialAvatar = 0 }) {
   }
 
   // ── CREATE ──
+  const handleFolderUpload = async (e) => {
+    const files = e.target.files
+    if (!files || files.length === 0) return
+    e.target.value = ''
+    const { nodes, edges, groups } = await parseFolderToGraph(files)
+    if (!nodes.length) return
+    nodesRef.current  = nodes
+    edgesRef.current  = edges
+    groupsRef.current = groups
+    setOpenTabs([])
+    setActiveTabId(null)
+    addEvent('import', `Imported folder — ${nodes.length} files, ${edges.length} edges`)
+    forceRender()
+  }
+
   const handleCreateNode = async () => {
     if (!newNodeName.trim()) return
     const raw = newNodeName.trim()
-    // Respect whatever extension the user typed; default to .js
     const hasExt = /\.\w{1,5}$/.test(raw)
     const isDocType = newNodeType === 'doc'
     const label = hasExt ? raw.replace(/\s+/g,'_') : raw.replace(/\s+/g,'_') + (isDocType ? '.md' : '.js')
@@ -1613,6 +2216,7 @@ function IDE({ initialTheme = 'cyber', initialAvatar = 0 }) {
     const tempId='n'+Date.now()
     nodesRef.current=[...nodesRef.current,{id:tempId,label,filepath:label,type:isDocType||isMd?'doc':newNodeType,isMain:false,x,y,vx:0,vy:0,themeIdx:isDocType||isMd?11:newNodeColor,classId:null,code,modified:false}]
     setShowCreateNode(false); setNewNodeName(''); forceRender({})
+    addEvent('node-create', `Created ${label}`, {nodeId:tempId})
     wsHook.createNode(label,{filepath:label,type:newNodeType,x,y,theme_idx:newNodeColor,code}).then(n=>{
       if(n) nodesRef.current=nodesRef.current.map(nd=>nd.id===tempId?{...nd,id:n.id}:nd)
     }).catch(()=>{})
@@ -1689,11 +2293,19 @@ function IDE({ initialTheme = 'cyber', initialAvatar = 0 }) {
   const handleRunNode = async (nodeId) => {
     const node = nodesRef.current.find(n => n.id === nodeId)
     if (!node) return
+    const isPy = /\.py$/.test(node.label)
+    const isMd = /\.md$/.test(node.label)
+    if (isMd) return
     setNodeRunState(s => ({...s, [nodeId]: {status:'running', ms:0}}))
     setBottomTab('console')
-    setJsLogs(l => [...l, {type:'header', val:`▶  ${node.label}`, ts:Date.now(), nodeId}])
-    const result = await runJS(node.code || '')
+    setJsLogs(l => {
+      const header = [{type:'header', val:`▶  ${node.label}`, ts:Date.now(), nodeId}]
+      if (isPy && !_pyW) header.push({type:'info', val:'⌛ Loading Python runtime (Pyodide, ~10 MB, first run only)…', ts:Date.now()})
+      return [...l, ...header]
+    })
+    const result = isPy ? await runPython(node.code || '') : await runJS(node.code || '')
     setNodeRunState(s => ({...s, [nodeId]: {status: result.error?'error':'ok', ms: result.ms}}))
+    addEvent(result.error?'run-err':'run-ok', `${result.error?'✗':'✓'} ${node.label} (${result.ms}ms)`, {nodeId})
     setJsLogs(l => [
       ...l,
       ...result.logs.map(e => ({...e, nodeId})),
@@ -1800,6 +2412,8 @@ function IDE({ initialTheme = 'cyber', initialAvatar = 0 }) {
         <div className="ide-topbar-sep"/>
         {/* Actions */}
         <button className="ide-topbar-btn primary" onClick={()=>setShowCreateNode(true)}>+ NODE</button>
+        <button className="ide-topbar-btn" onClick={()=>folderInputRef.current?.click()} title="Upload a folder — reads all imports/exports and builds the graph">⬆ FOLDER</button>
+        <input ref={folderInputRef} type="file" multiple {...{'webkitdirectory':''}} style={{display:'none'}} onChange={handleFolderUpload}/>
         <button className="ide-topbar-btn" onClick={()=>{
           const x=(Math.random()-.5)*300, y=(Math.random()-.5)*300
           const tempId='n'+Date.now()
@@ -1819,224 +2433,131 @@ function IDE({ initialTheme = 'cyber', initialAvatar = 0 }) {
       </div>
 
       {/* ═══════ WORKSPACE ═══════ */}
-      <div className="ide-workspace">
+      <div className="ide-workspace" style={{flexDirection:'column'}}>
+      <div className="ide-main-row">
 
-        {/* ── ICON BAR ── */}
+        {/* ── ICON BAR (now toggles floating panels) ── */}
         <div className="ide-icon-bar">
           {sideIconDefs.map(def=>(
             <div key={def.key} title={def.tip}
-              className={`ide-icon-btn ${sidebarMode===def.key?'active':''}`}
-              onClick={()=>setSidebarMode(s=>s===def.key?null:def.key)}>
+              className={`ide-icon-btn ${sidebarMode===def.key&&sidebarOpen?'active':''}`}
+              onClick={()=>{
+                if (sidebarMode===def.key) { setSidebarOpen(o=>!o) }
+                else { setSidebarMode(def.key); setSidebarOpen(true) }
+              }}>
               {def.icon}
               {def.badge>0 && <div className="ide-icon-badge">{def.badge}</div>}
             </div>
           ))}
           <div style={{flex:1}}/>
-          <div title="Timeline" className={`ide-icon-btn ${bottomTab==='timeline'?'active':''}`} onClick={()=>setBottomTab(v=>v==='timeline'?null:'timeline')}>
+          <div title="Timeline" className={`ide-icon-btn ${bottomOpen&&bottomTab==='timeline'?'active':''}`} onClick={()=>{ if(bottomOpen&&bottomTab==='timeline'){setBottomOpen(false)}else{setBottomTab('timeline');setBottomOpen(true)} }}>
             <I.Timeline/>
           </div>
-          <div title="JS Console" className={`ide-icon-btn ${bottomTab==='console'?'active':''}`} onClick={()=>setBottomTab(v=>v==='console'?null:'console')}>
+          <div title="Git" className={`ide-icon-btn ${bottomOpen&&bottomTab==='git'?'active':''}`} onClick={()=>{ if(bottomOpen&&bottomTab==='git'){setBottomOpen(false)}else{setBottomTab('git');setBottomOpen(true);refreshGit()} }}>
+            <I.Git/>
+          </div>
+          <div title="JS Console" className={`ide-icon-btn ${bottomOpen&&bottomTab==='console'?'active':''}`} onClick={()=>{ if(bottomOpen&&bottomTab==='console'){setBottomOpen(false)}else{setBottomTab('console');setBottomOpen(true)} }}>
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><polyline points="3,5 7,8 3,11"/><line x1="9" y1="11" x2="13" y2="11"/></svg>
           </div>
-          <div title="Terminal" className={`ide-icon-btn ${bottomTab==='terminal'?'active':''}`} onClick={()=>setBottomTab(v=>v==='terminal'?null:'terminal')}>
-            <I.Terminal/>
+          <div title="Editor" className={`ide-icon-btn ${editorOpen?'active':''}`} onClick={()=>setEditorOpen(o=>!o)}>
+            <I.Files/>
           </div>
-          <div title="Settings" className={`ide-icon-btn ${sidebarMode==='settings'?'active':''}`} onClick={()=>setSidebarMode(s=>s==='settings'?null:'settings')}>
+          <div title="Settings" className={`ide-icon-btn ${sidebarMode==='settings'&&sidebarOpen?'active':''}`} onClick={()=>{setSidebarMode('settings'); setSidebarOpen(o=>sidebarMode==='settings'?!o:true)}}>
             <I.Settings/>
           </div>
         </div>
 
-        {/* ── TOC PANEL ── */}
-        {sidebarMode && sidebarMode !== 'board' && (
-          <div className="ide-toc-panel">
-            {/* Header */}
-            <div className="ide-toc-header">
-              {sidebarMode==='search' ? (
-                <>
-                  <I.Search/>
-                  <input className="ide-toc-search" value={searchQuery} onChange={e=>setSearchQuery(e.target.value)} placeholder="Search nodes..." autoFocus/>
-                </>
-              ) : (
-                <span className="ide-toc-sec" style={{padding:0,fontSize:'11px',letterSpacing:'.14em',fontFamily:"'Oswald',sans-serif",fontWeight:700}}>
-                  {{files:'TABLE OF CONTENTS',git:'GIT STATUS',chat:'CHANNEL',note:'NOTES',settings:'SETTINGS'}[sidebarMode]||sidebarMode.toUpperCase()}
-                </span>
-              )}
+
+        {/* ── SIDEBAR PANE (fixed, collapsible) ── */}
+        {sidebarOpen && (<>
+          <div className="ide-sidebar-pane" style={{width:sidebarW}}>
+            <div className="ide-sidebar-header">
+              <span className="ide-sidebar-title">
+                {{'files':'FILES','search':'SEARCH','note':'NOTES','settings':'SETTINGS'}[sidebarMode]||'FILES'}
+              </span>
+              <div style={{marginLeft:'auto',display:'flex',gap:4,alignItems:'center'}}>
+                {sidebarMode==='files'&&<button className="ide-btn ide-btn-sm" onClick={()=>setShowCreateNode(true)}>+</button>}
+                <button className="ide-sidebar-close" onClick={()=>setSidebarOpen(false)}>✕</button>
+              </div>
             </div>
-
-            {/* Content */}
-            <div style={{flex:1,overflow:'hidden',display:'flex',flexDirection:'column',minHeight:0}}>
-
-              {/* FILES */}
-              {sidebarMode==='files' && (<>
-                <div className="ide-toc-sec">CHAPTERS</div>
-                <div style={{flex:1,overflowY:'auto'}}>
-                  {nodesRef.current.map((node,i)=>{
-                    const accent=ACCENTS[node.themeIdx%ACCENTS.length]
-                    const imgSrc=getMangaImgSrc(node)
-                    const grp=groupsRef.current.find(g=>g.nodeIds.includes(node.id))
-                    return (
-                      <div key={node.id} className={`ide-toc-item ${activeTabId===node.id?'active':''}`}
-                        onClick={()=>openNodeInEditor(node.id)}>
-                        <div className="ide-toc-thumb">
-                          <img src={imgSrc} alt="" loading="lazy"/>
-                          {grp && <div style={{position:'absolute',bottom:0,left:0,right:0,height:'2px',background:grp.color}}/>}
-                        </div>
-                        <div className="ide-toc-info">
-                          <div className="ide-toc-name">{node.label}</div>
-                          <div className="ide-toc-type" style={{color:accent}}>{node.type}</div>
-                        </div>
-                        {node.modified && <div style={{width:'5px',height:'5px',borderRadius:'50%',background:'#ffc410',flexShrink:0}}/>}
-                        {node.isMain && <div style={{width:'5px',height:'5px',borderRadius:brutal?0:'50%',background:accent,flexShrink:0}}/>}
-                      </div>
-                    )
-                  })}
-                  {groupsRef.current.length>0 && <>
-                    <div className="ide-toc-sec">CLASSES</div>
-                    {groupsRef.current.map(g=>(
-                      <div key={g.id} className="ide-toc-item" onClick={()=>setOpenGroupId(g.id)}>
-                        <div style={{width:26,height:34,flexShrink:0,background:g.color+'18',border:`1px solid ${g.color}33`,display:'flex',alignItems:'center',justifyContent:'center'}}>
-                          <span style={{fontFamily:"'Bangers',sans-serif",fontSize:'16px',color:g.color}}>{g.name[0]}</span>
-                        </div>
-                        <div className="ide-toc-info">
-                          <div className="ide-toc-name" style={{color:g.color}}>{g.name}</div>
-                          <div className="ide-toc-type">{g.nodeIds.length} methods</div>
-                        </div>
-                      </div>
-                    ))}
-                  </>}
-                </div>
-                <div className="ide-toc-footer">
-                  <button className="ide-btn ide-btn-sm" onClick={()=>setShowCreateNode(true)}>+ NODE</button>
-                  <button className="ide-btn ide-btn-sm" onClick={()=>{setShowCreateGroup(true);setGroupSelected([])}}>+ CLASS</button>
-                </div>
-              </>)}
-
-              {/* SEARCH */}
+            <div style={{flex:1,overflowY:'auto',overflowX:'hidden'}}>
               {sidebarMode==='search' && (
-                <div style={{flex:1,overflowY:'auto'}}>
-                  {searchQuery.trim() && <div className="ide-toc-sec">{filteredNodes.length} MATCH{filteredNodes.length!==1?'ES':''}</div>}
-                  {filteredNodes.map(node=>{
-                    const accent=ACCENTS[node.themeIdx%ACCENTS.length]
-                    const imgSrc=getMangaImgSrc(node)
-                    const q=searchQuery.trim().toLowerCase()
-                    // show the matching code line as context
-                    const matchLine = q ? (node.code||'').split('\n').find(l=>l.toLowerCase().includes(q)) : null
-                    return (
-                      <div key={node.id} className={`ide-toc-item ${activeTabId===node.id?'active':''}`} onClick={()=>openNodeInEditor(node.id)}>
-                        <div className="ide-toc-thumb"><img src={imgSrc} alt="" loading="lazy"/></div>
-                        <div className="ide-toc-info">
-                          <div className="ide-toc-name">{node.label}</div>
-                          {matchLine ? (
-                            <div style={{fontSize:'9px',opacity:.5,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',fontFamily:"'JetBrains Mono',monospace",color:accent}}>
-                              {matchLine.trim().slice(0,32)}
-                            </div>
-                          ) : (
-                            <div className="ide-toc-type" style={{color:accent}}>{node.type}</div>
-                          )}
-                        </div>
-                      </div>
-                    )
-                  })}
-                  {searchQuery.trim()&&!filteredNodes.length && <div style={{padding:'20px 10px',opacity:.35,fontFamily:"'Share Tech Mono',monospace",fontSize:'12px',textAlign:'center'}}>NO RESULTS</div>}
+                <div style={{padding:'6px 8px'}}>
+                  <input className="ide-toc-search" value={searchQuery} onChange={e=>setSearchQuery(e.target.value)} placeholder="Search nodes…" autoFocus style={{width:'100%'}}/>
                 </div>
               )}
-
-              {/* GIT */}
-              {sidebarMode==='git' && (<>
-                <div style={{padding:'8px 10px',fontFamily:"'Share Tech Mono',monospace",fontSize:'11px',flex:1,overflow:'auto'}}>
-                  <div style={{opacity:.4,marginBottom:8}}>BRANCH <span style={{color:'#4285f4'}}>main</span></div>
-                  <div style={{opacity:.4,marginBottom:14}}>4 commits ahead of origin</div>
-                  {modifiedNodes.length===0 ? (
-                    <div style={{color:'#10b981',fontFamily:"'JetBrains Mono',monospace",fontSize:'12px'}}>✓ Working tree clean</div>
-                  ) : (
-                    <>
-                      <div className="ide-toc-sec" style={{padding:'0 0 4px'}}>MODIFIED</div>
-                      {modifiedNodes.map(n=>(
-                        <div key={n.id} className="ide-toc-item" onClick={()=>openNodeInEditor(n.id)}>
-                          <div style={{width:6,height:6,borderRadius:'50%',background:'#ffc410',flexShrink:0}}/>
-                          <div className="ide-toc-info">
-                            <div className="ide-toc-name" style={{color:'#ffc410'}}>{n.label}</div>
-                            <div className="ide-toc-type">modified</div>
-                          </div>
-                        </div>
-                      ))}
-                    </>
-                  )}
-                  <div style={{marginTop:14,opacity:.3,fontSize:'11px'}}>
-                    <div>commit a3f2c1d (HEAD)</div>
-                    <div>feat: FORBIDEN IDE v2</div>
-                    <div>commit 0be317b</div>
-                    <div>chore: remove unused file</div>
-                  </div>
-                </div>
+              {(sidebarMode==='files'||sidebarMode==='search') && (<>
+                {sidebarMode==='files' && groupsRef.current.length>0 && (<>
+                  <div className="ide-toc-sec">GROUPS</div>
+                  {groupsRef.current.map(g=>(
+                    <div key={g.id} className="ide-toc-item" onClick={()=>setOpenGroupId(g.id)}>
+                      <div style={{width:6,height:6,borderRadius:'50%',background:g.color,flexShrink:0}}/>
+                      <div className="ide-toc-info">
+                        <div className="ide-toc-name" style={{color:g.color}}>{g.name}</div>
+                        <div className="ide-toc-type">{g.nodeIds.length} nodes</div>
+                      </div>
+                    </div>
+                  ))}
+                </>)}
+                <div className="ide-toc-sec">{sidebarMode==='search'?`${filteredNodes.length} RESULTS`:'FILES'}</div>
+                {(sidebarMode==='search'?filteredNodes:nodesRef.current).map(node=>{
+                  const grp=groupsRef.current.find(g=>g.nodeIds.includes(node.id))
+                  const accent=grp?grp.color:ACCENTS[node.themeIdx%ACCENTS.length]
+                  const ctx=sidebarMode==='search'&&searchQuery.trim()&&node.code?node.code.split('\n').find(l=>l.toLowerCase().includes(searchQuery.toLowerCase()))||'':''
+                  return (
+                    <div key={node.id} className={`ide-toc-item ${activeTabId===node.id?'active':''}`} onClick={()=>openNodeInEditor(node.id)}>
+                      <div style={{width:6,height:6,borderRadius:'50%',background:accent,flexShrink:0,marginTop:2}}/>
+                      <div className="ide-toc-info">
+                        <div className="ide-toc-name">{node.label}{node.modified&&<span className="modified-dot"/>}</div>
+                        {ctx&&<div style={{fontSize:'9px',opacity:.4,fontFamily:"'JetBrains Mono',monospace",overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{ctx.trim()}</div>}
+                        <div className="ide-toc-type" style={{color:accent}}>{node.type}</div>
+                      </div>
+                    </div>
+                  )
+                })}
+                {sidebarMode==='search'&&searchQuery.trim()&&!filteredNodes.length&&(
+                  <div style={{padding:'20px 10px',opacity:.3,textAlign:'center',fontFamily:"'Share Tech Mono',monospace",fontSize:'11px'}}>NO RESULTS</div>
+                )}
               </>)}
-
-              {/* CHAT */}
-              {sidebarMode==='chat' && (
-                <div className="ide-chat-wrap">
-                  <div className="ide-chat-messages" ref={chatEndRef}>
-                    {chatMessages.map(msg=>(
-                      <div key={msg.id} className={`ide-chat-msg ${msg.self?'self':''}`}>
-                        {!msg.self && <div style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:'11px',marginBottom:2,color:brutal?'#f2c12e':'#ff2a38',letterSpacing:'.08em'}}>{msg.from}</div>}
-                        <div>{msg.text}</div>
-                      </div>
-                    ))}
-                    <div ref={chatEndRef}/>
-                  </div>
-                  <div className="ide-chat-input-row">
-                    <input value={chatInput} onChange={e=>setChatInput(e.target.value)}
-                      onKeyDown={e=>{if(e.key==='Enter'&&chatInput.trim()){setChatMessages(m=>[...m,{id:Date.now(),from:'You',text:chatInput.trim(),self:true}]);setChatInput('')}}}
-                      placeholder="Message..." style={{flex:1,background:'transparent',border:'none',outline:'none',fontFamily:"'Share Tech Mono',monospace",fontSize:'12px',color:brutal?'#0f0f0f':'#c0c8d8'}}/>
-                    <button className="ide-btn ide-btn-sm" onClick={()=>{if(chatInput.trim()){setChatMessages(m=>[...m,{id:Date.now(),from:'You',text:chatInput.trim(),self:true}]);setChatInput('')}}}>↵</button>
-                  </div>
-                </div>
-              )}
-
-              {/* NOTES */}
               {sidebarMode==='note' && (
-                <div style={{flex:1,display:'flex',flexDirection:'column',overflow:'hidden',padding:2}}>
-                  <textarea value={notesText} onChange={e=>setNotesText(e.target.value)}
-                    style={{flex:1,resize:'none',border:'none',outline:'none',background:'transparent',fontFamily:"'Share Tech Mono',monospace",fontSize:'12px',lineHeight:1.6,color:brutal?'#0f0f0f':'#c0c8d8',padding:'8px 10px'}}
-                    spellCheck={false}/>
-                </div>
+                <textarea style={{background:'transparent',border:'none',outline:'none',resize:'none',padding:'12px',fontFamily:"'Share Tech Mono',monospace",fontSize:'12px',lineHeight:1.7,color:brutal?'#0f0f0f':'#c0c8d8',width:'100%',height:'100%',minHeight:300}} placeholder="// scratch notes…"/>
               )}
-
-              {/* SETTINGS */}
               {sidebarMode==='settings' && (
-                <div style={{flex:1,overflowY:'auto',padding:'10px'}}>
-                  <div className="ide-toc-sec" style={{padding:'0 0 6px'}}>THEME</div>
-                  <div style={{display:'flex',gap:'5px',marginBottom:14}}>
-                    {['cyber','brutal'].map(t=>(
-                      <button key={t} className={`ide-btn ide-btn-sm ${themeMode===t?'primary':''}`} onClick={()=>setThemeMode(t)} style={{flex:1}}>
-                        {t.toUpperCase()}
-                      </button>
-                    ))}
+                <div style={{padding:'8px'}}>
+                  <div className="ide-toc-sec">THEME</div>
+                  <div style={{padding:'0 8px 10px'}}>
+                    <button className="ide-btn ide-btn-sm" onClick={()=>setThemeMode(t=>t==='cyber'?'brutal':'cyber')}>
+                      {brutal?'→ CYBER':'→ BRUTAL'}
+                    </button>
                   </div>
-                  <div className="ide-toc-sec" style={{padding:'0 0 6px'}}>AVATAR</div>
-                  <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:4,marginBottom:14}}>
-                    {[0,1,2,3,4,5].map(i=>(
-                      <div key={i} onClick={()=>setAvatarIndex(i)}
-                        style={{border:`2px solid ${avatarIndex===i?ACCENTS[i]:'rgba(128,128,128,.15)'}`,cursor:'pointer',overflow:'hidden',aspectRatio:'1',transition:'border-color .15s'}}>
-                        <img src={`/avatars/0xAV0${String(i+1).padStart(2,'0')}s.jpeg`} alt="" style={{width:'100%',height:'100%',objectFit:'cover',display:'block'}}/>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="ide-toc-sec" style={{padding:'0 0 6px'}}>EDITOR PALETTE</div>
-                  {PALETTES.slice(0,5).map(p=>(
-                    <div key={p.id} className={`ide-palette-opt ${globalEditorPalette.id===p.id?'active':''}`}
-                      onClick={()=>setGlobalEditorPalette(p)} style={{background:p.bg,marginBottom:2}}>
+                  <div className="ide-toc-sec">PALETTE</div>
+                  {PALETTES.map(p=>(
+                    <div key={p.id} className={`ide-toc-item ${globalEditorPalette.id===p.id?'active':''}`} onClick={()=>setGlobalEditorPalette(p)} style={{gap:8}}>
                       <div style={{display:'flex',gap:3}}>{p.swatches.map((c,i)=><div key={i} style={{width:7,height:7,borderRadius:'50%',background:c}}/>)}</div>
                       <span style={{fontFamily:"'Share Tech Mono',monospace",fontSize:'11px',color:p.base}}>{p.name}</span>
                     </div>
                   ))}
+                  <div className="ide-toc-sec" style={{marginTop:8}}>AVATAR</div>
+                  <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:4,padding:'0 8px 12px'}}>
+                    {[0,1,2,3,4,5].map(i=>(
+                      <div key={i} onClick={()=>setAvatarIndex(i)}
+                        style={{border:`2px solid ${avatarIndex===i?ACCENTS[i]:'rgba(128,128,128,.15)'}`,cursor:'pointer',overflow:'hidden',aspectRatio:'1'}}>
+                        <img src={`/avatars/0xAV0${String(i+1).padStart(2,'0')}s.jpeg`} alt="" style={{width:'100%',height:'100%',objectFit:'cover',display:'block'}}/>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
           </div>
-        )}
+          {/* Sidebar resize divider */}
+          <div className="ide-split-divider"
+            onMouseDown={e=>{e.preventDefault();document.body.style.userSelect='none';document.body.style.cursor='ew-resize';
+              splitDragRef.current={side:'sidebar',sx:e.clientX,startW:sidebarW}}}/>
+        </>)}
 
         {/* ── CANVAS ── */}
-        <div className="ide-canvas-wrap">
+        <div className="ide-canvas-wrap" style={{flex:1}}>
           {/* Mode bar */}
           <div className="ide-mode-bar">
             <div style={{fontFamily:"'Bangers',sans-serif",fontSize:'13px',letterSpacing:'.12em',opacity:.5}}>{brutal?'MANGA // BRUTAL':'MANGA // CYBER'}</div>
@@ -2192,6 +2713,7 @@ function IDE({ initialTheme = 'cyber', initialAvatar = 0 }) {
                     openNodeInEditor={openNodeInEditor}
                     nodeRunState={nodeRunState}
                     onRun={handleRunNode}
+                    onCtxMenu={(nid,x,y)=>{setNodeCtxMenu({nodeId:nid,x,y});setNodeColorPicker(null)}}
                   />
                 ))}
               </div>
@@ -2204,8 +2726,27 @@ function IDE({ initialTheme = 'cyber', initialAvatar = 0 }) {
           <GraphMinimap nodes={visibleNodes}/>
         </div>
 
-        {/* ── EDITOR PANEL ── */}
-        <div className="ide-editor-panel">
+        {/* ── EDITOR SPLIT PANE ── */}
+        {editorOpen && (<>
+          {/* Resize divider - left edge of editor */}
+          <div className="ide-split-divider"
+            onMouseDown={e=>{e.preventDefault();document.body.style.userSelect='none';document.body.style.cursor='ew-resize';
+              splitDragRef.current={side:'editor',sx:e.clientX,startW:editorW}}}/>
+          {/* Editor pane */}
+          <div className="ide-editor-pane" style={{width:editorW,flexShrink:0}}>
+            {/* Drag bar */}
+            <div style={{height:20,flexShrink:0,display:'flex',alignItems:'center',
+              justifyContent:'space-between',padding:'0 8px',
+              background:brutal?'#0a0a0a':'rgba(6,6,16,.98)',
+              borderBottom:brutal?'2px solid rgba(255,255,255,.07)':'1px solid rgba(255,42,56,.12)',
+              userSelect:'none'}}>
+              <span style={{fontSize:'8px',letterSpacing:'.1em',opacity:.3,fontFamily:"'Oswald',sans-serif"}}>EDITOR</span>
+              <div style={{display:'flex',gap:3}}>
+                {['#ff5f57','#ffbd2e','#28c840'].map((c,i)=>(
+                  <div key={i} style={{width:9,height:9,borderRadius:'50%',background:c,opacity:.6}}/>
+                ))}
+              </div>
+            </div>
           {activeTabId && activeTabNode ? (
             <>
               {/* Chapter splash */}
@@ -2306,164 +2847,108 @@ function IDE({ initialTheme = 'cyber', initialAvatar = 0 }) {
               </div>
             </div>
           )}
-        </div>
+          </div>
+        </>)}
       </div>
 
-      {/* ═══════ BOTTOM TRAY ═══════ */}
-      {bottomTab && (
-        <div className="ide-bottom-tray">
-          <div className="ide-tray-tabs">
-            <span className={`ide-tray-tab ${bottomTab==='timeline'?'active':''}`} onClick={()=>setBottomTab('timeline')}>TIMELINE</span>
-            <span className={`ide-tray-tab ${bottomTab==='console'?'active':''}`} onClick={()=>setBottomTab('console')}>JS CONSOLE</span>
-            <span className={`ide-tray-tab ${bottomTab==='terminal'?'active':''}`} onClick={()=>setBottomTab('terminal')}>TERMINAL</span>
-            <span className="ide-tray-close" onClick={()=>setBottomTab(null)}>✕</span>
+      </div>{/* ide-main-row */}
+
+      {/* ── BOTTOM PANEL (Timeline / Console / Git) ── */}
+      {bottomOpen && (
+        <div className="ide-bottom-panel" style={{height:bottomH}}>
+          {/* Resize drag handle */}
+          <div className="ide-bottom-resize"
+            onMouseDown={e=>{e.preventDefault();document.body.style.userSelect='none';document.body.style.cursor='ns-resize';
+              tlDragRef.current={sy:e.clientY,startH:bottomH}}}/>
+          {/* Tab bar */}
+          <div className="ide-bottom-tabbar">
+            {[
+              {key:'timeline', label:'◈ TIMELINE'},
+              {key:'console',  label:'>_ CONSOLE'},
+              {key:'git',      label:'◆ GIT  ·  '+gitBranch},
+            ].map(t=>(
+              <button key={t.key}
+                className={`ide-bottom-tab ${bottomTab===t.key?'active':''}`}
+                onClick={()=>{ setBottomTab(t.key); if(t.key==='git') refreshGit() }}>
+                {t.label}
+              </button>
+            ))}
+            <div style={{flex:1}}/>
+            <button className="ide-bottom-close" onClick={()=>setBottomOpen(false)}>✕</button>
           </div>
+          {/* Content */}
+          <div style={{flex:1,overflow:'hidden',display:'flex',flexDirection:'column',minHeight:0}}>
+            {bottomTab==='timeline' && <TimelinePanel eventLog={eventLog} brutal={brutal}/>}
+            {bottomTab==='console' && (<>
 
-          {/* TIMELINE */}
-          {bottomTab==='timeline' && (
-            <div className="ide-timeline">
-              {/* Chapter strip */}
-              <div className="ide-chapter-strip">
-                {VERSIONS.map((ver,i)=>{
-                  const imgSrc=getPanelImg(i*3+2)
-                  return (
-                    <div key={ver.id} className={`ide-chapter-thumb ${activeVersionIdx===i?'is-active':''}`}
-                      onClick={()=>{setActiveVersionIdx(i);setActiveVersionName(ver.name);setPlayheadPos(i*140+20)}}>
-                      <img src={imgSrc} alt="" loading="lazy"/>
-                      <div className="ide-chapter-thumb-label">{ver.label}</div>
-                      <div className="ide-chapter-thumb-dot" style={{background:ACCENTS[i%ACCENTS.length]}}/>
-                    </div>
-                  )
-                })}
+        <div style={{flex:1,overflowY:'auto',padding:'6px 10px',fontFamily:"'JetBrains Mono',monospace",fontSize:'11px',lineHeight:1.7,scrollbarWidth:'thin',scrollbarColor:'rgba(255,255,255,.1) transparent'}}>
+          {jsLogs.map((entry,i)=>{
+            const col={log:'#c0c8d8',warn:'#ffc410',error:'#ff435a',info:'#4285f4',return:'#c792ea',table:'#c0c8d8','repl-in':'#10b981',header:'#ff2a38','error-footer':'#ff435a',footer:'#10b981'}[entry.type]||'#c0c8d8'
+            const pre={log:'[LOG]',warn:'[WRN]',error:'[ERR]',info:'[NFO]',return:'[←] ',table:'[TBL]','repl-in':'',header:'','error-footer':'','footer':''}[entry.type]||''
+            const isHeader=entry.type==='header'||entry.type==='footer'||entry.type==='error-footer'
+            return (
+              <div key={i} style={{color:col,whiteSpace:'pre-wrap',wordBreak:'break-all',padding:isHeader?'2px 0':'0',borderTop:isHeader?'1px solid rgba(255,255,255,.07)':'none',opacity:isHeader?.9:undefined}}>
+                {pre&&<span style={{opacity:.4,marginRight:6}}>{pre}</span>}{entry.val}
               </div>
-              {/* NLE tracks */}
-              <div className="ide-nle">
-                <div className="ide-nle-headers">
-                  {['NODES','EDGES','CODE'].map(lbl=>(
-                    <div key={lbl} className="ide-nle-hcell"><div style={{width:6,height:6,borderRadius:'50%',background:brutal?'rgba(15,15,15,.35)':'rgba(200,200,220,.25)'}}/>  {lbl}</div>
-                  ))}
-                </div>
-                <div className="ide-nle-tracks"
-                  onPointerMove={e=>{if(playheadDragRef.current.isDragging){handlePlayheadMove(e)}}}
-                  onPointerUp={handlePlayheadUp}>
-                  {/* Playhead */}
-                  <div className="ide-nle-playhead" style={{left:playheadPos}}
-                    onPointerDown={handlePlayheadDown}/>
-                  {/* Lane 1 - Nodes */}
-                  <div className="ide-nle-lane">
-                    <div className="ide-nle-clip" style={{left:20,width:340}}>v1.0 → v1.2 · CORE NODES</div>
-                    <div className="ide-nle-clip" style={{left:380,width:200}}>v1.3 → v1.4 · NETWORK</div>
+            )
+          })}
+          <div ref={jsConsoleEndRef}/>
+        </div>
+        <div style={{display:'flex',alignItems:'center',gap:6,padding:'4px 8px',borderTop:'1px solid rgba(255,255,255,.07)',flexShrink:0}}>
+          <span style={{color:'#10b981',fontFamily:"'JetBrains Mono',monospace",fontSize:'11px'}}>{'>'}</span>
+          <input value={replInput} onChange={e=>setReplInput(e.target.value)} onKeyDown={handleReplKey}
+            style={{flex:1,background:'transparent',border:'none',outline:'none',fontFamily:"'JetBrains Mono',monospace",fontSize:'11px',color:'#c0c8d8',caretColor:'#10b981'}}
+            placeholder="eval JS…" spellCheck={false}/>
+          <button onMouseDown={()=>setJsLogs([])} style={{fontSize:'9px',opacity:.4,cursor:'pointer',background:'none',border:'none',color:'inherit'}}>CLR</button>
+        </div>
+            </>)}
+            {bottomTab==='git' && (
+              <div style={{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}}>
+                <div style={{padding:'7px 10px',borderBottom:'1px solid rgba(255,255,255,.07)',flexShrink:0}}>
+                  <div style={{display:'flex',gap:6}}>
+                    <input value={gitCommitMsg} onChange={e=>setGitCommitMsg(e.target.value)}
+                      onKeyDown={e=>{ if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();handleGitCommit()} }}
+                      placeholder="Commit message…"
+                      style={{flex:1,background:'rgba(255,255,255,.04)',border:'1px solid rgba(255,255,255,.1)',outline:'none',padding:'4px 8px',fontFamily:"'Share Tech Mono',monospace",fontSize:'11px',color:'#c0c8d8',borderRadius:2}}/>
+                    <button onClick={handleGitCommit} disabled={!gitCommitMsg.trim()||gitLoading}
+                      style={{padding:'4px 10px',fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:'9px',letterSpacing:'.1em',background:'#ff2a38',color:'#fff',border:'none',cursor:'pointer',opacity:gitLoading?.5:1}}>
+                      {gitLoading?'…':'COMMIT'}
+                    </button>
+                    <button onClick={refreshGit} style={{padding:'4px 8px',background:'transparent',border:'1px solid rgba(255,255,255,.1)',color:'#c0c8d8',cursor:'pointer',fontSize:'11px'}} title="Refresh">↻</button>
                   </div>
-                  {/* Lane 2 - Edges */}
-                  <div className="ide-nle-lane">
-                    <div className="ide-nle-clip" style={{left:180,width:260}}>v1.1 → v1.3 · GRAPH EDGES</div>
-                    <div className="ide-nle-clip" style={{left:460,width:160}}>v1.4 · NEW EDGES</div>
-                  </div>
-                  {/* Lane 3 - Code */}
-                  <div className="ide-nle-lane">
-                    <div className="ide-nle-clip" style={{left:20,width:560}}>CONTINUOUS · CODE EVOLUTION</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* JS CONSOLE */}
-          {bottomTab==='console' && (
-            <div style={{flex:1,display:'flex',flexDirection:'column',overflow:'hidden',background:brutal?'#0a0a0a':'#03030e'}}>
-              <div style={{display:'flex',alignItems:'center',gap:6,padding:'4px 10px',borderBottom:brutal?'2px solid #1a1a1a':'1px solid rgba(255,42,56,.1)',flexShrink:0}}>
-                <span style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:'10px',letterSpacing:'.15em',color:brutal?'#f2c12e':'#ff2a38'}}>JS RUNTIME</span>
-                {activeTabNode && (
-                  <button onClick={()=>handleRunNode(activeTabId)}
-                    style={{background:'#10b981',border:'none',color:'#000',padding:'2px 10px',cursor:'pointer',fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:'10px',letterSpacing:'.08em'}}>
-                    ▶ RUN {activeTabNode.label}
-                  </button>
-                )}
-                <div style={{marginLeft:'auto'}}>
-                  <button onClick={()=>setJsLogs([])}
-                    style={{background:'transparent',border:'1px solid rgba(255,255,255,.1)',color:'rgba(200,200,220,.4)',padding:'2px 8px',cursor:'pointer',fontFamily:"'Share Tech Mono',monospace",fontSize:'10px'}}>
-                    CLEAR
-                  </button>
-                </div>
-              </div>
-              <div style={{flex:1,overflowY:'auto',padding:'6px 10px',fontFamily:"'JetBrains Mono',monospace",fontSize:'11px',lineHeight:1.65,scrollbarWidth:'thin',scrollbarColor:'rgba(255,42,56,.2) transparent'}}>
-                {jsLogs.map((line,i)=>{
-                  const ts=new Date(line.ts).toLocaleTimeString('en',{hour12:false,hour:'2-digit',minute:'2-digit',second:'2-digit'})
-                  const colors={log:'#c0c8d8',warn:'#ffc410',error:'#ff435a',info:'#4285f4',return:'#10b981',table:'#bb9af7',header:'#ff2a38','repl-in':'#28f1c3',footer:'#10b981','error-footer':'#ff435a'}
-                  const col=colors[line.type]||'#c0c8d8'
-                  const prefix={log:'[LOG]',warn:'[WARN]',error:'[ERR]',info:'[INFO]',return:'[←]',table:'[TBL]',header:'','repl-in':'',footer:'  ✓','error-footer':'  ✗'}[line.type]||''
-                  if (line.type==='header') return (
-                    <div key={i} style={{color:col,marginTop:i>0?8:0,fontFamily:"'Oswald',sans-serif",fontWeight:700,letterSpacing:'.1em',fontSize:'10px',borderTop:i>0?'1px solid rgba(255,42,56,.1)':'none',paddingTop:i>0?6:0}}>
-                      {line.val}
-                    </div>
-                  )
-                  return (
-                    <div key={i} style={{display:'flex',gap:8,color:col,whiteSpace:'pre-wrap',wordBreak:'break-all'}}>
-                      <span style={{opacity:.35,flexShrink:0,fontFamily:"'Share Tech Mono',monospace",fontSize:'9px',marginTop:1}}>{ts}</span>
-                      {prefix&&<span style={{opacity:.55,flexShrink:0,fontSize:'9px',marginTop:1}}>{prefix}</span>}
-                      <span style={{flex:1}}>{line.val}</span>
-                    </div>
-                  )
-                })}
-                <div ref={jsConsoleEndRef}/>
-              </div>
-              <div style={{display:'flex',alignItems:'center',gap:6,padding:'5px 10px',borderTop:brutal?'2px solid #1a1a1a':'1px solid rgba(255,42,56,.08)',flexShrink:0,background:brutal?'#0f0f0f':'rgba(3,3,12,.6)'}}>
-                <span style={{color:'#ff2a38',fontFamily:"'JetBrains Mono',monospace",fontSize:'12px',flexShrink:0}}>{'>'}</span>
-                <input value={replInput} onChange={e=>setReplInput(e.target.value)} onKeyDown={handleReplKey}
-                  style={{flex:1,background:'transparent',border:'none',outline:'none',fontFamily:"'JetBrains Mono',monospace",fontSize:'11px',color:'#c0c8d8',caretColor:'#ff2a38'}}
-                  placeholder="// type JS here, Enter to run..." spellCheck={false} autoComplete="off"/>
-                <button onClick={()=>handleRunRepl(replInput)}
-                  style={{background:'transparent',border:'1px solid rgba(255,42,56,.3)',color:'#ff2a38',padding:'2px 8px',cursor:'pointer',fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:'9px',letterSpacing:'.1em',flexShrink:0}}>
-                  RUN
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* TERMINAL */}
-          {bottomTab==='terminal' && (
-            <div style={{flex:1,display:'flex',flexDirection:'column',overflow:'hidden',background:termPalette.bg,position:'relative'}}>
-              {/* Terminal toolbar */}
-              <div style={{display:'flex',alignItems:'center',gap:4,padding:'4px 8px',background:termPalette.bg,borderBottom:`1px solid ${termPalette.border}44`,flexShrink:0}}>
-                <span style={{fontFamily:"'Share Tech Mono',monospace",fontSize:'11px',color:termPalette.dim,letterSpacing:'.1em'}}>TERMINAL</span>
-                <div style={{marginLeft:'auto',position:'relative'}}>
-                  <button onClick={()=>setShowTermPalette(v=>!v)}
-                    style={{background:'transparent',border:`1px solid ${termPalette.border}33`,color:termPalette.dim,padding:'2px 8px',cursor:'pointer',fontFamily:"'Share Tech Mono',monospace",fontSize:'11px',letterSpacing:'.06em'}}>
-                    {termPalette.name} ▾
-                  </button>
-                  {showTermPalette && (
-                    <div style={{position:'absolute',right:0,top:'calc(100%+4px)',width:'160px',background:brutal?'#f0ece0':'rgba(8,8,18,.98)',border:brutal?'3px solid #0f0f0f':'1px solid rgba(255,255,255,.1)',boxShadow:'0 10px 40px rgba(0,0,0,.9)',zIndex:99,padding:'4px'}}>
-                      {TERM_PALETTES.map(tp=>(
-                        <div key={tp.id} onClick={()=>{setTermPalette(tp);setShowTermPalette(false)}}
-                          style={{padding:'5px 8px',cursor:'pointer',fontFamily:"'Share Tech Mono',monospace",fontSize:'11px',color:tp.text,background:tp.bg,border:'1px solid transparent',marginBottom:1}}
-                          onMouseEnter={e=>e.currentTarget.style.borderColor=tp.cursor} onMouseLeave={e=>e.currentTarget.style.borderColor='transparent'}>
-                          {tp.name}
-                        </div>
+                  {gitStatus?.modified?.length>0 && (
+                    <div style={{marginTop:5,display:'flex',flexWrap:'wrap',gap:3}}>
+                      {gitStatus.modified.map((f,i)=>(
+                        <span key={i} style={{fontSize:'9px',padding:'1px 5px',background:'#ffc41018',border:'1px solid #ffc41040',color:'#ffc410',fontFamily:"'JetBrains Mono',monospace"}}>{f}</span>
                       ))}
                     </div>
                   )}
                 </div>
-                <button onClick={()=>setTermLines([])} style={{background:'transparent',border:brutal?`2px solid rgba(255,255,255,.12)`:`1px solid rgba(255,255,255,.08)`,color:termPalette.dim,padding:'2px 8px',cursor:'pointer',fontFamily:"'Share Tech Mono',monospace",fontSize:'11px',letterSpacing:'.06em'}}>CLEAR</button>
+                <div style={{flex:1,overflowY:'auto',scrollbarWidth:'thin',scrollbarColor:'rgba(255,255,255,.1) transparent'}}>
+                  {gitLoading && <div style={{padding:'12px',opacity:.4,textAlign:'center',fontSize:'11px'}}>Loading…</div>}
+                  {!gitLoading&&gitLog.length===0 && <div style={{padding:'16px',opacity:.25,textAlign:'center',fontFamily:"'Share Tech Mono',monospace",fontSize:'11px'}}>No commits yet</div>}
+                  {gitLog.map((c,i)=>(
+                    <div key={c.hash||i} style={{padding:'5px 10px',borderBottom:'1px solid rgba(255,255,255,.04)',display:'flex',gap:8,alignItems:'flex-start'}}>
+                      <div style={{width:5,height:5,borderRadius:'50%',background:'#ff2a38',flexShrink:0,marginTop:5}}/>
+                      <div style={{flex:1,minWidth:0}}>
+                        <div style={{fontFamily:"'Share Tech Mono',monospace",fontSize:'11px',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',color:'#c0c8d8'}}>{c.message||c.subject||'(no message)'}</div>
+                        <div style={{fontFamily:"'Share Tech Mono',monospace",fontSize:'9px',opacity:.4,marginTop:1}}>
+                          <span style={{color:'#ff2a38',fontFamily:"'JetBrains Mono',monospace"}}>{(c.hash||'').slice(0,7)}</span>
+                          {' · '}{c.author?.name||c.author||''}{c.date?' · '+new Date(c.date).toLocaleDateString():''}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
-              {/* Lines */}
-              <div style={{flex:1,overflowY:'auto',padding:'8px 12px',fontFamily:"'JetBrains Mono',monospace",fontSize:'11px',lineHeight:1.7,scrollbarWidth:'thin',scrollbarColor:`${termPalette.cursor}33 transparent`}}>
-                {termLines.map((line,i)=>(
-                  <div key={i} style={{color:line.c,whiteSpace:'pre-wrap',wordBreak:'break-all'}}>{line.t}</div>
-                ))}
-                <div ref={termEndRef}/>
-              </div>
-              {/* Input */}
-              <div style={{display:'flex',alignItems:'center',gap:6,padding:'5px 10px',background:termPalette.bg,borderTop:`1px solid ${termPalette.border}33`,flexShrink:0}}>
-                <span style={{color:termPalette.prompt,fontFamily:"'JetBrains Mono',monospace",fontSize:'11px',flexShrink:0}}>$</span>
-                <input value={termInput} onChange={e=>setTermInput(e.target.value)} onKeyDown={handleTermInput}
-                  style={{flex:1,background:'transparent',border:'none',outline:'none',fontFamily:"'JetBrains Mono',monospace",fontSize:'11px',color:termPalette.text,caretColor:termPalette.cursor}}
-                  placeholder="Type a command..." spellCheck={false} autoComplete="off"/>
-              </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       )}
 
+
+
+      {/* ═══════ STATUS BAR ═══════ */}
       {/* ═══════ STATUS BAR ═══════ */}
       <div className="ide-status-bar">
         <div className="ide-status-badge" style={{background:brutal?'#c8001a':'#ff2a38',color:'#fff'}}>FORBIDEN</div>
@@ -2680,6 +3165,74 @@ function IDE({ initialTheme = 'cyber', initialAvatar = 0 }) {
           </div>
         </>
       )}
+
+
+      {/* ── NODE CONTEXT MENU ── */}
+      {nodeCtxMenu && (() => {
+        const node = nodesRef.current.find(n=>n.id===nodeCtxMenu.nodeId)
+        if (!node) { setNodeCtxMenu(null); return null }
+        const accent = ACCENTS[node.themeIdx%ACCENTS.length]
+        const items = [
+          { label:'Open in Editor', icon:'✏', action:()=>{ openNodeInEditor(node.id); setNodeCtxMenu(null) } },
+          { label:'Run',            icon:'▶', action:()=>{ handleRunNode(node.id); setNodeCtxMenu(null) }, show:node.type==='js'||node.type==='function' },
+          { sep:true },
+          { label:'Rename',         icon:'Aa', action:()=>{ const name=prompt('Rename node:',node.label); if(name?.trim()){const n2=nodesRef.current.find(x=>x.id===node.id);if(n2){n2.label=name.trim();forceRender({})}} setNodeCtxMenu(null) } },
+          { label:'Change Color',   icon:'◉', action:()=>{ const rect={left:nodeCtxMenu.x,bottom:nodeCtxMenu.y}; setNodeColorPicker({nodeId:node.id,x:nodeCtxMenu.x,y:nodeCtxMenu.y}); setNodeCtxMenu(null) } },
+          { label:'Duplicate',      icon:'⊕', action:()=>{
+              const copy={...node,id:'n'+Date.now(),x:node.x+80,y:node.y+80,label:node.label+'_copy',modified:false}
+              nodesRef.current=[...nodesRef.current,copy]
+              addEvent('node-create',`Duplicated ${node.label}`)
+              forceRender({}); openNodeInEditor(copy.id); setNodeCtxMenu(null)
+          }},
+          { label:node.isMain?'Unset Main':'Set as Main', icon:'★', action:()=>{
+              nodesRef.current=nodesRef.current.map(n=>({...n,isMain:n.id===node.id?!n.isMain:false}))
+              forceRender({}); setNodeCtxMenu(null)
+          }},
+          { sep:true },
+          { label:'Delete Node',    icon:'⊖', danger:true, action:()=>{ handleDeleteNode(node.id); setNodeCtxMenu(null) } },
+        ].filter(it => it.sep || it.show !== false)
+
+        return (
+          <>
+            <div style={{position:'fixed',inset:0,zIndex:9996}} onContextMenu={e=>e.preventDefault()} onClick={()=>setNodeCtxMenu(null)}/>
+            <div style={{
+              position:'fixed', left:nodeCtxMenu.x, top:nodeCtxMenu.y, zIndex:9997,
+              background:brutal?'#0f0f0f':'rgba(6,6,20,.98)',
+              border:brutal?`2px solid ${accent}`:`1px solid ${accent}44`,
+              boxShadow:`0 8px 40px rgba(0,0,0,.9), 0 0 0 1px rgba(255,255,255,.04)`,
+              borderRadius:brutal?0:4, minWidth:180, overflow:'hidden',
+              fontFamily:"'Share Tech Mono',monospace",
+            }}>
+              {/* Header */}
+              <div style={{padding:'7px 10px',borderBottom:`1px solid ${accent}33`,
+                background:`linear-gradient(90deg,${accent}18,transparent)`,display:'flex',gap:6,alignItems:'center'}}>
+                <div style={{width:8,height:8,borderRadius:'50%',background:accent,flexShrink:0}}/>
+                <span style={{fontSize:'10px',fontWeight:700,fontFamily:"'Oswald',sans-serif",
+                  letterSpacing:'.1em',color:accent,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+                  {node.label}
+                </span>
+                <span style={{fontSize:'8px',opacity:.4,marginLeft:'auto',flexShrink:0}}>{node.type.toUpperCase()}</span>
+              </div>
+              {/* Items */}
+              {items.map((it,i) => it.sep
+                ? <div key={i} style={{height:1,background:'rgba(255,255,255,.06)',margin:'2px 0'}}/>
+                : (
+                  <div key={i} onClick={it.action} style={{
+                    display:'flex',alignItems:'center',gap:8,padding:'7px 12px',cursor:'pointer',
+                    color:it.danger?'#ff435a':brutal?'#f0ece0':'#c0c8d8',fontSize:'11px',
+                    transition:'background .1s',
+                  }}
+                  onMouseEnter={e=>e.currentTarget.style.background=it.danger?'rgba(255,67,90,.12)':'rgba(255,255,255,.06)'}
+                  onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+                    <span style={{width:14,textAlign:'center',opacity:.7,fontSize:'12px'}}>{it.icon}</span>
+                    {it.label}
+                  </div>
+                )
+              )}
+            </div>
+          </>
+        )
+      })()}
 
       {/* Term palette close */}
       {showTermPalette && <div style={{position:'fixed',inset:0,zIndex:97}} onClick={()=>setShowTermPalette(false)}/>}

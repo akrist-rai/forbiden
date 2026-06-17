@@ -1,0 +1,5 @@
+{
+  "buildCommand": "bun install --cwd apps/web && bun --cwd apps/web run build",
+  "outputDirectory": "apps/web/dist",
+  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+}

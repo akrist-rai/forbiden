@@ -27,20 +27,14 @@ export default function App() {
     <BrowserRouter>
       <Suspense fallback={<PageLoader />}>
         <Routes>
-          {/* Login / Auth gate */}
-          <Route path="/login" element={<LoginPage />} />
-
-          {/* Home / boot screen / workspace picker */}
-          <Route path="/" element={<HomePage />} />
-
-          {/* Graph IDE — the full workstation */}
+          {/* Graph IDE — the full workstation (default landing) */}
           <Route path="/ide" element={<IDEPage />} />
 
           {/* Manga Panel IDE — alternative editor */}
           <Route path="/manga-ide" element={<MangaIDEPage />} />
 
-          {/* Catch-all: send back home */}
-          <Route path="*" element={<Navigate to="/" replace />} />
+          {/* Everything else → IDE */}
+          <Route path="*" element={<Navigate to="/ide" replace />} />
         </Routes>
       </Suspense>
     </BrowserRouter>
