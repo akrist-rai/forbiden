@@ -2630,6 +2630,199 @@ import { useWorkspace } from '../../hooks/useWorkspace'
       }, []);
 
       useEffect(() => {
+        const t = setInterval(() => setBgIdx(i => (i + 1) % MANGA_RAW.length), 6500);
+        return () => clearInterval(t);
+      }, []);
+
+      if (theme && avatar !== null) return <IDEWithCmd initialTheme={theme} initialAvatar={avatar}/>;
+
+      const OPERATORS = [
+        { name:'GHOST',   code:'0xAV001', num:'01', role:'Signal mapping', accent:'#ff2a38' },
+        { name:'BLADE',   code:'0xAV002', num:'02', role:'Patch runner', accent:'#f2c12e' },
+        { name:'CIPHER',  code:'0xAV003', num:'03', role:'Flow analyst', accent:'#10b981' },
+        { name:'WRAITH',  code:'0xAV004', num:'04', role:'Terminal ops', accent:'#5ccfe6' },
+        { name:'SPECTRE', code:'0xAV005', num:'05', role:'Vault scout', accent:'#bb9af7' },
+        { name:'NEXUS',   code:'0xAV006', num:'06', role:'Graph sync', accent:'#ff8b39' },
+      ];
+
+      const ENGINES = [
+        {
+          id: 'cyber',
+          num: '01',
+          title: 'Cyber Graph',
+          label: 'Void workspace',
+          detail: 'Dark canvas, red signal, focused node work.',
+          accent: '#ff2a38',
+          imageOffset: 0,
+        },
+        {
+          id: 'brutal',
+          num: '02',
+          title: 'Ink Graph',
+          label: 'Paper workspace',
+          detail: 'High contrast manga panels with blunt controls.',
+          accent: '#f2c12e',
+          imageOffset: 8,
+        },
+      ];
+
+      const enc = f => encodeURIComponent(f);
+      const selectedIndex = avatar ?? 0;
+      const selectedOperator = OPERATORS[selectedIndex];
+      const locked = avatar !== null;
+      const timeStr = new Date().toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit' });
+      const heroImage = MANGA_RAW[(bgIdx + selectedIndex) % MANGA_RAW.length];
+      const previewImages = MANGA_RAW.slice(12, 30);
+      const launchTheme = nextTheme => {
+        if (avatar === null) setAvatar(0);
+        setTheme(nextTheme);
+      };
+
+      return (
+        <div className="boot-home" style={{ '--boot-accent': selectedOperator.accent } as any}>
+          <div className="boot-bg" aria-hidden="true">
+            <img key={heroImage} src={`/manga/${enc(heroImage)}`} alt="" className="boot-bg-img" />
+            <div className="boot-bg-wash" />
+            <div className="boot-bg-grid" />
+            <div className="boot-bg-scan" />
+          </div>
+
+          <header className="boot-top">
+            <div className="boot-brand">
+              <span>FOR</span><b>BID</b><span>EN</span>
+            </div>
+            <div className="boot-top-meta">
+              <span>Graph IDE</span>
+              <span>Operator home</span>
+            </div>
+            <div className="boot-top-status">
+              <span className="boot-live-dot" />
+              <span>{timeStr}</span>
+            </div>
+          </header>
+
+          <main className="boot-main">
+            <section className="boot-copy">
+              <div className="boot-kicker">
+                <span>Chapter 01</span>
+                <span>{locked ? 'Operator locked' : 'Default operator ready'}</span>
+              </div>
+              <h1 className="boot-title">
+                Shape code as a living graph.
+                <span>Keep every idea in motion.</span>
+              </h1>
+              <p className="boot-subtitle">
+                A cinematic workspace for nodes, notes, terminal work, timelines, and the messy middle where projects actually become real.
+              </p>
+
+              <div className="boot-actions">
+                <button className="boot-action-primary" onClick={() => launchTheme('cyber')}>
+                  Launch workspace
+                </button>
+                <button className="boot-action-secondary" onClick={() => setAvatar((selectedIndex + 1) % OPERATORS.length)}>
+                  Rotate operator
+                </button>
+              </div>
+
+              <div className="boot-signal-row" aria-label="Workspace status">
+                <div>
+                  <strong>{String(MANGA_RAW.length).padStart(2, '0')}</strong>
+                  <span>Panels</span>
+                </div>
+                <div>
+                  <strong>02</strong>
+                  <span>Engines</span>
+                </div>
+                <div>
+                  <strong>06</strong>
+                  <span>Operators</span>
+                </div>
+              </div>
+            </section>
+
+            <aside className="boot-operator" aria-label="Operator selection">
+              <div className="boot-portrait">
+                <img
+                  src={`/avatars/0xAV00${selectedIndex + 1}s.jpeg`}
+                  alt={selectedOperator.name}
+                />
+                <div className="boot-portrait-shade" />
+                <div className="boot-portrait-caption">
+                  <span>{selectedOperator.code}</span>
+                  <strong>{selectedOperator.name}</strong>
+                  <small>{selectedOperator.role}</small>
+                </div>
+              </div>
+
+              <div className="boot-roster">
+                {OPERATORS.map((op, i) => (
+                  <button
+                    key={op.code}
+                    className={`boot-operator-btn${selectedIndex === i ? ' is-active' : ''}${hovered === i ? ' is-hovered' : ''}`}
+                    onClick={() => setAvatar(i)}
+                    onMouseEnter={() => setHovered(i)}
+                    onMouseLeave={() => setHovered(null)}
+                    style={{ '--op-accent': op.accent } as any}
+                    aria-pressed={selectedIndex === i}
+                  >
+                    <img src={`/avatars/0xAV00${i + 1}s.jpeg`} alt="" />
+                    <span>{op.num}</span>
+                    <strong>{op.name}</strong>
+                  </button>
+                ))}
+              </div>
+            </aside>
+          </main>
+
+          <section className="boot-engine-dock" aria-label="Engine selection">
+            {ENGINES.map(engine => {
+              const img = MANGA_RAW[(bgIdx + engine.imageOffset) % MANGA_RAW.length];
+              return (
+                <button
+                  key={engine.id}
+                  className={`boot-engine boot-engine-${engine.id}`}
+                  onClick={() => launchTheme(engine.id)}
+                  style={{ '--engine-accent': engine.accent } as any}
+                >
+                  <img src={`/manga/${enc(img)}`} alt="" />
+                  <span>{engine.num}</span>
+                  <strong>{engine.title}</strong>
+                  <small>{engine.label}</small>
+                  <em>{engine.detail}</em>
+                </button>
+              );
+            })}
+            <div className="boot-console">
+              <span>Session</span>
+              <strong>{selectedOperator.code}</strong>
+              <small>{locked ? selectedOperator.name : 'Auto locks on launch'}</small>
+            </div>
+          </section>
+
+          <div className="boot-strip" aria-hidden="true">
+            <div className="boot-strip-track">
+              {[...previewImages, ...previewImages].map((img, i) => (
+                <img key={`${img}-${i}`} src={`/manga/${enc(img)}`} alt="" loading="lazy" />
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    function LegacyBootloader() {
+      const [theme, setTheme] = useState(null);
+      const [avatar, setAvatar] = useState(null);
+      const [hovered, setHovered] = useState(null);
+      const [bgIdx, setBgIdx] = useState(0);
+      const [tick, setTick] = useState(0);
+
+      useEffect(() => {
+        const id = setInterval(() => setTick(t => t + 1), 1000);
+        return () => clearInterval(id);
+      }, []);
+
+      useEffect(() => {
         const t = setInterval(() => setBgIdx(i => (i + 1) % MANGA_RAW.length), 6000);
         return () => clearInterval(t);
       }, []);
