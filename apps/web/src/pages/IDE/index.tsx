@@ -3744,20 +3744,68 @@ function IDE({ initialTheme = 'cyber', initialAvatar = 0 }) {
               </div>
             </>
           ) : (
-            /* Welcome panel — dual column */
-            <div className="ide-welcome">
-              {/* Left: hero art column */}
-              <div className="ide-welcome-left">
-                <img src={getPanelImg(0)} alt="" loading="lazy"/>
-                <div className="ide-welcome-hero-overlay"/>
-                <div className="ide-welcome-hero-scanlines"/>
-                <div className="ide-welcome-hero-text">
-                  <div className="ide-welcome-hero-tag" style={{color:brutal?'#f2c12e':'#ff2a38',borderColor:brutal?'#f2c12e':'#ff2a38'}}>FORBIDEN // NGO</div>
-                  <div className="ide-welcome-title">SELECT<br/>A NODE</div>
-                  <div className="ide-welcome-sub">Each panel is a chapter.</div>
+            <div className="ide-welcome idw-splash">
+
+              {/* ── 3-panel manga stage (full-bleed background) ── */}
+              <div className="idw-manga-stage">
+                <div className="idw-mp idw-mp-a">
+                  <img src={getPanelImg(2)} alt="" loading="lazy"/>
+                  <div className="idw-mp-overlay"/>
                 </div>
+                <div className="idw-mp idw-mp-b">
+                  <img src={getPanelImg(6)} alt="" loading="lazy"/>
+                  <div className="idw-mp-overlay"/>
+                </div>
+                <div className="idw-mp idw-mp-c">
+                  <img src={getPanelImg(11)} alt="" loading="lazy"/>
+                  <div className="idw-mp-overlay"/>
+                </div>
+                <div className="idw-global-veil"/>
+                <div className="idw-halftone"/>
+                <div className="idw-scanlines"/>
               </div>
-              {/* Right: Node Browser Panel */}
+
+              {/* ── SVG speed lines ── */}
+              <svg className="idw-speedlines" viewBox="0 0 800 600" preserveAspectRatio="xMidYMid slice">
+                {Array.from({length:32}).map((_:any,i:number)=>{
+                  const a=(i/32)*Math.PI*2
+                  const cx=130,cy=210
+                  return <line key={i}
+                    x1={cx} y1={cy}
+                    x2={cx+Math.cos(a)*1200} y2={cy+Math.sin(a)*1200}
+                    stroke={brutal?'rgba(15,15,15,.042)':'rgba(255,255,255,.042)'}
+                    strokeWidth="1.3"
+                  />
+                })}
+              </svg>
+
+              {/* ── Hero text ── */}
+              <div className="idw-hero">
+                <div className="idw-hero-tag" style={{color:brutal?'#f2c12e':'#ff2a38',borderColor:brutal?'rgba(242,193,46,.55)':'rgba(255,42,56,.55)'}}>
+                  FORBIDEN <span style={{opacity:.45}}>//</span> NGO
+                </div>
+                <div className="idw-hero-chapter">
+                  CHAPTER {nodeCount} · {edgeCount>0?`${edgeCount} LINKS`:'ORIGIN'}
+                </div>
+                <div className="idw-hero-title">
+                  SELECT<br/>A NODE
+                </div>
+                <div className="idw-hero-sub">Each panel is a chapter.</div>
+                <button className="idw-hero-cta" style={{
+                  background:brutal?'#f2c12e':'rgba(255,42,56,.13)',
+                  color:brutal?'#0f0f0f':'#ff2a38',
+                  border:brutal?'2.5px solid #0f0f0f':'1px solid rgba(255,42,56,.5)',
+                }} onClick={()=>setShowCreateNode(true)}>
+                  + CREATE NODE
+                </button>
+              </div>
+
+              {/* ── Manga SFX decoration ── */}
+              <div className="idw-sfx" style={{color:brutal?'rgba(15,15,15,.055)':'rgba(255,255,255,.038)'}}>
+                KLIK!
+              </div>
+
+              {/* ── Floating node browser ── */}
               {(() => {
                 const allTypes = ['all','entry','function','class','module','doc']
                 const typeColors:any = {entry:'#ff2a38',function:'#ffc410',class:'#10b981',module:'#4285f4',doc:'#c792ea',default:'#888'}
@@ -3770,34 +3818,31 @@ function IDE({ initialTheme = 'cyber', initialAvatar = 0 }) {
                 const typeCounts:any = {}
                 allNodes.forEach((n:any)=>{ typeCounts[n.type]=(typeCounts[n.type]||0)+1 })
                 const usedTypes = allTypes.filter(t=>t==='all'||(typeCounts[t]||0)>0)
-                // Group breakdown
                 const grouped = groupsRef.current.length>0 && !wq && welcomeFilter==='all'
                 const ungroupedNodes = grouped ? displayNodes.filter((n:any)=>!groupsRef.current.some((g:any)=>g.nodeIds.includes(n.id))) : []
                 return (
-                <div className="ide-welcome-right" style={{display:'flex',flexDirection:'column',overflow:'hidden',gap:0,padding:0}}>
+                <div className="idw-browser">
 
-                  {/* ── Top status bar ── */}
-                  <div style={{padding:'10px 14px 8px',flexShrink:0,borderBottom:'1px solid rgba(255,255,255,.06)'}}>
-                    <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:6}}>
-                      <span style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:'10px',letterSpacing:'.18em',color:brutal?'#f2c12e':'#ff2a38'}}>
-                        GRAPH IDE // ACTIVE
-                      </span>
+                  {/* ── Browser header ── */}
+                  <div className="idw-browser-hdr">
+                    <div style={{display:'flex',alignItems:'center',gap:6}}>
+                      <span className="idw-browser-title" style={{color:brutal?'#f2c12e':'#ff2a38'}}>FILES</span>
                       <div style={{flex:1}}/>
                       <button className="ide-btn ide-btn-sm" onClick={()=>setShowCreateNode(true)}>+ NODE</button>
-                      <button className="ide-btn ide-btn-sm" onClick={()=>folderInputRef.current?.click()}>⬆ IMPORT</button>
+                      <button className="ide-btn ide-btn-sm" onClick={()=>folderInputRef.current?.click()}>⬆</button>
                     </div>
-                    <div style={{display:'flex',alignItems:'center',gap:8,fontFamily:"'Share Tech Mono',monospace",fontSize:'11px'}}>
-                      <span style={{color:'rgba(200,200,220,.5)'}}>{nodeCount} NODES</span>
-                      <span style={{color:'rgba(255,255,255,.12)'}}>·</span>
-                      <span style={{color:'rgba(200,200,220,.5)'}}>{edgeCount} EDGES</span>
-                      {groupsRef.current.length>0&&<><span style={{color:'rgba(255,255,255,.12)'}}>·</span><span style={{color:'rgba(200,200,220,.5)'}}>{groupsRef.current.length} GROUPS</span></>}
+                    <div className="idw-browser-stats">
+                      <span>{nodeCount} NODES</span>
+                      <span style={{opacity:.28}}>·</span>
+                      <span>{edgeCount} EDGES</span>
+                      {groupsRef.current.length>0&&<><span style={{opacity:.28}}>·</span><span>{groupsRef.current.length} GRP</span></>}
                       <div style={{flex:1}}/>
-                      {modifiedNodes.length>0&&<span style={{color:'#ffc410'}}>{modifiedNodes.length} UNSAVED</span>}
+                      {modifiedNodes.length>0&&<span style={{color:'#ffc410'}}>{modifiedNodes.length} MOD</span>}
                     </div>
                   </div>
 
-                  {/* ── Search bar ── */}
-                  <div style={{padding:'7px 10px 4px',flexShrink:0}}>
+                  {/* ── Search ── */}
+                  <div style={{padding:'6px 10px 3px',flexShrink:0}}>
                     <div style={{position:'relative'}}>
                       <span style={{position:'absolute',left:8,top:'50%',transform:'translateY(-50%)',fontSize:'10px',opacity:.3,pointerEvents:'none'}}>⌕</span>
                       <input
@@ -3809,7 +3854,7 @@ function IDE({ initialTheme = 'cyber', initialAvatar = 0 }) {
                           outline:'none',color:'#c0c8d8',fontFamily:"'Share Tech Mono',monospace",fontSize:'11px',
                           padding:'5px 8px 5px 24px',transition:'border-color .15s',
                         }}
-                        onFocus={(e:any)=>(e.target.style.borderColor='rgba(255,42,56,.4)')}
+                        onFocus={(e:any)=>(e.target.style.borderColor=brutal?'rgba(242,193,46,.5)':'rgba(255,42,56,.4)')}
                         onBlur={(e:any)=>(e.target.style.borderColor='rgba(255,255,255,.08)')}
                       />
                       {welcomeSearch&&(
@@ -3818,9 +3863,9 @@ function IDE({ initialTheme = 'cyber', initialAvatar = 0 }) {
                     </div>
                   </div>
 
-                  {/* ── Type filter chips ── */}
+                  {/* ── Filter chips ── */}
                   {!wq && (
-                    <div style={{display:'flex',gap:3,padding:'3px 10px 6px',flexShrink:0,flexWrap:'wrap'}}>
+                    <div style={{display:'flex',gap:3,padding:'3px 10px 5px',flexShrink:0,flexWrap:'wrap'}}>
                       {usedTypes.map(t=>{
                         const active = welcomeFilter===t
                         const col = typeColors[t]||typeColors.default
@@ -3830,8 +3875,8 @@ function IDE({ initialTheme = 'cyber', initialAvatar = 0 }) {
                               background: active?`${col}22`:'transparent',
                               border:`1px solid ${active?col:`${col}30`}`,
                               color: active?col:`rgba(200,200,220,.3)`,
-                              fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:'10px',letterSpacing:'.08em',
-                              padding:'3px 8px',cursor:'pointer',transition:'all .12s',
+                              fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:'9px',letterSpacing:'.08em',
+                              padding:'2px 7px',cursor:'pointer',transition:'all .12s',
                             }}>
                             {t==='all'?`ALL (${allNodes.length})`:t.toUpperCase()+(typeCounts[t]?` (${typeCounts[t]})`:'') }
                           </button>
@@ -3840,13 +3885,12 @@ function IDE({ initialTheme = 'cyber', initialAvatar = 0 }) {
                     </div>
                   )}
 
-                  {/* ── Node list (scrollable) ── */}
+                  {/* ── Node list ── */}
                   <div style={{flex:1,overflowY:'auto',scrollbarWidth:'thin',scrollbarColor:'rgba(255,255,255,.07) transparent'}}>
 
-                    {/* Recent tabs */}
                     {!wq && openTabs.length>0 && welcomeFilter==='all' && (
                       <>
-                        <div style={{padding:'4px 10px',fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:'10px',letterSpacing:'.14em',color:'rgba(200,200,220,.35)',borderBottom:'1px solid rgba(255,255,255,.04)'}}>
+                        <div style={{padding:'4px 10px',fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:'9px',letterSpacing:'.14em',color:'rgba(200,200,220,.3)',borderBottom:'1px solid rgba(255,255,255,.04)'}}>
                           RECENT
                         </div>
                         {openTabs.slice(0,4).map((tid:any)=>{
@@ -3857,15 +3901,14 @@ function IDE({ initialTheme = 'cyber', initialAvatar = 0 }) {
                           return (
                             <div key={n.id} onClick={()=>openNodeInEditor(n.id)}
                               style={{display:'flex',alignItems:'center',gap:8,padding:'5px 12px',cursor:'pointer',
-                                background:activeTabId===n.id?'rgba(255,255,255,.05)':'transparent',
-                                transition:'background .1s'}}
+                                background:activeTabId===n.id?'rgba(255,255,255,.05)':'transparent',transition:'background .1s'}}
                               onMouseEnter={(e:any)=>(e.currentTarget.style.background='rgba(255,255,255,.05)')}
                               onMouseLeave={(e:any)=>(e.currentTarget.style.background=activeTabId===n.id?'rgba(255,255,255,.05)':'transparent')}>
                               <div style={{width:5,height:5,borderRadius:'50%',background:acc,flexShrink:0}}/>
-                              <span style={{flex:1,fontFamily:"'Share Tech Mono',monospace",fontSize:'13px',color:'#c0c8d8',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+                              <span style={{flex:1,fontFamily:"'Share Tech Mono',monospace",fontSize:'12px',color:'#c0c8d8',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
                                 {n.label}{n.modified&&<span style={{color:'#ffc410',marginLeft:4}}>●</span>}
                               </span>
-                              <span style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:'10px',color:acc,opacity:.55,letterSpacing:'.07em',flexShrink:0}}>
+                              <span style={{fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:'9px',color:acc,opacity:.55,letterSpacing:'.07em',flexShrink:0}}>
                                 {n.type.slice(0,3).toUpperCase()}
                               </span>
                             </div>
@@ -3874,21 +3917,19 @@ function IDE({ initialTheme = 'cyber', initialAvatar = 0 }) {
                       </>
                     )}
 
-                    {/* Search results header */}
                     {wq && (
                       <div style={{padding:'3px 10px',fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:'8px',letterSpacing:'.16em',color:'rgba(200,200,220,.28)',borderBottom:'1px solid rgba(255,255,255,.04)'}}>
                         {displayNodes.length} RESULTS FOR "{wq.toUpperCase()}"
                       </div>
                     )}
 
-                    {/* Grouped view */}
                     {grouped ? (<>
                       {groupsRef.current.map((g:any)=>{
                         const gNodes=displayNodes.filter((n:any)=>g.nodeIds.includes(n.id))
                         if(!gNodes.length) return null
                         return (
                           <div key={g.id}>
-                            <div style={{padding:'5px 10px',fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:'11px',letterSpacing:'.12em',
+                            <div style={{padding:'5px 10px',fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:'10px',letterSpacing:'.12em',
                               color:g.color,borderBottom:'1px solid rgba(255,255,255,.04)',display:'flex',alignItems:'center',gap:6}}>
                               <div style={{width:4,height:4,borderRadius:'50%',background:g.color}}/>
                               {g.name.toUpperCase()}
@@ -3906,10 +3947,9 @@ function IDE({ initialTheme = 'cyber', initialAvatar = 0 }) {
                         {ungroupedNodes.map((n:any)=><WelcomeNodeRow key={n.id} n={n} active={activeTabId===n.id} onClick={()=>openNodeInEditor(n.id)} groups={groupsRef.current}/>)}
                       </>)}
                     </>) : (
-                      /* Flat list */
                       <>
                         {!wq&&(
-                          <div style={{padding:'4px 10px',fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:'10px',letterSpacing:'.14em',color:'rgba(200,200,220,.35)',borderBottom:'1px solid rgba(255,255,255,.04)'}}>
+                          <div style={{padding:'4px 10px',fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:'9px',letterSpacing:'.14em',color:'rgba(200,200,220,.3)',borderBottom:'1px solid rgba(255,255,255,.04)'}}>
                             {welcomeFilter==='all'?`ALL FILES (${displayNodes.length})`:welcomeFilter.toUpperCase()+` (${displayNodes.length})`}
                           </div>
                         )}
@@ -3917,7 +3957,6 @@ function IDE({ initialTheme = 'cyber', initialAvatar = 0 }) {
                       </>
                     )}
 
-                    {/* Empty state */}
                     {displayNodes.length===0&&(
                       <div style={{padding:'32px 16px',textAlign:'center',opacity:.2,fontFamily:"'Share Tech Mono',monospace",fontSize:'11px',lineHeight:2}}>
                         {wq?'NO MATCHES':'NO NODES YET'}<br/>
@@ -3931,15 +3970,15 @@ function IDE({ initialTheme = 'cyber', initialAvatar = 0 }) {
 
                   {/* ── Bottom bar ── */}
                   <div style={{padding:'6px 10px',flexShrink:0,borderTop:'1px solid rgba(255,255,255,.06)',
-                    display:'flex',alignItems:'center',gap:5,background:'rgba(0,0,0,.3)'}}>
+                    display:'flex',alignItems:'center',gap:5,background:'rgba(0,0,0,.25)'}}>
                     <button className="ide-btn ide-btn-sm" onClick={()=>setNotebookFloating(f=>!f)}
                       style={{color:notebookFloating?'#c792ea':'',borderColor:notebookFloating?'rgba(199,146,234,.3)':''}}>
-                      ◎ NOTEBOOK
+                      ◎ NOTE
                     </button>
-                    <button className="ide-btn ide-btn-sm" onClick={()=>{setBottomTab('timeline');setBottomOpen(true)}}>⎔ TIMELINE</button>
+                    <button className="ide-btn ide-btn-sm" onClick={()=>{setBottomTab('timeline');setBottomOpen(true)}}>⎔ TL</button>
                     <div style={{flex:1}}/>
-                    <span style={{fontFamily:"'Share Tech Mono',monospace",fontSize:'8px',opacity:.2}}>
-                      DROP FILES ON CANVAS
+                    <span style={{fontFamily:"'Share Tech Mono',monospace",fontSize:'7px',opacity:.15,letterSpacing:'.08em'}}>
+                      DROP ON CANVAS
                     </span>
                   </div>
                 </div>
