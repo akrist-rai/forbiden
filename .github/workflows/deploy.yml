@@ -21,23 +21,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
         with:
-          node-version: '20'
-          cache: npm
-          cache-dependency-path: apps/web/package-lock.json
+          bun-version: latest
 
       - name: Install dependencies
-        run: npm install
-        working-directory: apps/web
+        run: bun install
 
       - name: Build
-        run: npm run build
+        run: bun run build
         working-directory: apps/web
         env:
-          # Sets the base path to /<repo-name>/ so assets resolve correctly on GitHub Pages.
-          # If you use a custom domain (CNAME), set VITE_BASE_PATH to / instead.
           VITE_BASE_PATH: /${{ github.event.repository.name }}/
           NODE_OPTIONS: --max-old-space-size=3072
 

@@ -7,6 +7,7 @@ repos/
 drizzle/*.sql
 .DS_Store
 *.swp
+apps/web/package-lock.json
 not used
 refrence
 good stuff
