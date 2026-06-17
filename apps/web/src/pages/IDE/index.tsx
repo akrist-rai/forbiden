@@ -3,6 +3,8 @@ import './ide.css'
 import './manga.css'
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useWorkspace } from '../../hooks/useWorkspace'
+import { useLocation } from 'react-router-dom'
+
 
 
     
@@ -2618,8 +2620,12 @@ import { useWorkspace } from '../../hooks/useWorkspace'
     }
 
     function Bootloader() {
-      const [theme, setTheme] = useState(null);
-      const [avatar, setAvatar] = useState(null);
+      const location = useLocation();
+      const routerState = location.state || {};
+
+      // If navigated from Home with theme+avatar, go directly into IDE
+      const [theme, setTheme] = useState(routerState.theme ?? null);
+      const [avatar, setAvatar] = useState(routerState.avatar ?? null);
       const [hovered, setHovered] = useState(null);
       const [bgIdx, setBgIdx] = useState(0);
       const [tick, setTick] = useState(0);

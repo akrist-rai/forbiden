@@ -4,7 +4,11 @@
    Heavy inspiration: void bg, red/lime/crt accents, scanlines, mono fonts
    ═══════════════════════════════════════════════════════════════════ */
 
+
 @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Bebas+Neue&family=Outfit:wght@300;400;600;800&family=JetBrains+Mono:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=JetBrains+Mono:wght@400;700;800&display=swap');
+
+
 
 /* ── GLOBAL TOKENS ── */
 :root {
@@ -281,7 +285,6 @@ body {
 .nle-clip:hover { border-color: var(--red) !important; }
 
 
-    @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=JetBrains+Mono:wght@400;700;800&display=swap");
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { overflow: hidden; width: 100vw; height: 100vh; user-select: none; font-size: 10px; margin: 0; background-color: #050505; font-family: 'JetBrains Mono', monospace; }
     input, textarea, pre, .code-area, .editor-palette-scope * { user-select: text; }

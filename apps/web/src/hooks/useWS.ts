@@ -1,7 +1,17 @@
 // src/hooks/useWS.ts — WebSocket client with auto-reconnect
+// Uses the Vite dev server proxy (/ws → ws://localhost:3001/ws)
 import { useEffect, useRef, useCallback } from 'react'
 
-const WS_URL = import.meta.env.VITE_WS_URL ?? 'ws://localhost:3001/ws'
+// Build WS URL: in dev use proxy path, in prod use env var
+function getWsUrl(): string {
+  const envUrl = import.meta.env.VITE_WS_URL as string | undefined
+  if (envUrl) return envUrl
+  // Use current page host → goes through Vite proxy
+  const proto = location.protocol === 'https:' ? 'wss:' : 'ws:'
+  return `${proto}//${location.host}/ws`
+}
+
+const WS_URL = getWsUrl()
 
 type Handler = (payload: unknown) => void
 
