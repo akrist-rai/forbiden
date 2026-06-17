@@ -2384,13 +2384,11 @@ function NotebookPanel({ brutal }:any) {
       : c))
   }, [cells])
 
-  const runAll = async () => {
-    for (const cell of cells) await runCell(cell.id)
-  }
+  const runAll = async () => { for (const cell of cells) await runCell(cell.id) }
 
   const addCell = (lang = 'js', code = '') => {
     const id = 'nb' + Date.now()
-    const def = lang === 'python' ? '# Python cell\n' : lang === 'markdown' ? '## Notes\n\n' : '// JS cell\n'
+    const def = lang === 'python' ? '# Python\n' : lang === 'markdown' ? '## Notes\n\n' : '// JavaScript\n'
     setCells((cs:any) => [...cs, { id, lang, code: code || def, output:[], status:'idle', execCount:null, execMs:null }])
     setShowTemplates(false)
   }
@@ -2404,58 +2402,72 @@ function NotebookPanel({ brutal }:any) {
     })
   }
 
-  const bg0 = brutal ? '#ede8d5' : '#05050f'
   const domainGroups = [
-    { label:'🔐 CYBERSEC', keys:['🔐 Hash Toolkit','🔐 Base64 / Hex','🔐 XOR Cipher','🔐 CIDR Calc','🔐 JWT Decoder','🔐 Entropy','🔐 ROT13 / Caesar'] },
-    { label:'🤖 AI / ML',  keys:['🤖 Token Counter','🤖 Cosine Sim','🤖 JSON Extract','🤖 Regex Tester','🤖 Text Stats'] },
-    { label:'🐳 DEVOPS',   keys:['🐳 Log Parser','🐳 Cron Explainer','🐳 ENV Redactor','🐳 URL Parser','🐳 JSON Diff','🐳 HTTP Tester'] },
-    { label:'📦 PACKAGES', keys:['📦 numpy arrays','📦 pandas CSV'] },
+    { label:'🔐 CYBERSEC', color:'#ff6b7a', keys:['🔐 Hash Toolkit','🔐 Base64 / Hex','🔐 XOR Cipher','🔐 CIDR Calc','🔐 JWT Decoder','🔐 Entropy','🔐 ROT13 / Caesar'] },
+    { label:'🤖 AI / ML',  color:'#ce93d8', keys:['🤖 Token Counter','🤖 Cosine Sim','🤖 JSON Extract','🤖 Regex Tester','🤖 Text Stats'] },
+    { label:'🐳 DEVOPS',   color:'#4fc3f7', keys:['🐳 Log Parser','🐳 Cron Explainer','🐳 ENV Redactor','🐳 URL Parser','🐳 JSON Diff','🐳 HTTP Tester'] },
+    { label:'📦 PACKAGES', color:'#10b981', keys:['📦 numpy arrays','📦 pandas CSV'] },
   ]
 
+  // Pick a panel image for the empty state
+  const emptyArtImg = `${import.meta.env.BASE_URL}manga/0xEP007p.jpeg`
+
+  const tbBtn = (label:string, color:string, onClick:any, extra:any = {}) => (
+    <button onClick={onClick} style={{
+      background:`${color}12`, border:`1px solid ${color}30`, cursor:'pointer',
+      fontFamily:"'Oswald',sans-serif", fontWeight:700, fontSize:'8px',
+      letterSpacing:'.12em', padding:'2px 8px', color, lineHeight:1.8,
+      transition:'background .12s', ...extra,
+    }}
+    onMouseEnter={e=>(e.currentTarget.style.background=`${color}25`)}
+    onMouseLeave={e=>(e.currentTarget.style.background=`${color}12`)}>
+      {label}
+    </button>
+  )
+
   return (
-    <div style={{ flex:1, display:'flex', flexDirection:'column', background:bg0, overflow:'hidden' }}>
+    <div style={{ flex:1, display:'flex', flexDirection:'column', background:'#05050f', overflow:'hidden' }}>
+
       {/* ── Toolbar ── */}
-      <div style={{ display:'flex', alignItems:'center', gap:4, padding:'3px 8px', flexShrink:0,
-        borderBottom:'1px solid rgba(255,255,255,.06)',
-        background:'rgba(0,0,0,.55)', position:'relative' }}>
+      <div style={{ display:'flex', alignItems:'center', gap:5, padding:'4px 10px', flexShrink:0,
+        borderBottom:'1px solid rgba(255,255,255,.07)',
+        background:'rgba(0,0,0,.6)', position:'relative' }}>
+
         <span style={{ fontFamily:"'Oswald',sans-serif", fontWeight:700, fontSize:'9px',
-          letterSpacing:'.14em', opacity:.3, color:'#c0c8d8' }}>
-          NOTEBOOK
-        </span>
-        <span style={{ fontFamily:"'JetBrains Mono',monospace", fontSize:'8px', color:'rgba(200,200,220,.2)', marginLeft:2 }}>
-          {cells.length} cells
-        </span>
-        <div style={{ flex:1 }}/>
-        <button onClick={() => addCell('js')}
-          style={{ ..._nbBtnS, color:'#ffc410', borderColor:'#ffc41035' }}>+ JS</button>
-        <button onClick={() => addCell('python')}
-          style={{ ..._nbBtnS, color:'#4285f4', borderColor:'#4285f435' }}>+ PY</button>
-        <button onClick={() => addCell('markdown')}
-          style={{ ..._nbBtnS, color:'#bb9af7', borderColor:'#bb9af735' }}>+ MD</button>
-        {/* Templates dropdown */}
-        <button onClick={() => setShowTemplates(s=>!s)}
-          style={{ ..._nbBtnS, color:'#ff2a38', borderColor:'#ff2a3835',
-            background: showTemplates ? 'rgba(255,42,56,.1)' : undefined }}>
-          TEMPLATES ▾
-        </button>
+          letterSpacing:'.18em', color:'rgba(200,200,220,.35)', marginRight:4 }}>◎ NB</span>
+
+        {/* Add-cell buttons — colored per language */}
+        {tbBtn('+ JS',  '#ffc410', () => addCell('js'))}
+        {tbBtn('+ PY',  '#4fc3f7', () => addCell('python'))}
+        {tbBtn('+ MD',  '#ce93d8', () => addCell('markdown'))}
+
+        {/* Templates */}
+        <button onClick={() => setShowTemplates(s=>!s)} style={{
+          background: showTemplates ? 'rgba(255,107,122,.12)' : 'transparent',
+          border:'1px solid rgba(255,107,122,.22)', cursor:'pointer',
+          fontFamily:"'Oswald',sans-serif", fontWeight:700, fontSize:'8px',
+          letterSpacing:'.12em', padding:'2px 8px', color:'#ff6b7a', lineHeight:1.8,
+          transition:'background .12s',
+        }}>TEMPLATES ▾</button>
+
         {showTemplates && (
-          <div style={{ position:'absolute', top:'100%', right:0, zIndex:300, minWidth:260,
-            background:'#090912', border:'1px solid rgba(255,42,56,.22)',
-            boxShadow:'0 12px 40px rgba(0,0,0,.9)', maxHeight:440, overflowY:'auto',
+          <div style={{ position:'absolute', top:'100%', left:0, zIndex:300, minWidth:240,
+            background:'#0a0a16', border:'1px solid rgba(255,107,122,.2)',
+            boxShadow:'0 16px 48px rgba(0,0,0,.95)', maxHeight:400, overflowY:'auto',
             scrollbarWidth:'thin', scrollbarColor:'rgba(255,255,255,.06) transparent' }}
             onMouseLeave={() => setShowTemplates(false)}>
             {domainGroups.map(grp => (
               <div key={grp.label}>
-                <div style={{ padding:'5px 10px 3px', fontFamily:"'Oswald',sans-serif", fontWeight:700,
-                  fontSize:'9px', letterSpacing:'.14em', color:'#ff2a38',
-                  borderBottom:'1px solid rgba(255,255,255,.05)', opacity:.75 }}>
+                <div style={{ padding:'5px 10px 4px', fontFamily:"'Oswald',sans-serif", fontWeight:700,
+                  fontSize:'8px', letterSpacing:'.14em', color:grp.color,
+                  borderBottom:'1px solid rgba(255,255,255,.05)', background:'rgba(0,0,0,.4)' }}>
                   {grp.label}
                 </div>
                 {grp.keys.map(k => (
                   <div key={k}
                     onClick={() => { const t=(NB_TEMPLATES as any)[k]; if(t) addCell(t.lang,t.code) }}
                     style={{ padding:'5px 14px', fontFamily:"'Share Tech Mono',monospace",
-                      fontSize:'11px', color:'#b0bad0', cursor:'pointer', transition:'background .1s' }}
+                      fontSize:'11px', color:'#a0aac0', cursor:'pointer', transition:'background .1s' }}
                     onMouseEnter={e=>(e.currentTarget.style.background='rgba(255,255,255,.05)')}
                     onMouseLeave={e=>(e.currentTarget.style.background='transparent')}>
                     {k}
@@ -2465,13 +2477,24 @@ function NotebookPanel({ brutal }:any) {
             ))}
           </div>
         )}
-        <div style={{ width:1, height:12, background:'rgba(255,255,255,.08)', margin:'0 2px' }}/>
-        <button onClick={runAll}
-          style={{ ..._nbBtnS, color:'#10b981', borderColor:'#10b98135', background:'rgba(16,185,129,.08)' }}>
-          ▶ RUN ALL
-        </button>
+
+        <div style={{ flex:1 }}/>
+
+        {/* Cell count */}
+        {cells.length > 0 && (
+          <span style={{ fontFamily:"'JetBrains Mono',monospace", fontSize:'8px',
+            color:'rgba(200,200,220,.2)' }}>{cells.length} cells</span>
+        )}
+
+        <div style={{ width:1, height:10, background:'rgba(255,255,255,.08)', margin:'0 3px' }}/>
+
+        {tbBtn('▶ ALL', '#10b981', runAll)}
         <button onClick={() => setCells((cs:any) => cs.map((c:any) => ({ ...c, output:[], status:'idle', execMs:null })))}
-          style={{ ..._nbBtnS, opacity:.3 }}>CLR</button>
+          style={{ background:'transparent', border:'none', cursor:'pointer',
+            fontFamily:"'Oswald',sans-serif", fontSize:'8px', letterSpacing:'.1em',
+            color:'rgba(200,200,220,.25)', padding:'2px 5px', lineHeight:1.8 }}
+          onMouseEnter={e=>(e.currentTarget.style.color='rgba(200,200,220,.6)')}
+          onMouseLeave={e=>(e.currentTarget.style.color='rgba(200,200,220,.25)')}>CLR</button>
         <button onClick={() => {
           const src = cells.map((c:any) => {
             if (c.lang === 'python')   return `# ── [PYTHON] ──\n${c.code}`
@@ -2482,39 +2505,122 @@ function NotebookPanel({ brutal }:any) {
           const blob = new Blob([src], { type:'text/plain' })
           const a = document.createElement('a'); a.href = URL.createObjectURL(blob)
           a.download = 'notebook' + ext; a.click()
-        }} style={{ ..._nbBtnS, color:'#4285f4', borderColor:'#4285f435' }} title="Export cells">⬇</button>
+        }} title="Export" style={{ background:'transparent', border:'none', cursor:'pointer',
+          color:'rgba(200,200,220,.2)', fontSize:'11px', padding:'2px 4px', lineHeight:1 }}
+          onMouseEnter={e=>(e.currentTarget.style.color='#4fc3f7')}
+          onMouseLeave={e=>(e.currentTarget.style.color='rgba(200,200,220,.2)')}>⬇</button>
         <button onClick={() => { if (confirm('Clear all cells?')) setCells([]) }}
-          style={{ ..._nbBtnS, color:'#ff435a', opacity:.35, borderColor:'transparent' }}>⊖</button>
+          title="Delete all" style={{ background:'transparent', border:'none', cursor:'pointer',
+            color:'rgba(200,200,220,.12)', fontSize:'13px', padding:'0 3px', lineHeight:1 }}
+          onMouseEnter={e=>(e.currentTarget.style.color='#ff435a')}
+          onMouseLeave={e=>(e.currentTarget.style.color='rgba(200,200,220,.12)')}>⊖</button>
       </div>
 
-      {/* ── Cells ── */}
-      <div style={{ flex:1, overflowY:'auto',
-        scrollbarWidth:'thin', scrollbarColor:'rgba(255,255,255,.07) transparent' }}>
-        {cells.map((cell:any, idx:number) => (
-          <NoteCell
-            key={cell.id}
-            cell={cell} idx={idx} brutal={brutal}
-            onRun={() => runCell(cell.id)}
-            onDelete={() => setCells((cs:any) => cs.filter((c:any) => c.id !== cell.id))}
-            onCodeChange={(code:string) => setCells((cs:any) => cs.map((c:any) => c.id === cell.id ? { ...c, code } : c))}
-            onLangChange={(lang:string) => setCells((cs:any) => cs.map((c:any) => c.id === cell.id ? { ...c, lang, output:[], status:'idle' } : c))}
-            onMoveUp={() => moveCell(idx, -1)}
-            onMoveDown={() => moveCell(idx, 1)}
-            onDuplicate={() => {
-              const dup = { ...cell, id:'nb'+Date.now(), output:[], status:'idle' }
-              setCells((cs:any) => { const next=[...cs]; next.splice(idx+1,0,dup); return next })
-            }}
-          />
-        ))}
-        {cells.length === 0 && (
-          <div style={{ padding:'48px', textAlign:'center', opacity:.18,
-            fontFamily:"'Share Tech Mono',monospace", fontSize:'11px', color:'#c0c8d8', lineHeight:2 }}>
-            NO CELLS<br/>
-            <span style={{ fontSize:'9px', opacity:.6 }}>+ JS · + PY · + MD · or pick a TEMPLATE ▾</span>
+      {/* ── Cells or empty state ── */}
+      {cells.length === 0 ? (
+        /* ── Empty state with manga art ── */
+        <div style={{ flex:1, display:'flex', overflow:'hidden', position:'relative' }}>
+          {/* Left: manga artwork */}
+          <div style={{ width:'42%', flexShrink:0, position:'relative', overflow:'hidden' }}>
+            <img src={emptyArtImg} alt="" style={{
+              width:'100%', height:'100%', objectFit:'cover', objectPosition:'center top',
+              filter:'brightness(.55) saturate(1.3)',
+            }}/>
+            {/* gradient to blend into right panel */}
+            <div style={{ position:'absolute', inset:0,
+              background:'linear-gradient(to right, transparent 50%, #05050f 100%)' }}/>
+            {/* scanlines overlay */}
+            <div style={{ position:'absolute', inset:0, opacity:.15,
+              backgroundImage:'repeating-linear-gradient(0deg, rgba(0,0,0,.5) 0px, rgba(0,0,0,.5) 1px, transparent 1px, transparent 3px)' }}/>
+            {/* bottom label */}
+            <div style={{ position:'absolute', bottom:12, left:12,
+              fontFamily:"'Oswald',sans-serif", fontWeight:700, fontSize:'9px',
+              letterSpacing:'.2em', color:'rgba(255,255,255,.35)' }}>
+              NOTEBOOK // SESSION
+            </div>
           </div>
-        )}
-        <div style={{ height:24 }}/>
-      </div>
+
+          {/* Right: CTA */}
+          <div style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center',
+            justifyContent:'center', padding:'32px 28px', gap:20 }}>
+
+            <div style={{ textAlign:'center' }}>
+              <div style={{ fontFamily:"'Oswald',sans-serif", fontWeight:700, fontSize:'22px',
+                letterSpacing:'.12em', color:'rgba(200,200,220,.9)', lineHeight:1.1 }}>
+                NEW SESSION
+              </div>
+              <div style={{ fontFamily:"'Share Tech Mono',monospace", fontSize:'10px',
+                color:'rgba(200,200,220,.3)', letterSpacing:'.1em', marginTop:6 }}>
+                pick a cell type to begin
+              </div>
+            </div>
+
+            {/* Big language buttons */}
+            <div style={{ display:'flex', flexDirection:'column', gap:8, width:'100%', maxWidth:200 }}>
+              {([
+                { lang:'js',       color:'#ffc410', label:'JavaScript', sub:'browser + node APIs' },
+                { lang:'python',   color:'#4fc3f7', label:'Python',     sub:'Pyodide · numpy · pandas' },
+                { lang:'markdown', color:'#ce93d8', label:'Markdown',   sub:'rich text & notes' },
+              ] as const).map(item => (
+                <button key={item.lang} onClick={() => addCell(item.lang as string)}
+                  style={{ display:'flex', alignItems:'center', gap:12, padding:'10px 14px',
+                    background:`${item.color}0e`, border:`1px solid ${item.color}30`,
+                    cursor:'pointer', textAlign:'left', transition:'all .15s',
+                    width:'100%' }}
+                  onMouseEnter={e=>{
+                    e.currentTarget.style.background=`${item.color}20`
+                    e.currentTarget.style.borderColor=`${item.color}60`
+                  }}
+                  onMouseLeave={e=>{
+                    e.currentTarget.style.background=`${item.color}0e`
+                    e.currentTarget.style.borderColor=`${item.color}30`
+                  }}>
+                  <span style={{ fontFamily:"'Oswald',sans-serif", fontWeight:700, fontSize:'16px',
+                    color:item.color, lineHeight:1, flexShrink:0 }}>+</span>
+                  <div>
+                    <div style={{ fontFamily:"'Oswald',sans-serif", fontWeight:700, fontSize:'11px',
+                      color:item.color, letterSpacing:'.1em' }}>{item.label.toUpperCase()}</div>
+                    <div style={{ fontFamily:"'Share Tech Mono',monospace", fontSize:'9px',
+                      color:'rgba(200,200,220,.3)', marginTop:1 }}>{item.sub}</div>
+                  </div>
+                </button>
+              ))}
+            </div>
+
+            {/* Templates shortcut */}
+            <button onClick={() => setShowTemplates(s=>!s)}
+              style={{ background:'rgba(255,107,122,.08)', border:'1px solid rgba(255,107,122,.22)',
+                cursor:'pointer', padding:'6px 18px', color:'#ff6b7a',
+                fontFamily:"'Oswald',sans-serif", fontWeight:700, fontSize:'9px',
+                letterSpacing:'.14em', transition:'background .12s' }}
+              onMouseEnter={e=>(e.currentTarget.style.background='rgba(255,107,122,.16)')}
+              onMouseLeave={e=>(e.currentTarget.style.background='rgba(255,107,122,.08)')}>
+              BROWSE TEMPLATES ▾
+            </button>
+
+          </div>
+        </div>
+      ) : (
+        <div style={{ flex:1, overflowY:'auto',
+          scrollbarWidth:'thin', scrollbarColor:'rgba(255,255,255,.07) transparent' }}>
+          {cells.map((cell:any, idx:number) => (
+            <NoteCell
+              key={cell.id} cell={cell} idx={idx} brutal={brutal}
+              onRun={() => runCell(cell.id)}
+              onDelete={() => setCells((cs:any) => cs.filter((c:any) => c.id !== cell.id))}
+              onCodeChange={(code:string) => setCells((cs:any) => cs.map((c:any) => c.id === cell.id ? { ...c, code } : c))}
+              onLangChange={(lang:string) => setCells((cs:any) => cs.map((c:any) => c.id === cell.id ? { ...c, lang, output:[], status:'idle' } : c))}
+              onMoveUp={() => moveCell(idx, -1)}
+              onMoveDown={() => moveCell(idx, 1)}
+              onDuplicate={() => {
+                const dup = { ...cell, id:'nb'+Date.now(), output:[], status:'idle' }
+                setCells((cs:any) => { const next=[...cs]; next.splice(idx+1,0,dup); return next })
+              }}
+            />
+          ))}
+          <div style={{ height:24 }}/>
+        </div>
+      )}
     </div>
   )
 }
