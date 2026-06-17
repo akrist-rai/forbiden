@@ -2589,7 +2589,7 @@ function IDE({ initialTheme = 'cyber', initialAvatar = 0 }) {
   const W = typeof window!=='undefined' ? window.innerWidth  : 1400
   const H = typeof window!=='undefined' ? window.innerHeight : 900
   const [editorOpen,  setEditorOpen]  = useState(true)
-  const [editorW,     setEditorW]     = useState(() => Math.round(window.innerWidth * 0.68))
+  const [editorW,     setEditorW]     = useState(() => Math.round(window.innerWidth * 0.65))
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [sidebarW,    setSidebarW]    = useState(240)
   const [bottomOpen,  setBottomOpen]  = useState(false)
