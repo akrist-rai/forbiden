@@ -2,9 +2,9 @@
   "name": "forbiden-desktop",
   "version": "0.1.0",
   "description": "FORBIDEN — Graph-based code IDE (Electron desktop app)",
-  "main": "dist/main/index.js",
+  "main": "out/main/index.js",
   "scripts": {
-    "dev":     "electron-vite dev",
+    "dev":     "electron-vite dev --noSandbox",
     "build":   "electron-vite build",
     "preview": "electron-vite preview",
     "start":   "npm run build && electron ."
