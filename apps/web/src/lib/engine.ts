@@ -289,87 +289,74 @@ export function getDefaultCode(lang: Lang, label: string, nodeType = 'function')
   return ''
 }
 
-// ── Compiled Language Execution (Piston API — free, no key) ────
-const PISTON = 'https://emkc.org/api/v2/piston/execute'
+// ── Compiled Language Execution (Wandbox — free, no auth, CORS) ─
+const WANDBOX = 'https://wandbox.org/api/compile.json'
 
-async function piston(
-  language: string,
-  filename: string,
+async function wandbox(
+  compiler: string,
   code: string,
+  options: string,
   stdin = '',
-  label = language,
+  label = 'compiler',
 ): Promise<RunResult> {
   const t0 = performance.now()
   const logs: RunResult['logs'] = []
   const ts = () => Date.now()
 
+  const ctl = new AbortController()
+  const timer = setTimeout(() => ctl.abort(), 20000)
+
   try {
-    const resp = await fetch(PISTON, {
+    const resp = await fetch(WANDBOX, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        language,
-        version: '*',
-        files: [{ name: filename, content: code }],
-        stdin,
-        compile_timeout: 10000,
-        run_timeout: 5000,
-      }),
+      body: JSON.stringify({ compiler, code, options, stdin, save: false }),
+      signal: ctl.signal,
     })
+    clearTimeout(timer)
 
-    if (!resp.ok) throw new Error(`Piston HTTP ${resp.status}: ${resp.statusText}`)
+    if (!resp.ok) throw new Error(`Wandbox HTTP ${resp.status}: ${resp.statusText}`)
 
     const data: any = await resp.json()
-    const compile = data.compile   // present for compiled langs
-    const run     = data.run
+    const compErr = (data.compiler_error  || '').trim()
+    const compOut = (data.compiler_output || '').trim()
+    const progOut = (data.program_output  || '').trim()
+    const progErr = (data.program_error   || '').trim()
 
     // ── Compile phase ──────────────────────────────────────────
-    logs.push({ type: 'compile-sep', val: `── ${label} ──`, ts: ts() })
+    logs.push({ type: 'compile-sep', val: `── ${label} (wandbox) ──`, ts: ts() })
 
-    if (compile) {
-      const compOut = (compile.stdout || '').trim()
-      const compErr = (compile.stderr || '').trim()
-
-      if (compOut) {
-        compOut.split('\n').forEach(l => {
-          if (l.trim()) logs.push({ type: 'compile-warn', val: l, ts: ts() })
-        })
+    if (compOut) {
+      compOut.split('\n').forEach(l => {
+        if (l.trim()) logs.push({ type: 'compile-warn', val: l, ts: ts() })
+      })
+    }
+    if (compErr) {
+      compErr.split('\n').forEach(l => {
+        if (l.trim()) logs.push({ type: 'compile-err', val: l, ts: ts() })
+      })
+      return {
+        logs,
+        error: new Error(compErr.split('\n')[0]),
+        ms: Math.round(performance.now() - t0),
       }
-      if (compile.code !== 0 || compErr) {
-        compErr.split('\n').forEach(l => {
-          if (l.trim()) logs.push({ type: 'compile-err', val: l, ts: ts() })
-        })
-        if (compile.code !== 0) {
-          return {
-            logs,
-            error: new Error(compErr.split('\n')[0] || 'Compile failed'),
-            ms: Math.round(performance.now() - t0),
-          }
-        }
-      }
-      logs.push({ type: 'compile-ok', val: `✓ compiled in ${Math.round(performance.now() - t0)}ms`, ts: ts() })
     }
 
-    // ── Run phase ──────────────────────────────────────────────
-    const stdout = (run?.stdout || '').trim()
-    const stderr = (run?.stderr || '').trim()
-    const exitCode: number = run?.code ?? 0
+    logs.push({ type: 'compile-ok', val: `✓ compiled in ${Math.round(performance.now() - t0)}ms`, ts: ts() })
 
-    if (stdout || stderr) {
+    // ── Run phase ──────────────────────────────────────────────
+    if (progOut || progErr) {
       logs.push({ type: 'run-sep', val: '── output ──', ts: ts() })
-      stdout.split('\n').forEach(l => {
+      progOut.split('\n').forEach(l => {
         if (l.trim()) logs.push({ type: 'log', val: l, ts: ts() })
       })
-      stderr.split('\n').forEach(l => {
+      progErr.split('\n').forEach(l => {
         if (l.trim()) logs.push({ type: 'run-err', val: l, ts: ts() })
       })
     }
 
-    logs.push({
-      type: exitCode === 0 ? 'return' : 'run-err',
-      val: `exit: ${exitCode}`,
-      ts: ts(),
-    })
+    const exitCode = data.status ?? 0
+    logs.push({ type: exitCode === 0 ? 'return' : 'run-err', val: `exit: ${exitCode}`, ts: ts() })
 
     return {
       logs,
@@ -377,21 +364,23 @@ async function piston(
       ms: Math.round(performance.now() - t0),
     }
   } catch (e: any) {
+    clearTimeout(timer)
     const msg = String(e?.message || e)
-    logs.push({ type: 'compile-err', val: `error: ${msg}`, ts: ts() })
-    logs.push({ type: 'info', val: 'Piston API requires internet (emkc.org)', ts: ts() })
+    const isTimeout = e?.name === 'AbortError'
+    logs.push({ type: 'compile-err', val: isTimeout ? 'timed out after 20s' : `error: ${msg}`, ts: ts() })
+    logs.push({ type: 'info', val: 'wandbox.org requires internet connection', ts: ts() })
     return { logs, error: e instanceof Error ? e : new Error(msg), ms: Math.round(performance.now() - t0) }
   }
 }
 
 export function runC(code: string, stdin = ''): Promise<RunResult> {
-  return piston('c', 'main.c', code, stdin, 'gcc · C')
+  return wandbox('gcc-head', code, '-O0 -std=c11 -lm -Wall', stdin, 'gcc · C11')
 }
 
 export function runCpp(code: string, stdin = ''): Promise<RunResult> {
-  return piston('c++', 'main.cpp', code, stdin, 'g++ · C++')
+  return wandbox('gcc-head', code, '-O0 -std=c++17 -Wall', stdin, 'g++ · C++17')
 }
 
 export function runGo(code: string, stdin = ''): Promise<RunResult> {
-  return piston('go', 'main.go', code, stdin, 'go')
+  return wandbox('go-head', code, '', stdin, 'go')
 }

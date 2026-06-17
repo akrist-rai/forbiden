@@ -3212,8 +3212,8 @@ function IDE({ initialTheme = 'cyber', initialAvatar = 0 }) {
     setBottomOpen(true)
     setJsLogs(l => {
       const header = [{type:'header', val:`▶  ${node.label}`, ts:Date.now(), nodeId}]
-      if (isPy && !_pyW) header.push({type:'info', val:'⌛ Loading Python runtime (Pyodide, ~10 MB, first run only)…', ts:Date.now()})
-      if (isC || isCpp || isGo) header.push({type:'info', val:`⌛ Compiling via Wandbox… (requires internet)`, ts:Date.now()})
+      if (isPy && !_pyW) header.push({type:'info', val:'⌛ Loading Python runtime (Pyodide ~10 MB, first run only)…', ts:Date.now()})
+      if (isC || isCpp || isGo) header.push({type:'info', val:`⌛ Compiling… (wandbox.org)`, ts:Date.now()})
       return [...l, ...header]
     })
     let result
@@ -3291,10 +3291,8 @@ function IDE({ initialTheme = 'cyber', initialAvatar = 0 }) {
 
   // ── ICON BAR ──
   const sideIconDefs = [
-    { key:'files',  icon:<I.Files/>,  tip:'Files' },
-    { key:'search', icon:<I.Search/>, tip:'Search' },
-    { key:'note',   icon:<I.Note/>,   tip:'Notes' },
-    { key:'board',  icon:<I.Board/>,  tip:'Board',  badge:0 },
+    { key:'files', icon:<I.Files/>, tip:'Files' },
+    { key:'note',  icon:<I.Note/>,  tip:'Notes' },
   ]
 
   // ── CHAPTER SPLASH DATA ──
