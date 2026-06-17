@@ -1,160 +1,16 @@
 // @ts-nocheck
 import './ide.css'
-import './manga.css'
-import './ide-v2.css'
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { useWorkspace } from '../../hooks/useWorkspace'
 import {
   detectLang, extractSymbols, generateImport, injectImport,
-  getDefaultCode, analyzeClass, langLabel, isCompiled,
-  runC, runCpp, runGo, GO_KW,
+  getDefaultCode, langLabel, isCompiled,
+  runC, runCpp, runGo,
 } from '../../lib/engine'
 
 // ══════════════════════════════════════════════════════════════
 //  CONSTANTS
 // ══════════════════════════════════════════════════════════════
-
-const MANGA_RAW = [
-  // named art
-  'Guts.jpeg','Guts And Zodd, DON.jpeg','Killua.jpeg','Inumaki.jpeg',
-  'Monster.jpeg','Whitebeard.jpeg','Roronoa Zoro.jpeg','Reze.jpeg',
-  'Soul King Brook.jpeg','Fire Punch.jpeg','PANTHEON.jpeg','CHAOS SMILE.jpeg',
-  'Corridor.jpeg','Thorfinn _ Vinland saga.jpeg','Choujin X.jpeg',
-  'Denj - Chainsaw Man_.jpeg','#chainsawman.jpeg',
-  'THE CONTROL DEVIL _ GRAPHIC DESIGN.jpeg','The Weeknd x Chainsaw Man.jpeg',
-  'Kagurabachi X Bleach.jpeg','Kisuke Urahara [Bleach] Poster.jpeg',
-  'Nelliel Brutalism.jpeg','One Piece Magazines.jpeg',
-  'Buggy, Sir Crocodile & Mihawk - One Piece.jpeg','Marco one piece.jpeg',
-  'God Valley.jpeg','ONE PIECE NOVEL LAW_ CH_ 1.jpeg','one piece.jpeg',
-  'Hunter × Hunter Volume 11 Cover.jpeg','Black Clover.jpeg',
-  'ANIME POSTERS - Sergey Zhikin.jpeg','MATT TAYLOR.jpeg',
-  'Slam Dunk Manga New Edition Cover Art – All 20 Covers.jpeg',
-  'SUBWAY DIMENSIONS.jpeg','Burning - Inspired by Van Gogh.jpeg',
-  'VOGUE.jpeg','VOGUE (1).jpeg','Sight - SKJEGG.jpeg',
-  'Queen Marika the Eternal.jpeg','R99 2_1 Poster.jpeg','R99 2_5 Poster.jpeg',
-  'Kyora Sazanami Poster.jpeg','Shugen jikka Kiyomaru.jpeg',
-  'Poster - Veil.jpeg','Rei_) (not my art).jpeg',
-  'Portada del primer número de One punch man_ Es veu al seu protagonista.jpeg',
-  'Choujin X Vol_ 12.jpeg','Choujin X Volume 14.jpeg','Choujin X Volume 3.jpeg',
-  'Poster One Piece - Wanted Whitebeard 61x91,5cm _ bol.jpeg',
-  'aki hayakawa.jpeg','choujin x tokio.jpeg','choujin x.jpeg','csm.jpeg',
-  'ddd.jpeg','denji starboy album cover.jpeg','kizaru.jpeg',
-  'litterally chainsaw man.jpeg','mob psycho 100.jpeg','Mob psycho 100.jpeg',
-  'Korean Edition Manga [phantom Busters] 팬텀 버스터즈 (jmanga227).jpeg',
-  'SONS OF THE DEVIL Covers 1-5 - toni infante.jpeg',
-  'One piece wano x Gta.jpeg','yhwach god of the Quincy.jpeg',
-  'Credit_ Twitter @avenoirn.jpeg',
-  '20Th Century Boys_ The Perfect Edition, Vol_ 11.jpeg',
-  'Dandadan _ @lihaolow • tw ☆.jpeg',
-  'Makimq is listening 🤫_ Social Poster design #Anime #Poster.jpeg',
-  'Corazon 💔.jpeg','move! move! just like mob!💥.jpeg',
-  '1997_ The start of an adventure ☠️🏝.jpeg',
-  'ishigori ryu _ @neggi_ on X.jpeg','zzyzzyy on X.jpeg',
-  'Sukuna”.jpeg','Hoạt - Poster  _ Facebook.jpeg',
-  'AdriGold 🍊 (@GoldDAdri_) on X.jpeg',
-  'Ai, Feel free to use.jpeg','fashionstation 230226x778.jpeg',
-  'Best _GOODNIGHT PUNPUN_ Fan Graphic Cover _ Poster💪.jpeg',
-  'Makima! 🩸__#Makima #ChainsawMan_#ChainsawManFanart #AnimeArt_#DigitalPainting.jpeg',
-  'Mess🌿 (@Messcult) on X.jpeg','チェンソーマン ＃１.jpeg',
-  '𝐔𝐬𝐨𝐩𝐩.jpeg','🥀.jpeg',
-  // additional art
-  '@Zuuhl82.jpeg','@jshdirk on X.jpeg',
-  'Anime Posters Online - Shop Unique Metal Prints, Pictures, Paintings _ Displate.jpeg',
-  'COMICリュエル&COMICジャルダン｜実業之日本社のwebコミックサイト -COMICリュエルVeil-.jpeg',
-  "Goodbye Merry _ @IfihasR5 • tw _').jpeg",
-  'Haunting HypatiaThe Literary Lunacy of a Geeky Librarian.jpeg',
-  'Instagram (1).jpeg',
-  "I’LL TAKE CARE OF YOU _ TYLER THE CREATOR _ DON’T TAP THE GLASS _ FLOWER BOY.jpeg",
-  'One piece “NAKAMAS”.jpeg',
-  'Post by @plankos · 1 image.jpeg',
-  'Rym 🏴_☠️ (@miu_wallp) on X.jpeg',
-  'X (1).jpeg','X (2).jpeg',
-  'credit_@sotoko3924 (tw).jpeg',
-  'https___twitter_com_7a99och_status_1797239183561396317.jpeg',
-  'https___x_com_7a99o__status_1952800016587968865.jpeg',
-  'kawaii_cute food – marker style drawing.jpeg',
-  'twitter_ @jin__nai.jpeg',
-  '_For me especially I had given gift to own my self a new heart.jpeg',
-  '_𝐈𝐜𝐨𝐧𝐬.jpeg',
-  '˙⊹ ੈ✰┆𝑨𝒚𝒂𝒔𝒆 𝒎𝒐𝒎𝒐.jpeg',
-  'Пин от пользователя Toyo Veronica на доске photography _ Концептуальная.jpeg',
-  '✧Sanji✧_•One Piece•_ Art by X@_—aywakutakuay_#anime #animeicons #fanarts #onepiece #onepieceart #onepiecefanarts #Sanji #BlacklegSanji #Sanjiart #Sanjifanart_.jpeg',
-  '✰.jpeg',
-  '大叔控 海王 (@EnPo31Sla) on X.jpeg',
-  '楽天ブックス_ onBLUE　vol．48 - 紀伊 カンナ - 9784396785086 _ 本.jpeg',
-  '𝑊𝑎𝑙𝑙𝑝𝑎𝑝𝑒𝑟 _ 𝐿𝑜𝑐𝑘𝑠𝑐𝑟𝑒𝑒𝑛 _ One piece tattoos, One piece wallpaper iphone, One piece pictures.jpeg',
-  '𝒱𝑒il  #_𝑎𝑟𝑡_ 𝑠𝑎𝑠ℎ𝑖𝑜𝑠 𝑜𝑛 𝑖𝑛𝑠𝑡𝑎.jpeg',
-  '𝘽𝙚𝙧𝙨𝙚𝙧𝙠𝙚𝙧.jpeg',
-  // numbered sets
-  '_ (70).jpeg','_ (71).jpeg','_ (72).jpeg','_ (73).jpeg','_ (74).jpeg',
-  '_ (75).jpeg','_ (76).jpeg','_ (77).jpeg','_ (78).jpeg','_ (79).jpeg',
-  '_ (80).jpeg','_ (81).jpeg','_ (82).jpeg','_ (83).jpeg','_ (84).jpeg',
-  '_ (85).jpeg','_ (86).jpeg','_ (87).jpeg','_ (88).jpeg','_ (89).jpeg',
-  '_ (90).jpeg','_ (91).jpeg','_ (92).jpeg','_ (93).jpeg','_ (94).jpeg',
-  '_ (95).jpeg','_ (96).jpeg','_ (97).jpeg','_ (98).jpeg','_ (99).jpeg',
-  '_ (100).jpeg',
-  // timestamped downloads
-  '_ - 2026-05-28T234730.748.jpeg','_ - 2026-05-28T234740.487.jpeg',
-  '_ - 2026-05-28T234749.500.jpeg','_ - 2026-05-28T234756.088.jpeg',
-  '_ - 2026-05-28T234828.372.jpeg','_ - 2026-05-28T234849.394.jpeg',
-  '_ - 2026-05-28T234900.142.jpeg','_ - 2026-05-28T234904.526.jpeg',
-  '_ - 2026-05-28T234910.002.jpeg','_ - 2026-05-28T234915.158.jpeg',
-  '_ - 2026-05-28T234939.640.jpeg',
-  '_ - 2026-05-29T231447.811.jpeg','_ - 2026-05-29T231539.607.jpeg',
-  '_ - 2026-05-29T231555.908.jpeg','_ - 2026-05-29T231644.203.jpeg',
-  '_ - 2026-05-29T231656.649.jpeg','_ - 2026-05-29T231703.415.jpeg',
-  '_ - 2026-05-29T231708.893.jpeg','_ - 2026-05-29T231715.319.jpeg',
-  '_ - 2026-05-29T231755.962.jpeg','_ - 2026-05-29T231811.533.jpeg',
-  '_ - 2026-05-29T231819.897.jpeg','_ - 2026-05-29T231922.068.jpeg',
-  '_ - 2026-05-29T231930.881.jpeg','_ - 2026-05-29T231937.728.jpeg',
-  '_ - 2026-05-29T232009.086.jpeg',
-  '_ - 2026-05-30T130648.150.jpeg','_ - 2026-05-30T130737.964.jpeg',
-  '_ - 2026-05-30T130745.408.jpeg','_ - 2026-05-30T130801.464.jpeg',
-  '_ - 2026-05-30T130808.357.jpeg','_ - 2026-05-30T130816.426.jpeg',
-  '_ - 2026-05-30T130830.481.jpeg','_ - 2026-05-30T131211.782.jpeg',
-  '_ - 2026-05-30T131223.285.jpeg','_ - 2026-05-30T131505.407.jpeg',
-  '_ - 2026-05-30T131624.759.jpeg','_ - 2026-05-30T131710.853.jpeg',
-  '_ - 2026-05-30T131737.641.jpeg','_ - 2026-05-30T131744.658.jpeg',
-  '_ - 2026-05-30T131759.220.jpeg','_ - 2026-05-30T131820.703.jpeg',
-  '_ - 2026-05-30T131906.423.jpeg','_ - 2026-05-30T131924.233.jpeg',
-  '_ - 2026-05-30T131932.734.jpeg',
-  '_ - 2026-05-31T130615.354.jpeg','_ - 2026-05-31T130636.435.jpeg',
-  '_ - 2026-05-31T130801.754.jpeg','_ - 2026-05-31T130815.461.jpeg',
-  '_ - 2026-05-31T130830.194.jpeg','_ - 2026-05-31T130836.546.jpeg',
-  '_ - 2026-05-31T130945.568.jpeg','_ - 2026-05-31T130950.347.jpeg',
-  '_ - 2026-05-31T131014.641.jpeg','_ - 2026-05-31T131051.078.jpeg',
-  '_ - 2026-05-31T131107.348.jpeg','_ - 2026-05-31T131125.626.jpeg',
-  '_ - 2026-05-31T131141.190.jpeg','_ - 2026-05-31T131206.047.jpeg',
-  '_ - 2026-05-31T131218.140.jpeg','_ - 2026-05-31T131226.941.jpeg',
-  '_ - 2026-05-31T131253.042.jpeg','_ - 2026-05-31T131257.339.jpeg',
-  '_ - 2026-05-31T131301.974.jpeg','_ - 2026-05-31T131326.211.jpeg',
-  '_ - 2026-05-31T131344.330.jpeg','_ - 2026-05-31T131416.234.jpeg',
-  '_ - 2026-05-31T131422.564.jpeg','_ - 2026-05-31T131434.054.jpeg',
-  '_ - 2026-05-31T131451.282.jpeg','_ - 2026-05-31T131459.279.jpeg',
-  '_ - 2026-05-31T131513.539.jpeg','_ - 2026-05-31T131537.760.jpeg',
-  '_ - 2026-05-31T131631.516.jpeg','_ - 2026-05-31T131644.791.jpeg',
-  '_ - 2026-05-31T131656.608.jpeg','_ - 2026-05-31T131700.836.jpeg',
-  '_ - 2026-05-31T131728.989.jpeg','_ - 2026-05-31T131837.480.jpeg',
-  '_ - 2026-05-31T132255.092.jpeg','_ - 2026-05-31T132329.820.jpeg',
-  '_ - 2026-05-31T132335.835.jpeg','_ - 2026-05-31T132342.326.jpeg',
-  '_ - 2026-05-31T132359.945.jpeg','_ - 2026-05-31T132653.514.jpeg',
-  '_ - 2026-05-31T132658.752.jpeg','_ - 2026-05-31T132705.495.jpeg',
-  '_ - 2026-05-31T132800.833.jpeg','_ - 2026-05-31T132805.967.jpeg',
-  '_ - 2026-05-31T132813.262.jpeg','_ - 2026-05-31T132817.838.jpeg',
-  '_ - 2026-05-31T132826.765.jpeg','_ - 2026-05-31T132831.736.jpeg',
-  '_ - 2026-05-31T132839.273.jpeg','_ - 2026-05-31T132846.887.jpeg',
-  '_ - 2026-05-31T132915.229.jpeg','_ - 2026-05-31T132920.961.jpeg',
-  '_ - 2026-05-31T132928.096.jpeg',
-  '_ - 2026-06-03T092949.691.jpeg','_ - 2026-06-03T092959.566.jpeg',
-  '_ - 2026-06-03T093010.915.jpeg','_ - 2026-06-03T093024.426.jpeg',
-  '_ - 2026-06-03T093047.226.jpeg','_ - 2026-06-03T093229.296.jpeg',
-  '_ - 2026-06-03T093238.561.jpeg','_ - 2026-06-03T093332.447.jpeg',
-  '_ - 2026-06-03T093405.223.jpeg','_ - 2026-06-03T093413.621.jpeg',
-  '_ - 2026-06-03T093425.249.jpeg','_ - 2026-06-03T093430.872.jpeg',
-  '_ - 2026-06-03T162046.346.jpeg','_ - 2026-06-03T162211.269.jpeg',
-  '_ - 2026-06-03T162239.214.jpeg','_ - 2026-06-03T162248.466.jpeg',
-  '_ - 2026-06-03T162349.199.jpeg','_ - 2026-06-03T162405.945.jpeg',
-]
 
 const ACCENTS = ['#10b981','#ff435a','#ffc410','#4285f4','#28f1c3','#bb9af7','#ff1650','#5ccfe6','#ffbd5e','#e36209','#72f1b8','#ff8080','#89ddff','#e5c07b','#4ec9b0','#c792ea']
 
@@ -377,14 +233,6 @@ const TERM_PALETTES = [
   { id:'monokai',   name:'MONOKAI',       bg:'#272822', text:'#f8f8f2', prompt:'#a6e22e', dim:'#75715e', error:'#f92672', warn:'#e6db74', info:'#66d9e8', border:'#3e3d32', cursor:'#a6e22e', selection:'rgba(166,226,46,0.1)' },
   { id:'classic',   name:'CLASSIC',       bg:'#0c0c0c', text:'#cccccc', prompt:'#ffffff', dim:'#666666', error:'#c50f1f', warn:'#c19c00', info:'#3b78ff', border:'#333333', cursor:'#ffffff', selection:'rgba(255,255,255,0.1)' },
   { id:'solarized', name:'SOLARIZED',     bg:'#002b36', text:'#839496', prompt:'#268bd2', dim:'#586e75', error:'#dc322f', warn:'#b58900', info:'#2aa198', border:'#073642', cursor:'#268bd2', selection:'rgba(38,139,210,0.1)' },
-]
-
-const VERSIONS = [
-  { id:'v0', name:'v1.0', label:'INIT', idx:0 },
-  { id:'v1', name:'v1.1', label:'NODES', idx:1 },
-  { id:'v2', name:'v1.2', label:'EDGES', idx:2 },
-  { id:'v3', name:'v1.3', label:'GROUPS', idx:3 },
-  { id:'v4', name:'v1.4', label:'HEAD', idx:4 },
 ]
 
 // ══════════════════════════════════════════════════════════════
@@ -2875,6 +2723,7 @@ function IDE({ initialTheme = 'cyber', initialAvatar = 0 }) {
   const [replInput, setReplInput] = useState('')
   const [replHistory, setReplHistory] = useState([])
   const [replHistIdx, setReplHistIdx] = useState(-1)
+  const [compileStdin, setCompileStdin] = useState('')
   const jsConsoleEndRef = useRef(null)
 
   // Markdown
@@ -3366,9 +3215,9 @@ function IDE({ initialTheme = 'cyber', initialAvatar = 0 }) {
     })
     let result
     if (isPy)       result = await runPython(node.code || '')
-    else if (isC)   result = await runC(node.code || '')
-    else if (isCpp) result = await runCpp(node.code || '')
-    else if (isGo)  result = await runGo(node.code || '')
+    else if (isC)   result = await runC(node.code || '', compileStdin)
+    else if (isCpp) result = await runCpp(node.code || '', compileStdin)
+    else if (isGo)  result = await runGo(node.code || '', compileStdin)
     else            result = await runJS(node.code || '')
     setNodeRunState(s => ({...s, [nodeId]: {status: result.error?'error':'ok', ms: result.ms}}))
     addEvent(result.error?'run-err':'run-ok', `${result.error?'✗':'✓'} ${node.label} (${result.ms}ms)`, {nodeId})
@@ -4244,17 +4093,75 @@ function IDE({ initialTheme = 'cyber', initialAvatar = 0 }) {
 
         <div style={{flex:1,overflowY:'auto',padding:'6px 10px',fontFamily:"'JetBrains Mono',monospace",fontSize:'11px',lineHeight:1.7,scrollbarWidth:'thin',scrollbarColor:'rgba(255,255,255,.1) transparent'}}>
           {jsLogs.map((entry,i)=>{
-            const col={log:'#c0c8d8',warn:'#ffc410',error:'#ff435a',info:'#4285f4',return:'#c792ea',table:'#c0c8d8','repl-in':'#10b981',header:'#ff2a38','error-footer':'#ff435a',footer:'#10b981'}[entry.type]||'#c0c8d8'
-            const pre={log:'[LOG]',warn:'[WRN]',error:'[ERR]',info:'[NFO]',return:'[←] ',table:'[TBL]','repl-in':'',header:'','error-footer':'','footer':''}[entry.type]||''
-            const isHeader=entry.type==='header'||entry.type==='footer'||entry.type==='error-footer'
+            const isSep   = entry.type==='compile-sep'||entry.type==='run-sep'
+            const isHeader= entry.type==='header'||entry.type==='footer'||entry.type==='error-footer'
+            const col = {
+              log:           '#c0c8d8',
+              warn:          '#ffc410',
+              error:         '#ff435a',
+              info:          '#4285f4',
+              return:        '#c792ea',
+              table:         '#c0c8d8',
+              'repl-in':     '#10b981',
+              header:        '#ff2a38',
+              'error-footer':'#ff435a',
+              footer:        '#10b981',
+              'compile-sep': '#607080',
+              'compile-warn':'#ffc410',
+              'compile-err': '#ff5566',
+              'compile-ok':  '#10b981',
+              'run-sep':     '#607080',
+              'run-err':     '#ff8080',
+            }[entry.type] || '#c0c8d8'
+            const pre = {
+              log:           '[LOG]',
+              warn:          '[WRN]',
+              error:         '[ERR]',
+              info:          '[NFO]',
+              return:        '[←] ',
+              table:         '[TBL]',
+              'compile-warn':'[WRN]',
+              'compile-err': '[ERR]',
+              'compile-ok':  '[OK] ',
+              'run-err':     '[ERR]',
+            }[entry.type] || ''
             return (
-              <div key={i} style={{color:col,whiteSpace:'pre-wrap',wordBreak:'break-all',padding:isHeader?'2px 0':'0',borderTop:isHeader?'1px solid rgba(255,255,255,.07)':'none',opacity:isHeader?.9:undefined}}>
-                {pre&&<span style={{opacity:.4,marginRight:6}}>{pre}</span>}{entry.val}
+              <div key={i} style={{
+                color: col,
+                whiteSpace: 'pre-wrap',
+                wordBreak: 'break-all',
+                padding: (isHeader||isSep) ? '3px 0' : '0',
+                borderTop: (isHeader||isSep) ? '1px solid rgba(255,255,255,.06)' : 'none',
+                opacity: isSep ? 0.45 : isHeader ? 0.9 : undefined,
+                fontStyle: isSep ? 'italic' : undefined,
+              }}>
+                {pre && <span style={{opacity:.4,marginRight:6}}>{pre}</span>}{entry.val}
               </div>
             )
           })}
           <div ref={jsConsoleEndRef}/>
         </div>
+        {/* stdin input — shown when active file is a compiled language */}
+        {(() => {
+          const activeNode = nodesRef.current.find(n => n.id === activeTabId)
+          const activeLang = detectLang(activeNode?.label || '')
+          if (!isCompiled(activeLang)) return null
+          return (
+            <div style={{display:'flex',alignItems:'center',gap:6,padding:'4px 8px',borderTop:'1px solid rgba(255,128,128,.15)',flexShrink:0,background:'rgba(255,100,100,.04)'}}>
+              <span style={{color:'#ff8080',fontFamily:"'JetBrains Mono',monospace",fontSize:'10px',flexShrink:0,opacity:.7}}>stdin:</span>
+              <input
+                value={compileStdin}
+                onChange={e=>setCompileStdin(e.target.value)}
+                style={{flex:1,background:'transparent',border:'none',outline:'none',fontFamily:"'JetBrains Mono',monospace",fontSize:'11px',color:'#c0c8d8',caretColor:'#ff8080'}}
+                placeholder={`input for ${activeLang.toUpperCase()} program…`}
+                spellCheck={false}
+              />
+              {compileStdin && (
+                <button onMouseDown={()=>setCompileStdin('')} style={{fontSize:'9px',opacity:.4,cursor:'pointer',background:'none',border:'none',color:'inherit'}}>CLR</button>
+              )}
+            </div>
+          )
+        })()}
         <div style={{display:'flex',alignItems:'center',gap:6,padding:'4px 8px',borderTop:'1px solid rgba(255,255,255,.07)',flexShrink:0}}>
           <span style={{color:'#10b981',fontFamily:"'JetBrains Mono',monospace",fontSize:'11px'}}>{'>'}</span>
           <input value={replInput} onChange={e=>setReplInput(e.target.value)} onKeyDown={handleReplKey}

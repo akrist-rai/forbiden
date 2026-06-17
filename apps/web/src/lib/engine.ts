@@ -12,14 +12,6 @@ export interface RunResult {
   ms: number
 }
 
-export interface ClassInfo {
-  name: string
-  methods: string[]
-  fields: string[]
-  extends?: string
-  lang: Lang
-}
-
 // ── Language Detection ─────────────────────────────────────────
 export function detectLang(filename: string): Lang {
   const ext = (filename.split('.').pop() ?? '').toLowerCase()
@@ -45,10 +37,6 @@ export function langLabel(lang: Lang): string {
 
 export function isCompiled(lang: Lang): boolean {
   return lang === 'c' || lang === 'cpp' || lang === 'go'
-}
-
-export function isInterpreted(lang: Lang): boolean {
-  return lang === 'js' || lang === 'ts' || lang === 'py'
 }
 
 // ── Symbol Extraction ──────────────────────────────────────────
@@ -88,62 +76,6 @@ export function extractSymbols(code: string, lang: Lang): string[] {
   }
 
   return [...new Set(syms)].slice(0, 12)
-}
-
-// ── Class Analysis ─────────────────────────────────────────────
-export function analyzeClass(code: string, lang: Lang): ClassInfo | null {
-  let name = ''
-  const methods: string[] = []
-  const fields: string[] = []
-  let ext: string | undefined
-
-  if (lang === 'js' || lang === 'ts') {
-    const cls = /class\s+(\w+)(?:\s+extends\s+(\w+))?/.exec(code)
-    if (!cls) return null
-    name = cls[1]; ext = cls[2]
-    for (const m of code.matchAll(/(?:^\s+(?:async\s+)?(\w+)\s*\(|^\s+(?:get|set)\s+(\w+)\s*\()/gm)) {
-      const mn = m[1] || m[2]
-      if (mn && !['constructor', 'if', 'for', 'while'].includes(mn)) methods.push(mn)
-    }
-    for (const m of code.matchAll(/^\s+(?:this\.|#)?(\w+)\s*[=:]/gm)) {
-      if (!methods.includes(m[1]) && m[1] !== 'this') fields.push(m[1])
-    }
-  }
-
-  if (lang === 'py') {
-    const cls = /class\s+(\w+)(?:\(([^)]+)\))?/.exec(code)
-    if (!cls) return null
-    name = cls[1]; ext = cls[2]?.split(',')[0].trim()
-    for (const m of code.matchAll(/^\s{4}def\s+(\w+)/gm)) {
-      if (!m[1].startsWith('__') || m[1] === '__init__') methods.push(m[1])
-    }
-    for (const m of code.matchAll(/^\s+self\.(\w+)\s*=/gm)) {
-      if (!fields.includes(m[1])) fields.push(m[1])
-    }
-  }
-
-  if (lang === 'cpp') {
-    const cls = /(?:class|struct)\s+(\w+)(?:\s*:\s*(?:public|protected|private)?\s*(\w+))?/.exec(code)
-    if (!cls) return null
-    name = cls[1]; ext = cls[2]
-    for (const m of code.matchAll(/^\s+(?:virtual\s+|static\s+|inline\s+)?[\w\s\*&]+\s+(\w+)\s*\(/gm)) {
-      if (!['if', 'for', 'while', 'switch'].includes(m[1])) methods.push(m[1])
-    }
-    for (const m of code.matchAll(/^\s+(?:int|float|double|bool|char\*?|std::string|auto)\s+(\w+)\s*[=;]/gm)) {
-      fields.push(m[1])
-    }
-  }
-
-  if (lang === 'go') {
-    const strct = /type\s+(\w+)\s+struct/.exec(code)
-    if (!strct) return null
-    name = strct[1]
-    for (const m of code.matchAll(/^func\s+\(\w+\s+\*?\w+\)\s+(\w+)/gm)) methods.push(m[1])
-    for (const m of code.matchAll(/^\s+(\w+)\s+[\w\[\]]+/gm)) fields.push(m[1])
-  }
-
-  if (!name) return null
-  return { name, methods: [...new Set(methods)], fields: [...new Set(fields)], extends: ext, lang }
 }
 
 // ── Import Generation ──────────────────────────────────────────
@@ -205,37 +137,6 @@ export function injectImport(code: string, importLine: string, lang: Lang): stri
   }
 
   return lines.join('\n')
-}
-
-// ── Header Generation (C/C++) ──────────────────────────────────
-export function generateHeader(filename: string, code: string, lang: 'c' | 'cpp'): string {
-  const base = filename.replace(/\.\w+$/, '')
-  const guard = (base.replace(/[^a-zA-Z0-9]/g, '_').toUpperCase()) + (lang === 'c' ? '_H' : '_HPP')
-  const syms = extractSymbols(code, lang)
-
-  const decls = syms.map(s => {
-    const re = new RegExp(`[\\w\\s\\*&]+\\s+${s}\\s*\\([^{;]*\\)`, 'g')
-    const m = re.exec(code)
-    return m ? m[0].trim().replace(/\{.*/, '') + ';' : `// ${s} (add declaration)`
-  }).join('\n')
-
-  return [
-    `#ifndef ${guard}`,
-    `#define ${guard}`,
-    '',
-    '#ifdef __cplusplus',
-    'extern "C" {',
-    '#endif',
-    '',
-    decls || '// add function declarations here',
-    '',
-    '#ifdef __cplusplus',
-    '}',
-    '#endif',
-    '',
-    `#endif /* ${guard} */`,
-    '',
-  ].join('\n')
 }
 
 // ── Default Code Templates ─────────────────────────────────────
@@ -388,60 +289,90 @@ export function getDefaultCode(lang: Lang, label: string, nodeType = 'function')
   return ''
 }
 
-// ── Highlight: extra keywords for C/Go ────────────────────────
-export const GO_KW = /\b(func|package|import|return|if|else|for|range|switch|case|default|break|continue|var|const|type|struct|interface|map|chan|go|defer|select|fallthrough|nil|true|false|make|new|len|cap|append|copy|delete|close|panic|recover|error|string|int|int8|int16|int32|int64|uint|uint8|uint16|uint32|uint64|float32|float64|complex64|complex128|bool|byte|rune|any)\b/g
-
 // ── Compiled Language Execution (Wandbox) ─────────────────────
-async function wandbox(compiler: string, code: string, options: string): Promise<RunResult> {
+async function wandbox(
+  compiler: string,
+  code: string,
+  options: string,
+  stdin = '',
+  compilerLabel = 'compiler',
+): Promise<RunResult> {
   const t0 = performance.now()
   const logs: RunResult['logs'] = []
+  const ts = () => Date.now()
 
   try {
     const resp = await fetch('https://wandbox.org/api/compile.json', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ compiler, code, options, stdin: '', save: false }),
+      body: JSON.stringify({ compiler, code, options, stdin, save: false }),
     })
 
     if (!resp.ok) throw new Error(`Wandbox HTTP ${resp.status}: ${resp.statusText}`)
 
     const data: any = await resp.json()
-    const compErr: string = data.compiler_error || ''
-    const compOut: string = data.compiler_output || ''
-    const progOut: string = data.program_output || ''
-    const progErr: string = data.program_error || ''
+    const compErr: string = (data.compiler_error  || '').trim()
+    const compOut: string = (data.compiler_output || '').trim()
+    const progOut: string = (data.program_output  || '').trim()
+    const progErr: string = (data.program_error   || '').trim()
+
+    // ── Compile phase ──────────────────────────────────────────
+    logs.push({ type: 'compile-sep', val: `── ${compilerLabel} (${compiler}) ──`, ts: ts() })
 
     if (compOut) {
-      compOut.split('\n').forEach(l => { if (l.trim()) logs.push({ type: 'info', val: '// ' + l, ts: Date.now() }) })
+      compOut.split('\n').forEach(l => {
+        if (l.trim()) logs.push({ type: 'compile-warn', val: l, ts: ts() })
+      })
     }
+
     if (compErr) {
-      compErr.split('\n').forEach(l => { if (l.trim()) logs.push({ type: 'error', val: l, ts: Date.now() }) })
-      return { logs, error: new Error(compErr.split('\n')[0]), ms: Math.round(performance.now() - t0) }
+      compErr.split('\n').forEach(l => {
+        if (l.trim()) logs.push({ type: 'compile-err', val: l, ts: ts() })
+      })
+      return {
+        logs,
+        error: new Error(compErr.split('\n')[0]),
+        ms: Math.round(performance.now() - t0),
+      }
     }
-    const output = progOut + (progErr ? '\n' + progErr : '')
-    output.split('\n').forEach(l => {
-      if (l.trim()) logs.push({ type: progErr.includes(l) ? 'warn' : 'log', val: l, ts: Date.now() })
-    })
-    if (data.status !== undefined) {
-      logs.push({ type: 'return', val: `exit code: ${data.status}`, ts: Date.now() })
+
+    logs.push({ type: 'compile-ok', val: `✓ compiled in ${Math.round(performance.now() - t0)}ms`, ts: ts() })
+
+    // ── Run phase ──────────────────────────────────────────────
+    if (progOut || progErr) {
+      logs.push({ type: 'run-sep', val: '── output ──', ts: ts() })
+      progOut.split('\n').forEach(l => {
+        if (l.trim()) logs.push({ type: 'log', val: l, ts: ts() })
+      })
+      progErr.split('\n').forEach(l => {
+        if (l.trim()) logs.push({ type: 'run-err', val: l, ts: ts() })
+      })
     }
-    return { logs, error: null, ms: Math.round(performance.now() - t0) }
+
+    const exitCode = data.status ?? 0
+    logs.push({ type: exitCode === 0 ? 'return' : 'run-err', val: `exit: ${exitCode}`, ts: ts() })
+
+    return {
+      logs,
+      error: exitCode !== 0 ? new Error(`Process exited with code ${exitCode}`) : null,
+      ms: Math.round(performance.now() - t0),
+    }
   } catch (e: any) {
     const msg = String(e?.message || e)
-    logs.push({ type: 'error', val: `🌐 ${msg}`, ts: Date.now() })
-    logs.push({ type: 'info', val: '(Wandbox requires internet — compile.forbiden.io)', ts: Date.now() })
+    logs.push({ type: 'compile-err', val: `network: ${msg}`, ts: ts() })
+    logs.push({ type: 'info', val: 'Wandbox requires internet connection', ts: ts() })
     return { logs, error: e instanceof Error ? e : new Error(msg), ms: Math.round(performance.now() - t0) }
   }
 }
 
-export function runC(code: string): Promise<RunResult> {
-  return wandbox('gcc-head', code, '-O0 -std=c11 -lm -Wall')
+export function runC(code: string, stdin = ''): Promise<RunResult> {
+  return wandbox('gcc-head', code, '-O0 -std=c11 -lm -Wall', stdin, 'gcc C11')
 }
 
-export function runCpp(code: string): Promise<RunResult> {
-  return wandbox('gcc-head', code, '-O0 -std=c++17 -Wall')
+export function runCpp(code: string, stdin = ''): Promise<RunResult> {
+  return wandbox('gcc-head', code, '-O0 -std=c++17 -Wall', stdin, 'gcc C++17')
 }
 
-export function runGo(code: string): Promise<RunResult> {
-  return wandbox('go-head', code, '')
+export function runGo(code: string, stdin = ''): Promise<RunResult> {
+  return wandbox('go-head', code, '', stdin, 'go')
 }
